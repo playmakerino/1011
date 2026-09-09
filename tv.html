@@ -116,6 +116,7 @@ const PREBUFFER_MS = 400; // a card focused this long starts loading its video m
 // ==================================================================
 
 const API = "https://www.googleapis.com/youtube/v3/";
+const IN_APP = /\bTVApp\//.test(navigator.userAgent); // the Android wrapper tags its user agent
 const $ = s => document.querySelector(s);
 const homeEl=$("#home"), gridEl=$("#grid"), stateEl=$("#state"), moreWrap=$("#moreWrap"), moreBtn=$("#moreBtn");
 const navEl=$("#nav"), navTitle=$("#navtitle");
@@ -454,7 +455,9 @@ function openPlayer(vid){
   else{ yt.unMute(); if(ready){ yt.seekTo(0,true); yt.playVideo(); } else startVideo(r); }
   // History entry for the open player: Back (phone gesture, or the TV remote via the app) closes the video
   if(!histPushed){ try{ history.pushState({player:1},""); histPushed=true; }catch(_){} }
-  const req=playerEl.requestFullscreen||playerEl.webkitRequestFullscreen;
+  // Not inside the app: the player is already edge-to-edge there, and the WebView fullscreen
+  // transition costs ~1 s of re-layout and makes the YouTube controls show a second time.
+  const req=!IN_APP && (playerEl.requestFullscreen||playerEl.webkitRequestFullscreen);
   if(req) try{ Promise.resolve(req.call(playerEl)).catch(()=>{}); }catch(_){}
 }
 function closePlayer(fromHistory){
