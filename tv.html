@@ -102,8 +102,10 @@ const API_KEY = "AIzaSyDGWoJDMbutkYWJZZzullATm1cnttCAQUE"; // restricted: github
 const SOURCES = [
   { id:"paw",   type:"handle",   handle:"@PAWPatrolOfficial" },
   { id:"cloud", type:"playlist", playlistId:"PLfYEB5yLOF-CA0qZ4j3N19waHIDQFalqE" },
+  { id:"pnf",   type:"playlist", playlistId:"PLiv1IUQDVSNKB3oq2gblc2dYkjhn_iIFi" }, // Phineas and Ferb S1
 ];
 const PAGE_SIZE = 24;
+const REGION = "VN"; // ẩn video không phát được ở vùng này (region-blocked / not embeddable)
 // ==================================================================
 
 const API = "https://www.googleapis.com/youtube/v3/";
@@ -117,11 +119,20 @@ SOURCES.forEach(s => vstate[s.id]={ playlistId:s.playlistId||null, pageToken:"",
 const decoder=document.createElement("textarea");
 const decode=t=>{ decoder.innerHTML=t||""; return decoder.value; };
 const esc=t=>(t||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const pick=th=>(th&&(th.medium||th.high||th.standard||th.default||{}).url)||"";
+const pick=th=>(th&&(th.maxres||th.standard||th.high||th.medium||th.default||{}).url)||"";
 const avpick=th=>(th&&(th.default||th.medium||th.high||{}).url)||"";
 
 function fmtDur(iso){ const m=(iso||"").match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/); if(!m) return ""; const h=+m[1]||0,mi=+m[2]||0,s=+m[3]||0,p=n=>String(n).padStart(2,"0"); return h? h+":"+p(mi)+":"+p(s):mi+":"+p(s); }
 function fmtViews(n){ n=+n; if(!isFinite(n)||n<=0) return ""; if(n>=1e6) return +(n/1e6).toFixed(n>=1e7?0:1)+"M views"; if(n>=1e3) return +(n/1e3).toFixed(n>=1e4?0:1)+"K views"; return n+" views"; }
+function watchable(v){
+  if(v.status && v.status.embeddable===false) return false;
+  const rr=v.contentDetails&&v.contentDetails.regionRestriction;
+  if(rr){
+    if(rr.blocked && rr.blocked.includes(REGION)) return false;
+    if(rr.allowed && !rr.allowed.includes(REGION)) return false;
+  }
+  return true;
+}
 function ago(iso){ const d=(Date.now()-new Date(iso))/1000; for(const [nm,sec] of [["year",31536000],["month",2592000],["week",604800],["day",86400],["hour",3600],["minute",60]]){ const v=Math.floor(d/sec); if(v>=1) return v+" "+nm+(v>1?"s":"")+" ago"; } return "just now"; }
 
 async function api(path,params){
@@ -196,9 +207,9 @@ async function loadPage(id,first){
     const ids=(jp.items||[]).map(it=>it.contentDetails?.videoId).filter(Boolean);
     let vids=[];
     if(ids.length){
-      const jv=await api("videos",{ part:"snippet,contentDetails,statistics", id:ids.join(",") });
+      const jv=await api("videos",{ part:"snippet,contentDetails,statistics,status", id:ids.join(",") });
       if(currentGrid!==id) return;
-      vids=jv.items||[];
+      vids=(jv.items||[]).filter(watchable);
     }
     if(first) gridEl.innerHTML="";
     vids.forEach(addCard);
