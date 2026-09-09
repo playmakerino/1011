@@ -22,7 +22,18 @@ jobs:
           gradle-version: "8.9"
       - name: Build
         working-directory: android
-        run: gradle assembleRelease --no-daemon
+        run: |
+          set -o pipefail
+          gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
+      - name: Publish build log to job summary
+        if: failure()
+        run: |
+          echo '## Gradle build log (tail)' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -nE 'error|FAILURE|What went wrong|Exception|Caused by' -i android/build.log | head -60 >> "$GITHUB_STEP_SUMMARY" || true
+          echo '--- tail ---' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 80 android/build.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
       - name: Rename
         run: cp android/app/build/outputs/apk/release/app-release.apk tv.apk
       - uses: actions/upload-artifact@v4
