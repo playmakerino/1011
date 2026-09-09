@@ -386,7 +386,7 @@ function togglePlay(){
   if(yt.getPlayerState()===1){ yt.pauseVideo(); toast("❚❚"); } else { yt.playVideo(); toast("▶"); }
 }
 const KEYS={
-  ArrowLeft:()=>seekBy(-10), ArrowRight:()=>seekBy(10), ArrowUp:()=>seekBy(60), ArrowDown:()=>seekBy(-60),
+  ArrowLeft:()=>seekBy(-10), ArrowRight:()=>seekBy(10), ArrowUp:()=>{}, ArrowDown:()=>{}, // up/down: swallowed so focus never leaves the player
   Enter:togglePlay, " ":togglePlay, MediaPlayPause:togglePlay, MediaPlay:togglePlay, MediaPause:togglePlay,
   MediaRewind:()=>seekBy(-10), MediaFastForward:()=>seekBy(10), MediaStop:closePlayer,
 };
