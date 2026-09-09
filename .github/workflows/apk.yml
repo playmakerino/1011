@@ -1,0 +1,38 @@
+name: Build APK
+on:
+  push:
+    branches: [main]
+    paths: ["android/**", ".github/workflows/apk.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Build
+        working-directory: android
+        run: gradle assembleRelease --no-daemon
+      - name: Rename
+        run: cp android/app/build/outputs/apk/release/app-release.apk tv.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tv-apk
+          path: tv.apk
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk
+          name: TV APK
+          body: "WebView wrapper for https://playmakerino.github.io/1011/tv.html - rebuilt automatically on every push."
+          files: tv.apk

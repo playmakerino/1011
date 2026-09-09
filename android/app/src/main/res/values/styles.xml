@@ -1,0 +1,7 @@
+<resources>
+    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#FFFFFF</item>
+    </style>
+    <color name="ic_bg">#FF0000</color>
+    <item name="ic_launcher" type="mipmap">@drawable/ic_launcher_legacy</item>
+</resources>

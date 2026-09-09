@@ -67,6 +67,11 @@
   .close{position:absolute; top:-52px; right:0; width:40px; height:40px; border-radius:50%; border:none; cursor:pointer; background:#fff; color:#0f0f0f; font-size:22px; line-height:1}
   .ptitle{color:#fff; font-weight:500; margin:14px 2px 0; font-size:16px}
   @media (max-width:520px){ main{padding:16px 14px 60px} .close{top:auto; bottom:-52px; right:50%; transform:translateX(50%)} }
+
+  /* D-pad / keyboard focus (Android TV WebView has no mouse cursor) */
+  .src:focus,.card:focus{outline:none}
+  .src:focus-visible .banner,.card:focus-visible .thumb{outline:4px solid #065fd4; outline-offset:2px}
+  .back:focus-visible,.close:focus-visible,.more button:focus-visible{outline:4px solid #065fd4; outline-offset:2px}
 </style>
 </head>
 <body>
@@ -205,7 +210,14 @@ async function renderHome(seq){
       b.onclick=()=>{ location.hash = (s.type==="channelPlaylists") ? ("ch/"+s.id) : ("pl/"+m.playlistId); };
       homeEl.appendChild(b);
     });
+    focusFirst(homeEl);
   }catch(e){ if(seq!==navSeq) return; homeEl.innerHTML=""; showState("Couldn't load the list.<br><small>"+esc(e.message)+"</small>"); }
+}
+// D-pad: put focus on the first item of a freshly rendered list if nothing else has it
+function focusFirst(container){
+  const a=document.activeElement;
+  if(a && a!==document.body && a.isConnected && a!==moreBtn) return;
+  const el=container.querySelector(".src,.card"); if(el) el.focus({preventScroll:true});
 }
 
 // ---------------- CHANNEL: its playlists ----------------
@@ -242,6 +254,7 @@ async function loadPlaylists(seq){
     b.onclick=()=>{ location.hash="pl/"+pid; };
     homeEl.appendChild(b);
   });
+  focusFirst(homeEl);
   moreWrap.hidden=true;
   if(!all.length) showState("No playlists here.");
 }
@@ -285,6 +298,7 @@ async function loadVideos(first,seq){
     // whole page filtered out but more pages exist -> keep fetching so sparse
     // watchable videos (e.g. only a few playable in this region) still show up
     if(vids.length===0 && !cur.done){ return loadVideos(false,seq); }
+    if(first) focusFirst(gridEl);
     moreWrap.hidden=cur.done;
     if(gridEl.children.length===0) showState("No videos here yet.");
   }catch(e){ if(seq!==navSeq) return; if(first) gridEl.innerHTML=""; showState("Couldn't load videos.<br><small>"+esc(e.message)+"</small>"); }
@@ -311,13 +325,16 @@ function addCard(v){
 // ---------------- PLAYER (English subtitles forced on) ----------------
 const modal=$("#modal"), frameHost=$("#frameHost"), ptitle=$("#ptitle");
 const frameWrap=document.querySelector(".frameWrap");
+let lastFocused=null; // card to return focus to when the player closes (D-pad)
 function openPlayer(vid,title){
+  lastFocused=document.activeElement;
   const listParam = currentAutoNextList ? ("&list="+encodeURIComponent(currentAutoNextList)) : "";
   frameHost.innerHTML='<iframe src="https://www.youtube-nocookie.com/embed/'+encodeURIComponent(vid)+
     '?rel=0&modestbranding=1&playsinline=1&autoplay=1&fs=1&cc_load_policy=1&cc_lang_pref=en&hl=en'+listParam+'"'+
     ' allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
   ptitle.textContent=title;
   modal.classList.add("open"); modal.setAttribute("aria-hidden","false"); document.body.style.overflow="hidden";
+  const fr=frameHost.querySelector("iframe"); if(fr) fr.focus(); // remote keys go to the YouTube player
   const req=frameWrap.requestFullscreen||frameWrap.webkitRequestFullscreen;
   if(req) try{ Promise.resolve(req.call(frameWrap)).catch(()=>{}); }catch(_){}
 }
@@ -325,6 +342,8 @@ function closePlayer(){
   const ex=document.fullscreenElement||document.webkitFullscreenElement;
   if(ex){ (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }
   modal.classList.remove("open"); modal.setAttribute("aria-hidden","true"); frameHost.innerHTML=""; document.body.style.overflow="";
+  if(lastFocused && lastFocused.isConnected) lastFocused.focus({preventScroll:true});
+  lastFocused=null;
 }
 function onFsChange(){ if(!(document.fullscreenElement||document.webkitFullscreenElement) && modal.classList.contains("open")) closePlayer(); }
 document.addEventListener("fullscreenchange",onFsChange);
