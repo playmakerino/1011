@@ -61,16 +61,19 @@
 
   /* Hidden with visibility (not display:none) so the player iframe keeps its real size while closed:
      it initialises at the right resolution and can pre-buffer the focused video in the background. */
-  .modal{position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.95); display:flex; visibility:hidden; align-items:center; justify-content:center; padding:16px}
+  /* Edge-to-edge: the frame already matches the screen, so the WebView fullscreen transition
+     (which takes up to a second on TV boxes) no longer shows the video jumping out of a smaller box. */
+  .modal{position:fixed; inset:0; z-index:50; background:#000; display:flex; visibility:hidden; padding:0}
   .modal.open{visibility:visible}
-  .player{width:min(1100px,100%)}
-  .frameWrap{position:relative; aspect-ratio:16/9; width:100%; background:#000; border-radius:12px; overflow:hidden}
+  .player{width:100%; height:100%}
+  .frameWrap{position:relative; width:100%; height:100%; background:#000; overflow:hidden}
   .frameWrap iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
-  .close{position:absolute; top:-52px; right:0; width:40px; height:40px; border-radius:50%; border:none; cursor:pointer; background:#fff; color:#0f0f0f; font-size:22px; line-height:1}
-  .ptitle{color:#fff; font-weight:500; margin:14px 2px 0; font-size:16px}
+  .close{position:absolute; top:12px; right:12px; z-index:3; width:40px; height:40px; border-radius:50%; border:none; cursor:pointer; background:rgba(255,255,255,.85); color:#0f0f0f; font-size:22px; line-height:1; opacity:0}
+  .frameWrap:hover .close,.close:focus-visible{opacity:1} /* mouse/touch only; the remote uses Back */
+  .ptitle{display:none}
   .player:focus{outline:none}
   .toast{position:absolute; left:50%; bottom:14%; transform:translateX(-50%); z-index:2; background:rgba(0,0,0,.8); color:#fff; font-size:22px; font-weight:500; padding:10px 18px; border-radius:10px; pointer-events:none; white-space:nowrap}
-  @media (max-width:520px){ main{padding:16px 14px 60px} .close{top:auto; bottom:-52px; right:50%; transform:translateX(50%)} }
+  @media (max-width:520px){ main{padding:16px 14px 60px} .close{opacity:1} }
 
   /* D-pad / keyboard focus (Android TV WebView has no mouse cursor): white ring like the YouTube TV app */
   .src:focus,.card:focus{outline:none}
