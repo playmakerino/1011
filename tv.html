@@ -26,9 +26,8 @@
   .back:hover{background:var(--hover)}
   .navtitle{font-size:20px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
-  .home,.grid{grid-template-columns:repeat(2,minmax(0,1fr))} /* base: phones */
-  @media(min-width:600px){ .home,.grid{grid-template-columns:repeat(3,minmax(0,1fr))} } /* TV / tablets */
-  @media(min-width:900px){ .home,.grid{grid-template-columns:repeat(4,minmax(0,1fr))} } /* desktop: 4 cols */
+  .home,.grid{grid-template-columns:1fr} /* mobile: 1 col */
+  @media(min-width:600px){ .home,.grid{grid-template-columns:repeat(3,minmax(0,1fr))} } /* tablet / TV / desktop: 3 cols */
   .home{display:grid; gap:16px}
   .src{ background:none; border:none; text-align:left; cursor:pointer; padding:0; display:flex; flex-direction:column; gap:10px; }
   .src .banner{position:relative; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:#e9e9e9}
