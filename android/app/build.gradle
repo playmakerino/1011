@@ -7,13 +7,24 @@ android {
         applicationId "io.github.playmakerino.tv"
         minSdk 21
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        // CI passes -Pvc=<run number> so every build is a higher version than the last.
+        versionCode (project.hasProperty("vc") ? project.vc.toInteger() : 1)
+        versionName "1." + (project.hasProperty("vc") ? project.vc : "0")
+    }
+    signingConfigs {
+        // Fixed key committed in android/tv.jks so updates install over the previous build.
+        // (A per-run debug key made Android reject each new APK as a "conflicting package".)
+        release {
+            storeFile rootProject.file("tv.jks")
+            storePassword "android"
+            keyAlias "tv"
+            keyPassword "android"
+        }
     }
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.debug
+            signingConfig rootProject.file("tv.jks").exists() ? signingConfigs.release : signingConfigs.debug
         }
     }
     lint { checkReleaseBuilds false }

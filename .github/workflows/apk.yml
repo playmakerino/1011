@@ -20,11 +20,16 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
+      - name: Signing key (generated once, then committed so it stays the same)
+        run: |
+          [ -f android/tv.jks ] && exit 0
+          keytool -genkeypair -keystore android/tv.jks -alias tv -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android -dname "CN=TV, O=playmakerino"
       - name: Build
         working-directory: android
         run: |
           set -o pipefail
-          gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
+          gradle assembleRelease -Pvc=${{ github.run_number }} --no-daemon --stacktrace 2>&1 | tee build.log
       - name: Surface build errors as annotations (visible without login)
         if: failure()
         run: |
@@ -52,7 +57,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add tv.apk
+          git add tv.apk android/tv.jks
           git diff --cached --quiet && exit 0
           git commit -m "ci: update tv.apk [skip ci]"
           git push
