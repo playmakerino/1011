@@ -3,61 +3,63 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0f0f0f">
 <title>TV</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://www.googleapis.com">
+<link rel="preconnect" href="https://i.ytimg.com">
+<link rel="preconnect" href="https://www.youtube.com">
+<link rel="preconnect" href="https://www.youtube-nocookie.com">
+<!-- Roboto is fetched without blocking first paint (Android already has Roboto as its system font) -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
-  :root{ --bg:#fff; --ink:#0f0f0f; --muted:#606060; --line:#e5e5e5; --hover:#f2f2f2; --chip:#f2f2f2; }
+  :root{ --bg:#0f0f0f; --ink:#f1f1f1; --muted:#aaa; --line:rgba(255,255,255,.3); --chip:#272727; --chip-hover:#3f3f3f; --ph:#272727; --focus:#fff; color-scheme:dark }
   *{box-sizing:border-box}
   [hidden]{display:none!important}
-  html,body{margin:0}
-  body{ font:14px/1.4 Roboto,system-ui,Arial,sans-serif; background:var(--bg); color:var(--ink); -webkit-tap-highlight-color:transparent; }
+  html,body{margin:0; background:var(--bg)}
+  body{ font:14px/1.4 Roboto,system-ui,Arial,sans-serif; color:var(--ink); -webkit-tap-highlight-color:transparent; }
   button{font-family:inherit}
   img{display:block}
 
   main{max-width:1280px; margin:0 auto; padding:20px 24px 80px}
 
   .nav{display:flex; align-items:center; gap:14px; margin:0 0 20px}
-  .nav[hidden]{display:none}
   .navtitle{font-size:20px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
   .home,.grid{grid-template-columns:1fr} /* mobile: 1 col */
   @media(min-width:600px){ .home,.grid{grid-template-columns:repeat(3,minmax(0,1fr))} } /* tablet / TV / desktop: 3 cols */
   .home{display:grid; gap:16px}
-  .src{ background:none; border:none; text-align:left; cursor:pointer; padding:0; display:flex; flex-direction:column; gap:10px; }
-  .src .banner{position:relative; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:#e9e9e9}
+  .src{ background:none; border:none; text-align:left; cursor:pointer; padding:0; display:flex; flex-direction:column; gap:10px; color:inherit }
+  .src .banner{position:relative; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:var(--ph)}
   .src .banner img{width:100%; height:100%; object-fit:cover}
-  .src:hover .banner{filter:brightness(.94)}
+  .src:hover .banner{filter:brightness(1.1)}
   .src .badge{ position:absolute; top:8px; left:8px; background:rgba(0,0,0,.75); color:#fff; font-weight:500; font-size:12px; padding:3px 8px; border-radius:6px; }
   .src .nm{font-size:16px; font-weight:700; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
   .src .sub{color:var(--muted); font-size:13px; margin-top:2px}
 
   .grid{display:grid; gap:36px 16px}
   .card{cursor:pointer; display:flex; flex-direction:column}
-  .thumb{position:relative; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:#e9e9e9}
+  .thumb{position:relative; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:var(--ph)}
   .thumb img{width:100%; height:100%; object-fit:cover}
   .dur{ position:absolute; right:8px; bottom:8px; background:rgba(0,0,0,.8); color:#fff; font-size:12px; font-weight:500; padding:2px 5px; border-radius:5px; line-height:1.2; }
   .row{display:flex; gap:12px; margin-top:12px}
-  .av{width:36px; height:36px; border-radius:50%; flex:0 0 36px; object-fit:cover; background:#ddd}
+  .av{width:36px; height:36px; border-radius:50%; flex:0 0 36px; object-fit:cover; background:var(--chip)}
   .txt{min-width:0}
   .title{font-size:15px; font-weight:500; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
   .byline{color:var(--muted); font-size:13px; margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .byline .ch{display:block}
 
+  .btn{ cursor:pointer; font-size:14px; font-weight:500; border:1px solid var(--line); padding:9px 16px; border-radius:999px; background:var(--chip); color:var(--ink); }
+  .btn:hover{background:var(--chip-hover)}
+  .btn:disabled{opacity:.5; cursor:default}
   .more{display:flex; justify-content:center; margin:40px 0 0}
-  .more button{ cursor:pointer; font-size:14px; font-weight:500; border:1px solid var(--line); padding:9px 16px; border-radius:999px; background:var(--chip); color:var(--ink); }
-  .more button:hover{background:#e5e5e5}
-  .more button:disabled{opacity:.5; cursor:default}
 
   .state{text-align:center; color:var(--muted); padding:70px 20px; font-size:15px}
-  .spinner{width:40px;height:40px;border-radius:50%;border:4px solid var(--line);border-top-color:#909090;margin:0 auto 14px}
+  .state .btn{margin-top:18px}
 
-  .sk .thumb,.sk .banner{background:#eee}
-  .sk .l{height:14px; border-radius:6px; background:#eee; margin-top:10px}
+  .sk .l{height:14px; border-radius:6px; background:var(--ph); margin-top:10px}
   .sk .l.s{width:55%}
 
-  .modal{position:fixed; inset:0; z-index:50; background:rgba(15,15,15,.95); display:none; align-items:center; justify-content:center; padding:16px}
+  .modal{position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.95); display:none; align-items:center; justify-content:center; padding:16px}
   .modal.open{display:flex}
   .player{width:min(1100px,100%)}
   .frameWrap{position:relative; aspect-ratio:16/9; width:100%; background:#000; border-radius:12px; overflow:hidden}
@@ -68,10 +70,10 @@
   .toast{position:absolute; left:50%; bottom:14%; transform:translateX(-50%); z-index:2; background:rgba(0,0,0,.8); color:#fff; font-size:22px; font-weight:500; padding:10px 18px; border-radius:10px; pointer-events:none; white-space:nowrap}
   @media (max-width:520px){ main{padding:16px 14px 60px} .close{top:auto; bottom:-52px; right:50%; transform:translateX(50%)} }
 
-  /* D-pad / keyboard focus (Android TV WebView has no mouse cursor) */
+  /* D-pad / keyboard focus (Android TV WebView has no mouse cursor): white ring like the YouTube TV app */
   .src:focus,.card:focus{outline:none}
-  .src:focus-visible .banner,.card:focus-visible .thumb{outline:4px solid #065fd4; outline-offset:2px}
-  .close:focus-visible,.more button:focus-visible{outline:4px solid #065fd4; outline-offset:2px}
+  .src:focus-visible .banner,.card:focus-visible .thumb{outline:4px solid var(--focus); outline-offset:2px}
+  .close:focus-visible,.btn:focus-visible{outline:4px solid var(--focus); outline-offset:2px}
 </style>
 </head>
 <body>
@@ -82,14 +84,13 @@
   <div class="home" id="home" hidden></div>
   <div class="grid" id="grid" hidden></div>
   <div class="state" id="state" hidden></div>
-  <div class="more" id="moreWrap" hidden><button id="moreBtn">Load more</button></div>
+  <div class="more" id="moreWrap" hidden><button class="btn" id="moreBtn" type="button">Load more</button></div>
 </main>
 
 <div class="modal" id="modal" aria-hidden="true">
   <div class="player" id="player" tabindex="-1">
     <div class="frameWrap">
       <button class="close" id="closeBtn" aria-label="Close">✕</button>
-      <div id="frameHost"></div>
       <div class="toast" id="toast" hidden></div>
     </div>
     <div class="ptitle" id="ptitle"></div>
@@ -99,13 +100,17 @@
 <script>
 // ====== CONFIG — only the sources listed here can be watched ======
 const API_KEY = "AIzaSyDGWoJDMbutkYWJZZzullATm1cnttCAQUE"; // restricted: github.io referrer + YouTube Data API only
+// type: "playlist" (its videos) | "channel" (its uploads as videos) | "channelPlaylists" (click -> its playlists, sorted by count)
+// subs:false  -> don't force English subtitles on for this source (default: forced on)
+// autonext    -> play as a playlist so the next video starts by itself
 const SOURCES = [
-  { id:"paw",     type:"channelPlaylists", handle:"@PAWPatrolOfficial" },              // click -> its playlists (sorted by count)
+  { id:"paw",     type:"channelPlaylists", handle:"@PAWPatrolOfficial" },
   { id:"cloud",   type:"playlist",        playlistId:"PLfYEB5yLOF-CA0qZ4j3N19waHIDQFalqE" },
   { id:"pnf",     type:"playlist",        playlistId:"PLiv1IUQDVSNKB3oq2gblc2dYkjhn_iIFi" }, // Phineas and Ferb S1
-  { id:"pokemon", type:"channelPlaylists", handle:"@PokémonAsiaENG" },                  // click -> its playlists
+  { id:"pokemon", type:"channelPlaylists", handle:"@PokémonAsiaENG" },
   { id:"maruko",  type:"playlist",        playlistId:"PLQGFvBFre_B3zygU6fi8irYZAZw6Pz7TP" }, // Chibi Maruko Chan English
-  { id:"kdh",     type:"playlist",        playlistId:"PLDwbngJoT5crMIEVzjs4ltzjG2WiBX1Sm", autonext:true }, // Kpop Demon Hunters — auto-advance
+  { id:"kdh",     type:"playlist",        playlistId:"PLDwbngJoT5crMIEVzjs4ltzjG2WiBX1Sm", autonext:true }, // Kpop Demon Hunters
+  { id:"anhthu",  type:"channel",         handle:"@AnhThufamily", subs:false },
 ];
 const PAGE_SIZE = 24;
 const REGION = "VN"; // hide videos that can't play in this region (region-blocked / not embeddable)
@@ -116,16 +121,27 @@ const $ = s => document.querySelector(s);
 const homeEl=$("#home"), gridEl=$("#grid"), stateEl=$("#state"), moreWrap=$("#moreWrap"), moreBtn=$("#moreBtn");
 const navEl=$("#nav"), navTitle=$("#navtitle");
 
-const meta={};          // source id -> resolved meta
+const meta={};          // source id -> resolved meta (filled from the home list)
+const headers={};       // playlistId -> {title, avatar} learned while listing; saves a request when opening it
 let navSeq=0;           // bumps on every route change; async guards compare against it
-let cur={kind:null,key:null,token:"",done:false}; // current list view paging state
+let cur={kind:null,key:null,token:"",done:false,pages:0}; // current list view paging state
 let currentAvatar="";
 let currentAutoNextList=""; // when set, player embeds the playlist so it auto-advances
+let currentSubs=true;       // force English subtitles for the list being watched
+const positions={};         // videoId -> index in the current playlist (to start a playlist at that video)
+
+// <img sizes>: 1 column under 600px, else 3 columns inside a 1280px main — lets the browser pick a
+// thumbnail that fits the slot instead of always downloading the 1280px one
+const SIZES="(max-width:599px) calc(100vw - 28px), (max-width:1280px) calc((100vw - 80px)/3), 400px";
 
 const decoder=document.createElement("textarea");
 const decode=t=>{ decoder.innerHTML=t||""; return decoder.value; };
 const esc=t=>(t||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const pick=th=>(th&&(th.maxres||th.standard||th.high||th.medium||th.default||{}).url)||"";
+const thumbs=th=>{ // {s: fallback src, ss: srcset from every size YouTube offers}
+  th=th||{}; const big=th.maxres||th.standard||th.high||th.medium||th.default;
+  return { s:big?big.url:"", ss:Object.values(th).filter(t=>t&&t.url&&t.width).map(t=>t.url+" "+t.width+"w").join(",") };
+};
+const imgTag=t=>'<img loading="lazy" decoding="async" src="'+esc(t.s)+'"'+(t.ss?' srcset="'+esc(t.ss)+'" sizes="'+SIZES+'"':'')+' alt="">';
 const avpick=th=>(th&&(th.default||th.medium||th.high||{}).url)||"";
 
 function fmtDur(iso){ const m=(iso||"").match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/); if(!m) return ""; const h=+m[1]||0,mi=+m[2]||0,s=+m[3]||0,p=n=>String(n).padStart(2,"0"); return h? h+":"+p(mi)+":"+p(s):mi+":"+p(s); }
@@ -142,27 +158,31 @@ async function api(path,params){
   const u=new URL(API+path);
   Object.entries(params).forEach(([k,v])=>v!=null&&u.searchParams.set(k,v));
   u.searchParams.set("key",API_KEY);
-  const r=await fetch(u); const j=await r.json();
+  const ac=new AbortController(), tm=setTimeout(()=>ac.abort(),15000); // a hung request must not freeze the screen
+  let r,j;
+  try{ r=await fetch(u,{signal:ac.signal}); j=await r.json(); }
+  catch(e){ throw new Error(ac.signal.aborted?"Request timed out":"Network error"); }
+  finally{ clearTimeout(tm); }
   if(!r.ok) throw new Error(j.error?.message||("HTTP "+r.status));
   return j;
 }
 
-async function fetchMeta(src){
-  if(meta[src.id]) return meta[src.id];
-  let m;
-  if(src.type==="playlist"){
-    const j=await api("playlists",{ part:"snippet,contentDetails", id:src.playlistId });
-    const it=j.items?.[0]; if(!it) throw new Error("Playlist not found");
-    m={ title:decode(it.snippet.title), thumb:pick(it.snippet.thumbnails), avatar:pick(it.snippet.thumbnails),
-        playlistId:src.playlistId, type:"Playlist", count:it.contentDetails?.itemCount??null };
-  }else{ // handle or channelPlaylists
-    const j=await api("channels",{ part:"snippet,contentDetails,statistics", forHandle:src.handle });
-    const it=j.items?.[0]; if(!it) throw new Error("Channel not found: "+src.handle);
-    m={ title:decode(it.snippet.title), thumb:pick(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
-        channelId:it.id, playlistId:it.contentDetails.relatedPlaylists.uploads, type:"Channel",
-        count:Number(it.statistics?.videoCount)||null };
-  }
-  meta[src.id]=m; return m;
+// ---------------- CACHE: localStorage, stale-while-revalidate ----------------
+// Every list is drawn from its last copy at once (instant start on a TV box, works through API hiccups),
+// then re-fetched; the fresh copy only touches the screen when it differs from what was drawn.
+const CK="tv1:";
+function cacheGet(k){ try{ const s=localStorage.getItem(CK+k); return s?{s,v:JSON.parse(s)}:null; }catch(_){ return null; } }
+function cacheSet(k,s){ try{ localStorage.setItem(CK+k,s); }catch(_){ try{ cacheClear(); localStorage.setItem(CK+k,s); }catch(__){} } }
+function cacheClear(){ try{ Object.keys(localStorage).filter(x=>x.startsWith(CK)).forEach(x=>localStorage.removeItem(x)); }catch(_){} }
+// paint(value) runs synchronously with the cached value (if any), then again with the fetched one if it differs.
+// Resolves once the fetch settles; rejects only when there was nothing cached to fall back on.
+async function swr(key,fetcher,paint){
+  const c=cacheGet(key);
+  if(c) paint(c.v);
+  try{
+    const v=await fetcher(), s=JSON.stringify(v);
+    if(!c||s!==c.s){ cacheSet(key,s); paint(v); }
+  }catch(e){ if(!c) throw e; }
 }
 
 // ---------------- ROUTER (hash = page) ----------------
@@ -175,7 +195,7 @@ function route(){
 }
 function render(){
   const seq=++navSeq;
-  if(modal.classList.contains("open")) closePlayer();
+  closePlayer(true);
   const r=route();
   if(r.v==="home") renderHome(seq);
   else if(r.v==="channel") showChannel(r.id,seq);
@@ -189,159 +209,214 @@ function setView(which){ // "home" grid of source/playlist cards, or "grid" vide
   stateEl.hidden=true; moreWrap.hidden=true;
   window.scrollTo(0,0);
 }
-function bump(el){ /* animations removed */ }
-function showState(msg){ stateEl.hidden=false; stateEl.innerHTML=msg; }
+function showState(msg,err,retry){
+  stateEl.hidden=false;
+  stateEl.innerHTML=msg+(err?'<br><small>'+esc(err.message||String(err))+'</small>':'')+(retry?'<div><button class="btn" id="retryBtn" type="button">Retry</button></div>':'');
+  if(retry){ const b=$("#retryBtn"); b.onclick=render; b.focus({preventScroll:true}); }
+}
 function skeletonsSrc(n){ let h=""; for(let i=0;i<n;i++) h+='<div class="src sk"><div class="banner"></div><div class="l"></div><div class="l s"></div></div>'; return h; }
 function skeletons(n){ let h=""; for(let i=0;i<n;i++) h+='<div class="card sk"><div class="thumb"></div><div class="row"><div class="txt" style="flex:1"><div class="l"></div><div class="l s"></div></div></div></div>'; return h; }
-
-// ---------------- HOME: list of sources ----------------
-async function renderHome(seq){
-  navEl.hidden=true; setView("home"); bump(homeEl);
-  homeEl.innerHTML=skeletonsSrc(SOURCES.length);
-  try{
-    const metas=await Promise.all(SOURCES.map(fetchMeta));
-    if(seq!==navSeq) return;
-    homeEl.innerHTML="";
-    SOURCES.forEach((s,i)=>{
-      const m=metas[i]; const cnt=m.count!=null?(m.count+" videos"):"";
-      const b=document.createElement("button"); b.className="src"; b.type="button";
-      b.innerHTML='<div class="banner"><img loading="lazy" src="'+esc(m.thumb)+'" alt=""><span class="badge">'+esc(m.type)+'</span></div>'+
-        '<div><div class="nm">'+esc(m.title)+'</div>'+(cnt?'<div class="sub">'+esc(cnt)+'</div>':'')+'</div>';
-      b.onclick=()=>{ location.hash = (s.type==="channelPlaylists") ? ("ch/"+s.id) : ("pl/"+m.playlistId); };
-      homeEl.appendChild(b);
-    });
-    focusFirst(homeEl);
-  }catch(e){ if(seq!==navSeq) return; homeEl.innerHTML=""; showState("Couldn't load the list.<br><small>"+esc(e.message)+"</small>"); }
-}
 // D-pad: put focus on the first item of a freshly rendered list if nothing else has it
 function focusFirst(container){
   const a=document.activeElement;
   if(a && a!==document.body && a.isConnected && a!==moreBtn) return;
   const el=container.querySelector(".src,.card"); if(el) el.focus({preventScroll:true});
 }
+function refocus(container,index){ // keep the D-pad position when a list is redrawn under the user
+  const el=index>=0&&container.children[index];
+  if(el&&el.focus) el.focus({preventScroll:true}); else focusFirst(container);
+}
+function srcButton(thumb,badge,title,count,onclick){
+  const b=document.createElement("button"); b.className="src"; b.type="button";
+  b.innerHTML='<div class="banner">'+imgTag(thumb)+'<span class="badge">'+esc(badge)+'</span></div>'+
+    '<div><div class="nm">'+esc(title)+'</div>'+(count!=null?'<div class="sub">'+count+' videos</div>':'')+'</div>';
+  b.onclick=onclick; return b;
+}
+
+// ---------------- HOME: list of sources ----------------
+async function fetchHome(){
+  // all playlist sources go in one request; channels need one request per handle
+  const pls=SOURCES.filter(s=>s.type==="playlist"), chs=SOURCES.filter(s=>s.type!=="playlist");
+  const [jp,...jc]=await Promise.all([
+    pls.length? api("playlists",{ part:"snippet,contentDetails", id:pls.map(s=>s.playlistId).join(",") }) : {items:[]},
+    ...chs.map(s=>api("channels",{ part:"snippet,contentDetails,statistics", forHandle:s.handle }))
+  ]);
+  const byPl={}; (jp.items||[]).forEach(it=>byPl[it.id]=it);
+  return SOURCES.map(s=>{
+    if(s.type==="playlist"){
+      const it=byPl[s.playlistId]; if(!it) throw new Error("Playlist not found: "+s.playlistId);
+      return { title:decode(it.snippet.title), thumb:thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
+               playlistId:s.playlistId, type:"Playlist", count:it.contentDetails?.itemCount??null };
+    }
+    const it=jc[chs.indexOf(s)].items?.[0]; if(!it) throw new Error("Channel not found: "+s.handle);
+    return { title:decode(it.snippet.title), thumb:thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
+             channelId:it.id, playlistId:it.contentDetails.relatedPlaylists.uploads, type:"Channel",
+             count:Number(it.statistics?.videoCount)||null };
+  });
+}
+function absorbHome(metas){ metas.forEach((m,i)=>{ meta[SOURCES[i].id]=m; headers[m.playlistId]={title:m.title,avatar:m.avatar}; }); }
+async function renderHome(seq){
+  navEl.hidden=true; setView("home");
+  let painted=false;
+  const paint=metas=>{
+    if(seq!==navSeq) return;
+    absorbHome(metas);
+    const fi=[...homeEl.children].indexOf(document.activeElement);
+    homeEl.innerHTML="";
+    SOURCES.forEach((s,i)=>{
+      const m=metas[i];
+      homeEl.appendChild(srcButton(m.thumb,m.type,m.title,m.count,()=>{ location.hash=(s.type==="channelPlaylists")?("ch/"+s.id):("pl/"+m.playlistId); }));
+    });
+    refocus(homeEl,fi); painted=true;
+  };
+  if(!cacheGet("home")) homeEl.innerHTML=skeletonsSrc(SOURCES.length);
+  try{ await swr("home",fetchHome,paint); }
+  catch(e){ if(seq!==navSeq||painted) return; homeEl.innerHTML=""; showState("Couldn't load the list.",e,true); }
+}
 
 // ---------------- CHANNEL: its playlists ----------------
+async function fetchPlaylists(cid){
+  let token="", all=[];
+  do{ // every page, then sorted by video count (desc)
+    const j=await api("playlists",{ part:"snippet,contentDetails", channelId:cid, maxResults:50, pageToken:token||undefined });
+    all=all.concat(j.items||[]); token=j.nextPageToken||"";
+  }while(token);
+  all.sort((a,b)=>(b.contentDetails?.itemCount||0)-(a.contentDetails?.itemCount||0));
+  return all.map(pl=>({ id:pl.id, title:decode(pl.snippet.title), thumb:thumbs(pl.snippet.thumbnails), avatar:avpick(pl.snippet.thumbnails), count:pl.contentDetails?.itemCount??null }));
+}
 async function showChannel(id,seq){
   const src=SOURCES.find(s=>s.id===id);
   if(!src){ location.replace("#home"); return; }
-  cur={kind:"channel",key:null,token:"",done:false};
-  navEl.hidden=false; navTitle.textContent="…";
-  setView("home"); bump(homeEl); homeEl.innerHTML=skeletonsSrc(6);
+  cur={kind:"channel",key:null,token:"",done:false,pages:0};
+  navEl.hidden=false; navTitle.textContent="…"; setView("home");
+  if(!meta[id]) homeEl.innerHTML=skeletonsSrc(6);
   try{
-    const m=await fetchMeta(src);
+    if(!meta[id]){ // deep link before the home list was ever loaded
+      const p=swr("home",fetchHome,absorbHome);
+      if(!meta[id]) await p; else p.catch(()=>{});
+      if(seq!==navSeq) return;
+    }
+    const m=meta[id]; navTitle.textContent=m.title; cur.key=m.channelId;
+  }catch(e){ if(seq!==navSeq) return; homeEl.innerHTML=""; showState("Couldn't load playlists.",e,true); return; }
+  const cid=cur.key; let painted=false;
+  const paint=list=>{
     if(seq!==navSeq) return;
-    navTitle.textContent=m.title; cur.key=m.channelId;
-    await loadPlaylists(seq);
-  }catch(e){ if(seq!==navSeq) return; homeEl.innerHTML=""; showState("Couldn't load playlists.<br><small>"+esc(e.message)+"</small>"); }
-}
-async function loadPlaylists(seq){
-  const cid=cur.key;
-  // fetch every playlist page, then sort by video count (desc) before rendering
-  let token="", all=[];
-  do{
-    const j=await api("playlists",{ part:"snippet,contentDetails", channelId:cid, maxResults:50, pageToken:token||undefined });
-    if(seq!==navSeq||cur.kind!=="channel"||cur.key!==cid) return;
-    all=all.concat(j.items||[]);
-    token=j.nextPageToken||"";
-  }while(token);
-  all.sort((a,b)=>(b.contentDetails?.itemCount||0)-(a.contentDetails?.itemCount||0));
-  homeEl.innerHTML="";
-  all.forEach(pl=>{
-    const pid=pl.id, title=decode(pl.snippet.title), thumb=pick(pl.snippet.thumbnails), cnt=pl.contentDetails?.itemCount;
-    const b=document.createElement("button"); b.className="src"; b.type="button";
-    b.innerHTML='<div class="banner"><img loading="lazy" src="'+esc(thumb)+'" alt=""><span class="badge">Playlist</span></div>'+
-      '<div><div class="nm">'+esc(title)+'</div>'+(cnt!=null?'<div class="sub">'+cnt+' videos</div>':'')+'</div>';
-    b.onclick=()=>{ location.hash="pl/"+pid; };
-    homeEl.appendChild(b);
-  });
-  focusFirst(homeEl);
-  moreWrap.hidden=true;
-  if(!all.length) showState("No playlists here.");
+    const fi=[...homeEl.children].indexOf(document.activeElement);
+    homeEl.innerHTML="";
+    list.forEach(pl=>{
+      headers[pl.id]={title:pl.title,avatar:pl.avatar};
+      homeEl.appendChild(srcButton(pl.thumb,"Playlist",pl.title,pl.count,()=>{ location.hash="pl/"+pl.id; }));
+    });
+    refocus(homeEl,fi); stateEl.hidden=true;
+    if(!list.length) showState("No playlists here.");
+    painted=true;
+  };
+  if(!cacheGet("pls:"+cid)) homeEl.innerHTML=skeletonsSrc(6);
+  try{ await swr("pls:"+cid,()=>fetchPlaylists(cid),paint); }
+  catch(e){ if(seq!==navSeq||painted) return; homeEl.innerHTML=""; showState("Couldn't load playlists.",e,true); }
 }
 
 // ---------------- PLAYLIST: its videos ----------------
-async function getPlaylistHeader(pid){
-  for(const id in meta){ if(meta[id].playlistId===pid) return {title:meta[id].title, avatar:meta[id].avatar}; }
-  const j=await api("playlists",{ part:"snippet", id:pid });
-  const it=j.items?.[0];
-  return it ? {title:decode(it.snippet.title), avatar:pick(it.snippet.thumbnails)} : {title:"",avatar:""};
+const sourceOf=pid=>SOURCES.find(s=>s.playlistId===pid||(meta[s.id]&&meta[s.id].playlistId===pid));
+async function fetchHeader(pid){
+  const j=await api("playlists",{ part:"snippet", id:pid }); const it=j.items?.[0];
+  return it ? {title:decode(it.snippet.title), avatar:avpick(it.snippet.thumbnails)} : {title:"",avatar:""};
+}
+function applyHeader(h){
+  navTitle.textContent=h.title; currentAvatar=h.avatar||"";
+  if(currentAvatar) gridEl.querySelectorAll(".av").forEach(i=>{ i.src=currentAvatar; i.hidden=false; }); // cards drawn before the header arrived
+}
+async function fetchVideoPage(pid,token){
+  const jp=await api("playlistItems",{ part:"snippet,contentDetails", maxResults:PAGE_SIZE, playlistId:pid, pageToken:token||undefined });
+  const pos={}, ids=[];
+  (jp.items||[]).forEach(it=>{ const id=it.contentDetails?.videoId; if(id){ ids.push(id); pos[id]=it.snippet?.position; } });
+  let items=[];
+  if(ids.length){
+    const jv=await api("videos",{ part:"snippet,contentDetails,statistics,status", id:ids.join(",") });
+    items=(jv.items||[]).filter(watchable).map(v=>({ // only what the card needs, so the cache stays small
+      id:v.id, title:decode(v.snippet.title), ch:decode(v.snippet.channelTitle||""), th:thumbs(v.snippet.thumbnails),
+      dur:fmtDur(v.contentDetails?.duration), views:+(v.statistics?.viewCount)||0, pub:v.snippet.publishedAt||"", pos:pos[v.id] }));
+  }
+  return { items, next:jp.nextPageToken||"" };
 }
 async function showVideos(pid,seq){
-  cur={kind:"videos",key:pid,token:"",done:false}; currentAvatar="";
-  const asrc=SOURCES.find(s=>s.playlistId===pid);
-  currentAutoNextList = (asrc && asrc.autonext) ? pid : ""; // play as a playlist so it auto-advances
-  navEl.hidden=false; navTitle.textContent="…";
-  setView("grid"); bump(gridEl); gridEl.innerHTML=skeletons(8);
-  try{
-    const h=await getPlaylistHeader(pid);
-    if(seq!==navSeq) return;
-    navTitle.textContent=h.title; currentAvatar=h.avatar||"";
-    await loadVideos(true,seq);
-  }catch(e){ if(seq!==navSeq) return; gridEl.innerHTML=""; showState("Couldn't load videos.<br><small>"+esc(e.message)+"</small>"); }
+  cur={kind:"videos",key:pid,token:"",done:false,pages:0}; currentAvatar="";
+  const src=sourceOf(pid);
+  currentAutoNextList=(src&&src.autonext)?pid:"";
+  currentSubs=!(src&&src.subs===false);
+  navEl.hidden=false; navTitle.textContent="…"; setView("grid");
+  if(headers[pid]) applyHeader(headers[pid]); // header and videos load side by side
+  else swr("plh:"+pid,()=>fetchHeader(pid),h=>{ headers[pid]=h; if(seq===navSeq) applyHeader(h); }).catch(()=>{});
+  await loadVideos(true,seq);
 }
 async function loadVideos(first,seq){
-  const pid=cur.key; moreBtn.disabled=true;
-  if(first) gridEl.innerHTML=skeletons(8);
-  try{
-    const jp=await api("playlistItems",{ part:"snippet,contentDetails", maxResults:PAGE_SIZE, playlistId:pid, pageToken:cur.token||undefined });
-    if(seq!==navSeq||cur.kind!=="videos"||cur.key!==pid) return;
-    if(first) for(const k in positions) delete positions[k];
-    (jp.items||[]).forEach(it=>{ const id=it.contentDetails?.videoId; if(id&&it.snippet) positions[id]=it.snippet.position; });
-    const ids=(jp.items||[]).map(it=>it.contentDetails?.videoId).filter(Boolean);
-    let vids=[];
-    if(ids.length){
-      const jv=await api("videos",{ part:"snippet,contentDetails,statistics,status", id:ids.join(",") });
-      if(seq!==navSeq||cur.key!==pid) return;
-      vids=(jv.items||[]).filter(watchable);
+  const pid=cur.key, token=cur.token, key="vids:"+pid+":"+token;
+  const stale=()=>seq!==navSeq||cur.kind!=="videos"||cur.key!==pid;
+  moreBtn.disabled=true;
+  if(first&&!cacheGet(key)) gridEl.innerHTML=skeletons(8);
+  let painted=false;
+  const paint=page=>{
+    if(stale()) return;
+    if(painted){ // the fresh copy differs from the cached one already on screen
+      if(!first||cur.pages>1) return;      // user paged on: cache is updated for next time, screen left alone
+      if(patchCards(page.items)) return;   // same videos: texts refreshed in place, nothing rebuilt
     }
-    if(first) gridEl.innerHTML="";
-    vids.forEach(addCard);
-    cur.token=jp.nextPageToken||""; cur.done=!jp.nextPageToken;
-    // whole page filtered out but more pages exist -> keep fetching so sparse
-    // watchable videos (e.g. only a few playable in this region) still show up
-    if(vids.length===0 && !cur.done){ return loadVideos(false,seq); }
-    if(first) focusFirst(gridEl);
-    moreWrap.hidden=cur.done;
-    if(gridEl.children.length===0) showState("No videos here yet.");
-  }catch(e){ if(seq!==navSeq) return; if(first) gridEl.innerHTML=""; showState("Couldn't load videos.<br><small>"+esc(e.message)+"</small>"); }
-  finally{ moreBtn.disabled=false; }
+    const keep=document.activeElement&&document.activeElement.dataset.vid;
+    if(first){ gridEl.innerHTML=""; cur.pages=0; for(const k in positions) delete positions[k]; }
+    painted=true;
+    page.items.forEach(v=>{ positions[v.id]=v.pos; gridEl.appendChild(card(v)); });
+    cur.token=page.next; cur.done=!page.next;
+    if(page.items.length) cur.pages++;
+    else if(!cur.done){ loadVideos(false,seq); return; } // whole page region-filtered: keep going so sparse playable videos still show
+    if(cur.pages<=1){ const el=keep&&gridEl.querySelector('[data-vid="'+keep+'"]'); if(el) el.focus({preventScroll:true}); else focusFirst(gridEl); }
+    stateEl.hidden=true; moreWrap.hidden=cur.done;
+    if(!gridEl.children.length) showState("No videos here yet.");
+  };
+  try{ await swr(key,()=>fetchVideoPage(pid,token),paint); }
+  catch(e){ if(stale()||painted) return; if(first) gridEl.innerHTML=""; showState("Couldn't load videos.",e,first); }
+  finally{ if(!stale()) moreBtn.disabled=false; }
+}
+function cardText(v){
+  const line2=[fmtViews(v.views), v.pub?ago(v.pub):""].filter(Boolean).join(" · ");
+  return '<div class="title">'+esc(v.title)+'</div><div class="byline">'+(v.ch?'<span class="ch">'+esc(v.ch)+'</span>':'')+(line2?'<span>'+esc(line2)+'</span>':'')+'</div>';
+}
+function card(v){
+  const c=document.createElement("div"); c.className="card"; c.tabIndex=0; c.setAttribute("role","button"); c.dataset.vid=v.id;
+  c.innerHTML='<div class="thumb">'+imgTag(v.th)+(v.dur?'<span class="dur">'+esc(v.dur)+'</span>':'')+'</div>'+
+    '<div class="row"><img class="av" loading="lazy" decoding="async" alt=""'+(currentAvatar?' src="'+esc(currentAvatar)+'"':' hidden')+'>'+
+    '<div class="txt">'+cardText(v)+'</div></div>';
+  const open=()=>openPlayer(v.id,v.title);
+  c.onclick=open;
+  c.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
+  return c;
+}
+function patchCards(items){ // true when the grid holds exactly these videos and was updated in place
+  const cards=gridEl.children;
+  if(cards.length!==items.length||items.some((v,i)=>cards[i].dataset.vid!==v.id)) return false;
+  items.forEach((v,i)=>{ cards[i].querySelector(".txt").innerHTML=cardText(v); const d=cards[i].querySelector(".dur"); if(d) d.textContent=v.dur; });
+  return true;
 }
 
-function addCard(v){
-  const vid=v.id, sn=v.snippet;
-  const img=pick(sn.thumbnails), title=decode(sn.title), ch=decode(sn.channelTitle||"");
-  const dur=fmtDur(v.contentDetails?.duration), vw=fmtViews(v.statistics?.viewCount);
-  const line2=[vw, sn.publishedAt?ago(sn.publishedAt):""].filter(Boolean).join(" · ");
-  const card=document.createElement("div"); card.className="card"; card.tabIndex=0; card.setAttribute("role","button");
-  card.innerHTML=
-    '<div class="thumb"><img loading="lazy" src="'+esc(img)+'" alt="">'+(dur?'<span class="dur">'+esc(dur)+'</span>':'')+'</div>'+
-    '<div class="row">'+(currentAvatar?'<img class="av" loading="lazy" src="'+esc(currentAvatar)+'" alt="">':'')+
-      '<div class="txt"><div class="title">'+esc(title)+'</div>'+
-      '<div class="byline">'+(ch?'<span class="ch">'+esc(ch)+'</span>':'')+(line2?'<span>'+esc(line2)+'</span>':'')+'</div></div></div>';
-  const open=()=>openPlayer(vid,title);
-  card.onclick=open;
-  card.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
-  gridEl.appendChild(card);
-}
-
-// ---------------- PLAYER (English subtitles forced on) ----------------
-// One YT.Player is created at startup and kept for the whole session; opening a video only
-// calls loadVideoById / loadPlaylist. Re-creating the iframe per video meant downloading and
-// booting the whole YouTube web player every time, which is what made opening a video slow.
+// ---------------- PLAYER ----------------
+// One YT.Player lives for the whole session; opening a video only calls loadVideoById / loadPlaylist.
+// It is rebuilt only when the subtitle setting changes between sources (cc_load_policy is fixed at creation).
 const modal=$("#modal"), ptitle=$("#ptitle");
 const frameWrap=document.querySelector(".frameWrap");
 const playerEl=$("#player"), toastEl=$("#toast");
 let lastFocused=null; // card to return focus to when the player closes (D-pad)
-let yt=null, ytReady=false, pending=null;
-const positions={};   // videoId -> index in the current playlist (needed to start a playlist at that video)
+let yt=null, ytReady=false, ytSubs=null, pending=null, wantSubs=true, histPushed=false;
+function createPlayer(subs){
+  if(yt){ try{ yt.destroy(); }catch(_){} yt=null; }
+  ytReady=false; ytSubs=subs;
+  const host=document.createElement("div"); frameWrap.insertBefore(host,toastEl);
+  yt=new YT.Player(host,{
+    host:"https://www.youtube-nocookie.com", width:"100%", height:"100%",
+    playerVars:{ rel:0, modestbranding:1, playsinline:1, fs:1, autoplay:1, cc_load_policy:subs?1:0, cc_lang_pref:"en", hl:"en", origin:location.origin },
+    events:{ onReady:()=>{ ytReady=true; if(pending){ startVideo(pending); pending=null; } } }
+  });
+}
 function initPlayer(){
-  window.onYouTubeIframeAPIReady=()=>{
-    yt=new YT.Player("frameHost",{
-      host:"https://www.youtube-nocookie.com", width:"100%", height:"100%",
-      playerVars:{ rel:0, modestbranding:1, playsinline:1, fs:1, autoplay:1, cc_load_policy:1, cc_lang_pref:"en", hl:"en", origin:location.origin },
-      events:{ onReady:()=>{ ytReady=true; if(pending){ startVideo(pending); pending=null; } } }
-    });
-  };
+  window.onYouTubeIframeAPIReady=()=>createPlayer(wantSubs);
   const s=document.createElement("script"); s.src="https://www.youtube.com/iframe_api"; document.head.appendChild(s);
 }
 function startVideo(r){
@@ -355,12 +430,18 @@ function openPlayer(vid,title){
   // Keep focus on our own element, not inside the iframe: remote keys then reach the
   // keydown handler below, which drives the player through the IFrame API.
   playerEl.focus({preventScroll:true});
+  wantSubs=currentSubs;
+  if(yt && ytSubs!==wantSubs) createPlayer(wantSubs);
   const r={ vid, list:currentAutoNextList||"", index:positions[vid] };
   if(ytReady) startVideo(r); else { pending=r; toast("Loading…"); }
+  // A history entry for the open player: Back (phone gesture, or the TV remote via the app) closes
+  // the video instead of leaving the list.
+  if(!histPushed){ try{ history.pushState({player:1},""); histPushed=true; }catch(_){} }
   const req=frameWrap.requestFullscreen||frameWrap.webkitRequestFullscreen;
   if(req) try{ Promise.resolve(req.call(frameWrap)).catch(()=>{}); }catch(_){}
 }
-function closePlayer(){
+function closePlayer(fromHistory){
+  if(!modal.classList.contains("open")) return;
   const ex=document.fullscreenElement||document.webkitFullscreenElement;
   if(ex){ (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }
   pending=null; if(ytReady) try{ yt.stopVideo(); }catch(_){}
@@ -368,7 +449,9 @@ function closePlayer(){
   modal.classList.remove("open"); modal.setAttribute("aria-hidden","true"); document.body.style.overflow="";
   if(lastFocused && lastFocused.isConnected) lastFocused.focus({preventScroll:true});
   lastFocused=null;
+  if(histPushed){ histPushed=false; if(fromHistory!==true) history.back(); }
 }
+window.addEventListener("popstate",()=>closePlayer(true));
 
 // ---- remote / keyboard control of the player ----
 let toastTimer=0;
@@ -388,7 +471,7 @@ function togglePlay(){
 const KEYS={
   ArrowLeft:()=>seekBy(-10), ArrowRight:()=>seekBy(10), ArrowUp:()=>{}, ArrowDown:()=>{}, // up/down: swallowed so focus never leaves the player
   Enter:togglePlay, " ":togglePlay, MediaPlayPause:togglePlay, MediaPlay:togglePlay, MediaPause:togglePlay,
-  MediaRewind:()=>seekBy(-10), MediaFastForward:()=>seekBy(10), MediaStop:closePlayer,
+  MediaRewind:()=>seekBy(-10), MediaFastForward:()=>seekBy(10), MediaStop:()=>closePlayer(), Escape:()=>closePlayer(),
 };
 function handleKey(k){ const f=KEYS[k]; if(!f||!modal.classList.contains("open")) return false; f(); return true; }
 window.tvKey=handleKey; // called from the Android app for media buttons the WebView doesn't forward
@@ -397,17 +480,16 @@ document.addEventListener("keydown",e=>{
   if(e.target===$("#closeBtn") && (e.key==="Enter"||e.key===" ")) return; // let the close button work
   if(handleKey(e.key)){ e.preventDefault(); e.stopPropagation(); } // also blocks spatial navigation from moving focus into the iframe
 },true);
-function onFsChange(){ if(!(document.fullscreenElement||document.webkitFullscreenElement) && modal.classList.contains("open")) closePlayer(); }
+function onFsChange(){ if(!(document.fullscreenElement||document.webkitFullscreenElement)) closePlayer(); }
 document.addEventListener("fullscreenchange",onFsChange);
 document.addEventListener("webkitfullscreenchange",onFsChange);
-$("#closeBtn").onclick=closePlayer;
+$("#closeBtn").onclick=()=>closePlayer();
 modal.onclick=e=>{ if(e.target===modal) closePlayer(); };
-document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&modal.classList.contains("open")) closePlayer(); });
 
-moreBtn.onclick=()=>{ const seq=navSeq; if(cur.kind==="videos") loadVideos(false,seq); };
+moreBtn.onclick=()=>{ const seq=navSeq; if(cur.kind==="videos"&&!cur.done) loadVideos(false,seq); };
 
+render();     // initial route first so its API requests go out before the player script
 initPlayer(); // load the YouTube player once, up front
-render(); // initial route
 </script>
 </body>
 </html>

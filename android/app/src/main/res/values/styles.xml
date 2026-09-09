@@ -1,6 +1,6 @@
 <resources>
-    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:windowBackground">#FFFFFF</item>
+    <style name="AppTheme" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#0F0F0F</item>
     </style>
     <color name="ic_bg">#FF0000</color>
 </resources>
