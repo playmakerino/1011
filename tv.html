@@ -59,18 +59,15 @@
   .sk .l{height:14px; border-radius:6px; background:var(--ph); margin-top:10px}
   .sk .l.s{width:55%}
 
-  /* Hidden with visibility (not display:none) so the player iframe keeps its real size while closed:
-     it initialises at the right resolution and can pre-buffer the focused video in the background. */
-  /* Edge-to-edge: the frame already matches the screen, so the WebView fullscreen transition
-     (which takes up to a second on TV boxes) no longer shows the video jumping out of a smaller box. */
-  .modal{position:fixed; inset:0; z-index:50; background:#000; display:flex; visibility:hidden; padding:0}
+  /* Player: hidden with visibility (not display:none) so the iframe keeps its real size while closed —
+     it initialises at the right resolution and can pre-buffer in the background. Edge-to-edge so the
+     WebView fullscreen transition (up to a second on TV boxes) shows no jump from a smaller box. */
+  .modal{position:fixed; inset:0; z-index:50; background:#000; visibility:hidden}
   .modal.open{visibility:visible}
-  .player{width:100%; height:100%}
-  .frameWrap{position:relative; width:100%; height:100%; background:#000; overflow:hidden}
-  .frameWrap iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
+  .player{position:relative; width:100%; height:100%; overflow:hidden; outline:none}
+  .player iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
   .close{position:absolute; top:12px; right:12px; z-index:3; width:40px; height:40px; border-radius:50%; border:none; cursor:pointer; background:rgba(255,255,255,.85); color:#0f0f0f; font-size:22px; line-height:1; opacity:0}
-  .frameWrap:hover .close,.close:focus-visible{opacity:1} /* mouse/touch only; the remote uses Back */
-  .player:focus{outline:none}
+  .player:hover .close,.close:focus-visible{opacity:1} /* mouse/touch only; the remote uses Back */
   .toast{position:absolute; left:50%; bottom:14%; transform:translateX(-50%); z-index:2; background:rgba(0,0,0,.8); color:#fff; font-size:22px; font-weight:500; padding:10px 18px; border-radius:10px; pointer-events:none; white-space:nowrap}
   @media (max-width:520px){ main{padding:16px 14px 60px} .close{opacity:1} }
 
@@ -93,10 +90,8 @@
 
 <div class="modal" id="modal" aria-hidden="true">
   <div class="player" id="player" tabindex="-1">
-    <div class="frameWrap">
-      <button class="close" id="closeBtn" aria-label="Close">✕</button>
-      <div class="toast" id="toast" hidden></div>
-    </div>
+    <button class="close" id="closeBtn" aria-label="Close">✕</button>
+    <div class="toast" id="toast" hidden></div>
   </div>
 </div>
 
@@ -406,23 +401,22 @@ function patchCards(items){ // true when the grid holds exactly these videos and
 // ---------------- PLAYER ----------------
 // One YT.Player lives for the whole session; opening a video only calls loadVideoById / loadPlaylist.
 // It is rebuilt only when the subtitle setting changes between sources (cc_load_policy is fixed at creation).
-const modal=$("#modal");
-const frameWrap=document.querySelector(".frameWrap");
-const playerEl=$("#player"), toastEl=$("#toast");
+const modal=$("#modal"), playerEl=$("#player"), toastEl=$("#toast"), closeBtn=$("#closeBtn");
+const isOpen=()=>modal.classList.contains("open");
 let lastFocused=null; // card to return focus to when the player closes (D-pad)
 let yt=null, ytReady=false, ytSubs=null, pending=null, histPushed=false;
-let prebuf=null;   // {vid,list} loaded muted in the hidden player while its card is focused, paused once it plays
+let prebuf=null;      // {vid,list} loading muted while its card is focused; paused as soon as it plays
 let preTimer=0, lastPlayed="";
 function createPlayer(subs){
   if(yt){ try{ yt.destroy(); }catch(_){} yt=null; }
   ytReady=false; ytSubs=subs; prebuf=null;
-  const host=document.createElement("div"); frameWrap.insertBefore(host,toastEl);
+  const host=document.createElement("div"); playerEl.insertBefore(host,toastEl);
   yt=new YT.Player(host,{
     host:"https://www.youtube-nocookie.com", width:"100%", height:"100%",
     playerVars:{ rel:0, modestbranding:1, playsinline:1, fs:1, autoplay:1, cc_load_policy:subs?1:0, cc_lang_pref:"en", hl:"en", origin:location.origin },
     events:{
       onReady:()=>{ ytReady=true; if(pending){ startVideo(pending); pending=null; } },
-      onStateChange:e=>{ if(e.data===1 && prebuf && !modal.classList.contains("open")) yt.pauseVideo(); } // pre-buffer: stop as soon as it plays
+      onStateChange:e=>{ if(e.data===1 && prebuf) yt.pauseVideo(); }
     }
   });
 }
@@ -430,42 +424,41 @@ function initPlayer(){
   window.onYouTubeIframeAPIReady=()=>createPlayer(currentSubs);
   const s=document.createElement("script"); s.src="https://www.youtube.com/iframe_api"; document.head.appendChild(s);
 }
-function ensurePlayer(){ if(yt && ytSubs!==currentSubs) createPlayer(currentSubs); } // cc_load_policy is fixed at creation
+function ensurePlayer(){ if(yt && ytSubs!==currentSubs) createPlayer(currentSubs); }
 function startVideo(r){
   if(r.list && r.index!=null) yt.loadPlaylist({listType:"playlist", list:r.list, index:r.index}); // auto-advances
   else yt.loadVideoById(r.vid);
 }
-// ---- pre-buffer: start loading the focused card's video (muted, hidden) so OK plays it at once ----
+const request=vid=>({ vid, list:currentAutoNextList||"", index:positions[vid] });
+// pre-buffer: start loading the focused card's video (muted, hidden) so OK plays it at once
 function schedulePrebuffer(vid){
   clearTimeout(preTimer);
-  if(!vid || vid===lastPlayed || modal.classList.contains("open")) return;
+  if(!vid || vid===lastPlayed || isOpen()) return;
   preTimer=setTimeout(()=>{
-    if(modal.classList.contains("open") || (prebuf && prebuf.vid===vid)) return;
+    if(isOpen() || (prebuf && prebuf.vid===vid)) return;
     ensurePlayer(); if(!ytReady) return;
-    prebuf={ vid, list:currentAutoNextList||"" };
-    try{ yt.mute(); startVideo({ vid, list:prebuf.list, index:positions[vid] }); }catch(_){ prebuf=null; }
+    prebuf=request(vid);
+    try{ yt.mute(); startVideo(prebuf); }catch(_){ prebuf=null; }
   },PREBUFFER_MS);
 }
 function openPlayer(vid){
   clearTimeout(preTimer);
   lastFocused=document.activeElement; lastPlayed=vid;
   modal.classList.add("open"); modal.setAttribute("aria-hidden","false"); document.body.style.overflow="hidden";
-  // Keep focus on our own element, not inside the iframe: remote keys then reach the
-  // keydown handler below, which drives the player through the IFrame API.
+  // Focus stays on our own element, not inside the iframe: remote keys then reach the keydown
+  // handler below, which drives the player through the IFrame API.
   playerEl.focus({preventScroll:true});
   ensurePlayer();
-  const r={ vid, list:currentAutoNextList||"", index:positions[vid] };
-  const ready=prebuf && prebuf.vid===vid && prebuf.list===r.list; prebuf=null;
+  const r=request(vid), ready=prebuf && prebuf.vid===vid && prebuf.list===r.list; prebuf=null;
   if(!ytReady){ pending=r; toast("Loading…"); }
-  else{ yt.unMute(); if(ready){ yt.seekTo(0,true); yt.playVideo(); } else startVideo(r); } // pre-buffered: just resume
-  // A history entry for the open player: Back (phone gesture, or the TV remote via the app) closes
-  // the video instead of leaving the list.
+  else{ yt.unMute(); if(ready){ yt.seekTo(0,true); yt.playVideo(); } else startVideo(r); }
+  // History entry for the open player: Back (phone gesture, or the TV remote via the app) closes the video
   if(!histPushed){ try{ history.pushState({player:1},""); histPushed=true; }catch(_){} }
-  const req=frameWrap.requestFullscreen||frameWrap.webkitRequestFullscreen;
-  if(req) try{ Promise.resolve(req.call(frameWrap)).catch(()=>{}); }catch(_){}
+  const req=playerEl.requestFullscreen||playerEl.webkitRequestFullscreen;
+  if(req) try{ Promise.resolve(req.call(playerEl)).catch(()=>{}); }catch(_){}
 }
 function closePlayer(fromHistory){
-  if(!modal.classList.contains("open")) return;
+  if(!isOpen()) return;
   const ex=document.fullscreenElement||document.webkitFullscreenElement;
   if(ex){ (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }
   pending=null; prebuf=null; seekTarget=null; clearTimeout(seekTimer);
@@ -505,18 +498,17 @@ const KEYS={
   Enter:togglePlay, " ":togglePlay, MediaPlayPause:togglePlay, MediaPlay:togglePlay, MediaPause:togglePlay,
   MediaRewind:()=>seekBy(-10), MediaFastForward:()=>seekBy(10), MediaStop:()=>closePlayer(), Escape:()=>closePlayer(),
 };
-function handleKey(k){ const f=KEYS[k]; if(!f||!modal.classList.contains("open")) return false; f(); return true; }
+function handleKey(k){ const f=KEYS[k]; if(!f||!isOpen()) return false; f(); return true; }
 window.tvKey=handleKey; // called from the Android app for media buttons the WebView doesn't forward
 document.addEventListener("keydown",e=>{
-  if(!modal.classList.contains("open")) return;
-  if(e.target===$("#closeBtn") && (e.key==="Enter"||e.key===" ")) return; // let the close button work
+  if(!isOpen()) return;
+  if(e.target===closeBtn && (e.key==="Enter"||e.key===" ")) return; // let the close button work
   if(handleKey(e.key)){ e.preventDefault(); e.stopPropagation(); } // also blocks spatial navigation from moving focus into the iframe
 },true);
 function onFsChange(){ if(!(document.fullscreenElement||document.webkitFullscreenElement)) closePlayer(); }
 document.addEventListener("fullscreenchange",onFsChange);
 document.addEventListener("webkitfullscreenchange",onFsChange);
-$("#closeBtn").onclick=()=>closePlayer();
-modal.onclick=e=>{ if(e.target===modal) closePlayer(); };
+closeBtn.onclick=()=>closePlayer();
 
 moreBtn.onclick=()=>{ const seq=navSeq; if(cur.kind==="videos"&&!cur.done) loadVideos(false,seq); };
 
