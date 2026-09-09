@@ -46,6 +46,7 @@ public class MainActivity extends Activity {
         setContentView(root);
         createWebView();
         createOfflineView();
+        immersive(); // the page is always edge-to-edge; it no longer asks for fullscreen itself
 
         if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) web.loadUrl(URL);
     }
@@ -69,6 +70,9 @@ public class MainActivity extends Activity {
         s.setUseWideViewPort(true);
         s.setSupportZoom(false);
         s.setTextZoom(100);                     // ignore the system font-size setting so the layout stays as designed
+        // tv.html checks for this tag: inside the app it skips requestFullscreen (the WebView fullscreen
+        // transition re-creates the video surface and costs a black re-layout on every open).
+        s.setUserAgentString(s.getUserAgentString() + " TVApp/1");
 
         web.setWebViewClient(new Client());
         web.setWebChromeClient(new Chrome());
@@ -142,7 +146,7 @@ public class MainActivity extends Activity {
             if (v != web) return true;
             root.removeView(web);
             web.destroy();
-            if (fullscreenView != null) { root.removeView(fullscreenView); fullscreenView = null; fullscreenCallback = null; hideSystemUi(false); }
+            if (fullscreenView != null) { root.removeView(fullscreenView); fullscreenView = null; fullscreenCallback = null; }
             createWebView();
             web.loadUrl(URL);
             return true;
@@ -157,7 +161,7 @@ public class MainActivity extends Activity {
             fullscreenCallback = callback;
             web.setVisibility(View.GONE);
             root.addView(view, fill());
-            hideSystemUi(true);
+            immersive();
         }
 
         @Override
@@ -166,20 +170,21 @@ public class MainActivity extends Activity {
             root.removeView(fullscreenView);
             fullscreenView = null;
             web.setVisibility(View.VISIBLE);
-            hideSystemUi(false);
+            immersive();
             if (fullscreenCallback != null) { fullscreenCallback.onCustomViewHidden(); fullscreenCallback = null; }
         }
     }
 
-    private void hideSystemUi(boolean hide) {
-        View d = getWindow().getDecorView();
-        if (hide) {
-            d.setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
-        } else {
-            d.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
-        }
+    private void immersive() {
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) immersive(); // system bars come back after a dialog/notification; hide them again
     }
 
     // Media buttons on TV remotes are not forwarded to the page as key events by WebView;

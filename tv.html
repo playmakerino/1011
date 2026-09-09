@@ -59,8 +59,10 @@
   .sk .l{height:14px; border-radius:6px; background:var(--ph); margin-top:10px}
   .sk .l.s{width:55%}
 
-  .modal{position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.95); display:none; align-items:center; justify-content:center; padding:16px}
-  .modal.open{display:flex}
+  /* Hidden with visibility (not display:none) so the player iframe keeps its real size while closed:
+     it initialises at the right resolution and can pre-buffer the focused video in the background. */
+  .modal{position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.95); display:flex; visibility:hidden; align-items:center; justify-content:center; padding:16px}
+  .modal.open{visibility:visible}
   .player{width:min(1100px,100%)}
   .frameWrap{position:relative; aspect-ratio:16/9; width:100%; background:#000; border-radius:12px; overflow:hidden}
   .frameWrap iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
@@ -114,7 +116,10 @@ const SOURCES = [
 ];
 const PAGE_SIZE = 24;
 const REGION = "VN"; // hide videos that can't play in this region (region-blocked / not embeddable)
+const PREBUFFER_MS = 400; // a card focused this long starts loading its video muted in the hidden player
 // ==================================================================
+
+const IN_APP = /\bTVApp\//.test(navigator.userAgent); // the Android wrapper tags its user agent
 
 const API = "https://www.googleapis.com/youtube/v3/";
 const $ = s => document.querySelector(s);
@@ -388,6 +393,8 @@ function card(v){
   const open=()=>openPlayer(v.id,v.title);
   c.onclick=open;
   c.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
+  c.onfocus=()=>schedulePrebuffer(v.id);
+  c.onblur=()=>schedulePrebuffer(null);
   return c;
 }
 function patchCards(items){ // true when the grid holds exactly these videos and was updated in place
@@ -404,47 +411,69 @@ const modal=$("#modal"), ptitle=$("#ptitle");
 const frameWrap=document.querySelector(".frameWrap");
 const playerEl=$("#player"), toastEl=$("#toast");
 let lastFocused=null; // card to return focus to when the player closes (D-pad)
-let yt=null, ytReady=false, ytSubs=null, pending=null, wantSubs=true, histPushed=false;
+let yt=null, ytReady=false, ytSubs=null, pending=null, histPushed=false;
+let prebuf=null;   // {vid,list} loaded muted in the hidden player while its card is focused, paused once it plays
+let preTimer=0, lastPlayed="";
 function createPlayer(subs){
   if(yt){ try{ yt.destroy(); }catch(_){} yt=null; }
-  ytReady=false; ytSubs=subs;
+  ytReady=false; ytSubs=subs; prebuf=null;
   const host=document.createElement("div"); frameWrap.insertBefore(host,toastEl);
   yt=new YT.Player(host,{
     host:"https://www.youtube-nocookie.com", width:"100%", height:"100%",
     playerVars:{ rel:0, modestbranding:1, playsinline:1, fs:1, autoplay:1, cc_load_policy:subs?1:0, cc_lang_pref:"en", hl:"en", origin:location.origin },
-    events:{ onReady:()=>{ ytReady=true; if(pending){ startVideo(pending); pending=null; } } }
+    events:{
+      onReady:()=>{ ytReady=true; if(pending){ startVideo(pending); pending=null; } },
+      onStateChange:e=>{ if(e.data===1 && prebuf && !modal.classList.contains("open")) yt.pauseVideo(); } // pre-buffer: stop as soon as it plays
+    }
   });
 }
 function initPlayer(){
-  window.onYouTubeIframeAPIReady=()=>createPlayer(wantSubs);
+  window.onYouTubeIframeAPIReady=()=>createPlayer(currentSubs);
   const s=document.createElement("script"); s.src="https://www.youtube.com/iframe_api"; document.head.appendChild(s);
 }
+function ensurePlayer(){ if(yt && ytSubs!==currentSubs) createPlayer(currentSubs); } // cc_load_policy is fixed at creation
 function startVideo(r){
   if(r.list && r.index!=null) yt.loadPlaylist({listType:"playlist", list:r.list, index:r.index}); // auto-advances
   else yt.loadVideoById(r.vid);
 }
+// ---- pre-buffer: start loading the focused card's video (muted, hidden) so OK plays it at once ----
+function schedulePrebuffer(vid){
+  clearTimeout(preTimer);
+  if(!vid || vid===lastPlayed || modal.classList.contains("open")) return;
+  preTimer=setTimeout(()=>{
+    if(modal.classList.contains("open") || (prebuf && prebuf.vid===vid)) return;
+    ensurePlayer(); if(!ytReady) return;
+    prebuf={ vid, list:currentAutoNextList||"" };
+    try{ yt.mute(); startVideo({ vid, list:prebuf.list, index:positions[vid] }); }catch(_){ prebuf=null; }
+  },PREBUFFER_MS);
+}
 function openPlayer(vid,title){
-  lastFocused=document.activeElement;
+  clearTimeout(preTimer);
+  lastFocused=document.activeElement; lastPlayed=vid;
   ptitle.textContent=title;
   modal.classList.add("open"); modal.setAttribute("aria-hidden","false"); document.body.style.overflow="hidden";
   // Keep focus on our own element, not inside the iframe: remote keys then reach the
   // keydown handler below, which drives the player through the IFrame API.
   playerEl.focus({preventScroll:true});
-  wantSubs=currentSubs;
-  if(yt && ytSubs!==wantSubs) createPlayer(wantSubs);
+  ensurePlayer();
   const r={ vid, list:currentAutoNextList||"", index:positions[vid] };
-  if(ytReady) startVideo(r); else { pending=r; toast("Loading…"); }
+  const ready=prebuf && prebuf.vid===vid && prebuf.list===r.list; prebuf=null;
+  if(!ytReady){ pending=r; toast("Loading…"); }
+  else{ yt.unMute(); if(ready){ yt.seekTo(0,true); yt.playVideo(); } else startVideo(r); } // pre-buffered: just resume
   // A history entry for the open player: Back (phone gesture, or the TV remote via the app) closes
   // the video instead of leaving the list.
   if(!histPushed){ try{ history.pushState({player:1},""); histPushed=true; }catch(_){} }
-  const req=frameWrap.requestFullscreen||frameWrap.webkitRequestFullscreen;
+  // Fullscreen only outside the app: WebView moves the video into a new surface for it, which costs a
+  // black re-layout on every open, and the modal already covers the screen there.
+  const req=!IN_APP && (frameWrap.requestFullscreen||frameWrap.webkitRequestFullscreen);
   if(req) try{ Promise.resolve(req.call(frameWrap)).catch(()=>{}); }catch(_){}
 }
 function closePlayer(fromHistory){
   if(!modal.classList.contains("open")) return;
   const ex=document.fullscreenElement||document.webkitFullscreenElement;
   if(ex){ (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }
-  pending=null; if(ytReady) try{ yt.stopVideo(); }catch(_){}
+  pending=null; prebuf=null; seekTarget=null; clearTimeout(seekTimer);
+  if(ytReady) try{ yt.stopVideo(); }catch(_){}
   toastEl.hidden=true;
   modal.classList.remove("open"); modal.setAttribute("aria-hidden","true"); document.body.style.overflow="";
   if(lastFocused && lastFocused.isConnected) lastFocused.focus({preventScroll:true});
@@ -457,15 +486,22 @@ window.addEventListener("popstate",()=>closePlayer(true));
 let toastTimer=0;
 function toast(msg){ toastEl.textContent=msg; toastEl.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>{ toastEl.hidden=true; },1200); }
 function fmtSec(t){ t=Math.max(0,Math.floor(t)); const h=Math.floor(t/3600), m=Math.floor(t%3600/60), s=t%60, p=n=>String(n).padStart(2,"0"); return h? h+":"+p(m)+":"+p(s) : m+":"+p(s); }
+// Repeated presses add up and become ONE seek once they stop: seeking on every press made the player
+// re-buffer at each intermediate position, so a 60 s jump took six buffering rounds.
+let seekTarget=null, seekTimer=0;
+function flushSeek(){ clearTimeout(seekTimer); if(seekTarget==null) return; const t=seekTarget; seekTarget=null; yt.seekTo(t,true); }
 function seekBy(sec){
   if(!ytReady){ toast("Loading…"); return; }
-  const d=yt.getDuration()||0;
-  let t=yt.getCurrentTime()+sec; if(t<0) t=0; if(d&&t>d-1) t=d-1;
-  yt.seekTo(t,true);
-  toast((sec>0?"+":"−")+Math.abs(sec)+"s   "+fmtSec(t)+(d?" / "+fmtSec(d):""));
+  const d=yt.getDuration()||0, now=yt.getCurrentTime();
+  let t=(seekTarget!=null?seekTarget:now)+sec; if(t<0) t=0; if(d&&t>d-1) t=d-1;
+  seekTarget=t;
+  const delta=Math.round(t-now);
+  toast((delta>=0?"+":"−")+Math.abs(delta)+"s   "+fmtSec(t)+(d?" / "+fmtSec(d):""));
+  clearTimeout(seekTimer); seekTimer=setTimeout(flushSeek,350);
 }
 function togglePlay(){
   if(!ytReady){ toast("Loading…"); return; }
+  flushSeek();
   if(yt.getPlayerState()===1){ yt.pauseVideo(); toast("❚❚"); } else { yt.playVideo(); toast("▶"); }
 }
 const KEYS={
