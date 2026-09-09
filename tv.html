@@ -70,7 +70,6 @@
   .frameWrap iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
   .close{position:absolute; top:12px; right:12px; z-index:3; width:40px; height:40px; border-radius:50%; border:none; cursor:pointer; background:rgba(255,255,255,.85); color:#0f0f0f; font-size:22px; line-height:1; opacity:0}
   .frameWrap:hover .close,.close:focus-visible{opacity:1} /* mouse/touch only; the remote uses Back */
-  .ptitle{display:none}
   .player:focus{outline:none}
   .toast{position:absolute; left:50%; bottom:14%; transform:translateX(-50%); z-index:2; background:rgba(0,0,0,.8); color:#fff; font-size:22px; font-weight:500; padding:10px 18px; border-radius:10px; pointer-events:none; white-space:nowrap}
   @media (max-width:520px){ main{padding:16px 14px 60px} .close{opacity:1} }
@@ -98,7 +97,6 @@
       <button class="close" id="closeBtn" aria-label="Close">✕</button>
       <div class="toast" id="toast" hidden></div>
     </div>
-    <div class="ptitle" id="ptitle"></div>
   </div>
 </div>
 
@@ -391,7 +389,7 @@ function card(v){
   c.innerHTML='<div class="thumb">'+imgTag(v.th)+(v.dur?'<span class="dur">'+esc(v.dur)+'</span>':'')+'</div>'+
     '<div class="row"><img class="av" loading="lazy" decoding="async" alt=""'+(currentAvatar?' src="'+esc(currentAvatar)+'"':' hidden')+'>'+
     '<div class="txt">'+cardText(v)+'</div></div>';
-  const open=()=>openPlayer(v.id,v.title);
+  const open=()=>openPlayer(v.id);
   c.onclick=open;
   c.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
   c.onfocus=()=>schedulePrebuffer(v.id);
@@ -408,7 +406,7 @@ function patchCards(items){ // true when the grid holds exactly these videos and
 // ---------------- PLAYER ----------------
 // One YT.Player lives for the whole session; opening a video only calls loadVideoById / loadPlaylist.
 // It is rebuilt only when the subtitle setting changes between sources (cc_load_policy is fixed at creation).
-const modal=$("#modal"), ptitle=$("#ptitle");
+const modal=$("#modal");
 const frameWrap=document.querySelector(".frameWrap");
 const playerEl=$("#player"), toastEl=$("#toast");
 let lastFocused=null; // card to return focus to when the player closes (D-pad)
@@ -448,10 +446,9 @@ function schedulePrebuffer(vid){
     try{ yt.mute(); startVideo({ vid, list:prebuf.list, index:positions[vid] }); }catch(_){ prebuf=null; }
   },PREBUFFER_MS);
 }
-function openPlayer(vid,title){
+function openPlayer(vid){
   clearTimeout(preTimer);
   lastFocused=document.activeElement; lastPlayed=vid;
-  ptitle.textContent=title;
   modal.classList.add("open"); modal.setAttribute("aria-hidden","false"); document.body.style.overflow="hidden";
   // Keep focus on our own element, not inside the iframe: remote keys then reach the
   // keydown handler below, which drives the player through the IFrame API.
