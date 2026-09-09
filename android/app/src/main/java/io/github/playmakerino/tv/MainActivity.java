@@ -2,6 +2,7 @@ package io.github.playmakerino.tv;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -74,6 +75,28 @@ public class MainActivity extends Activity {
         } else {
             d.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
         }
+    }
+
+    // Media buttons on TV remotes are not forwarded to the page as key events by WebView;
+    // hand them to tv.html's window.tvKey(name) so seeking / play-pause works.
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent ev) {
+        if (ev.getAction() == KeyEvent.ACTION_DOWN) {
+            String k = null;
+            switch (ev.getKeyCode()) {
+                case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE: k = "MediaPlayPause"; break;
+                case KeyEvent.KEYCODE_MEDIA_PLAY: k = "MediaPlay"; break;
+                case KeyEvent.KEYCODE_MEDIA_PAUSE: k = "MediaPause"; break;
+                case KeyEvent.KEYCODE_MEDIA_REWIND: k = "MediaRewind"; break;
+                case KeyEvent.KEYCODE_MEDIA_FAST_FORWARD: k = "MediaFastForward"; break;
+                case KeyEvent.KEYCODE_MEDIA_STOP: k = "MediaStop"; break;
+            }
+            if (k != null) {
+                web.evaluateJavascript("window.tvKey&&tvKey('" + k + "')", null);
+                return true;
+            }
+        }
+        return super.dispatchKeyEvent(ev);
     }
 
     @Override
