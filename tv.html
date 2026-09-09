@@ -220,29 +220,31 @@ async function showChannel(id,seq){
     const m=await fetchMeta(src);
     if(seq!==navSeq) return;
     navTitle.textContent=m.title; cur.key=m.channelId;
-    homeEl.innerHTML="";
-    await loadPlaylists(true,seq);
+    await loadPlaylists(seq);
   }catch(e){ if(seq!==navSeq) return; homeEl.innerHTML=""; showState("Couldn't load playlists.<br><small>"+esc(e.message)+"</small>"); }
 }
-async function loadPlaylists(first,seq){
-  const cid=cur.key; moreBtn.disabled=true;
-  if(!first) homeEl.insertAdjacentHTML("beforeend",""); // no-op keeps existing
-  try{
-    const j=await api("playlists",{ part:"snippet,contentDetails", channelId:cid, maxResults:PAGE_SIZE, pageToken:cur.token||undefined });
+async function loadPlaylists(seq){
+  const cid=cur.key;
+  // fetch every playlist page, then sort by video count (desc) before rendering
+  let token="", all=[];
+  do{
+    const j=await api("playlists",{ part:"snippet,contentDetails", channelId:cid, maxResults:50, pageToken:token||undefined });
     if(seq!==navSeq||cur.kind!=="channel"||cur.key!==cid) return;
-    (j.items||[]).forEach(pl=>{
-      const pid=pl.id, title=decode(pl.snippet.title), thumb=pick(pl.snippet.thumbnails), cnt=pl.contentDetails?.itemCount;
-      const b=document.createElement("button"); b.className="src"; b.type="button";
-      b.innerHTML='<div class="banner"><img loading="lazy" src="'+esc(thumb)+'" alt=""><span class="badge">Playlist</span></div>'+
-        '<div><div class="nm">'+esc(title)+'</div>'+(cnt!=null?'<div class="sub">'+cnt+' videos</div>':'')+'</div>';
-      b.onclick=()=>{ location.hash="pl/"+pid; };
-      homeEl.appendChild(b);
-    });
-    cur.token=j.nextPageToken||""; cur.done=!j.nextPageToken;
-    moreWrap.hidden=cur.done;
-    if(homeEl.children.length===0) showState("No playlists here.");
-  }catch(e){ if(seq!==navSeq) return; showState("Couldn't load playlists.<br><small>"+esc(e.message)+"</small>"); }
-  finally{ moreBtn.disabled=false; }
+    all=all.concat(j.items||[]);
+    token=j.nextPageToken||"";
+  }while(token);
+  all.sort((a,b)=>(b.contentDetails?.itemCount||0)-(a.contentDetails?.itemCount||0));
+  homeEl.innerHTML="";
+  all.forEach(pl=>{
+    const pid=pl.id, title=decode(pl.snippet.title), thumb=pick(pl.snippet.thumbnails), cnt=pl.contentDetails?.itemCount;
+    const b=document.createElement("button"); b.className="src"; b.type="button";
+    b.innerHTML='<div class="banner"><img loading="lazy" src="'+esc(thumb)+'" alt=""><span class="badge">Playlist</span></div>'+
+      '<div><div class="nm">'+esc(title)+'</div>'+(cnt!=null?'<div class="sub">'+cnt+' videos</div>':'')+'</div>';
+    b.onclick=()=>{ location.hash="pl/"+pid; };
+    homeEl.appendChild(b);
+  });
+  moreWrap.hidden=true;
+  if(!all.length) showState("No playlists here.");
 }
 
 // ---------------- PLAYLIST: its videos ----------------
@@ -327,7 +329,7 @@ modal.onclick=e=>{ if(e.target===modal) closePlayer(); };
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&modal.classList.contains("open")) closePlayer(); });
 
 $("#backBtn").onclick=()=>{ if(history.length>1) history.back(); else location.hash="home"; };
-moreBtn.onclick=()=>{ const seq=navSeq; if(cur.kind==="videos") loadVideos(false,seq); else if(cur.kind==="channel") loadPlaylists(false,seq); };
+moreBtn.onclick=()=>{ const seq=navSeq; if(cur.kind==="videos") loadVideos(false,seq); };
 
 render(); // initial route
 </script>
