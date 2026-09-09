@@ -119,8 +119,6 @@ const REGION = "VN"; // hide videos that can't play in this region (region-block
 const PREBUFFER_MS = 400; // a card focused this long starts loading its video muted in the hidden player
 // ==================================================================
 
-const IN_APP = /\bTVApp\//.test(navigator.userAgent); // the Android wrapper tags its user agent
-
 const API = "https://www.googleapis.com/youtube/v3/";
 const $ = s => document.querySelector(s);
 const homeEl=$("#home"), gridEl=$("#grid"), stateEl=$("#state"), moreWrap=$("#moreWrap"), moreBtn=$("#moreBtn");
@@ -463,9 +461,7 @@ function openPlayer(vid,title){
   // A history entry for the open player: Back (phone gesture, or the TV remote via the app) closes
   // the video instead of leaving the list.
   if(!histPushed){ try{ history.pushState({player:1},""); histPushed=true; }catch(_){} }
-  // Fullscreen only outside the app: WebView moves the video into a new surface for it, which costs a
-  // black re-layout on every open, and the modal already covers the screen there.
-  const req=!IN_APP && (frameWrap.requestFullscreen||frameWrap.webkitRequestFullscreen);
+  const req=frameWrap.requestFullscreen||frameWrap.webkitRequestFullscreen;
   if(req) try{ Promise.resolve(req.call(frameWrap)).catch(()=>{}); }catch(_){}
 }
 function closePlayer(fromHistory){
