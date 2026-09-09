@@ -103,6 +103,7 @@ const SOURCES = [
   { id:"pnf",     type:"playlist",        playlistId:"PLiv1IUQDVSNKB3oq2gblc2dYkjhn_iIFi" }, // Phineas and Ferb S1
   { id:"pokemon", type:"channelPlaylists", handle:"@PokémonAsiaENG" },                  // click -> its playlists
   { id:"maruko",  type:"playlist",        playlistId:"PLQGFvBFre_B3zygU6fi8irYZAZw6Pz7TP" }, // Chibi Maruko Chan English
+  { id:"kdh",     type:"playlist",        playlistId:"PLDwbngJoT5crMIEVzjs4ltzjG2WiBX1Sm", autonext:true }, // Kpop Demon Hunters — auto-advance
 ];
 const PAGE_SIZE = 24;
 const REGION = "VN"; // hide videos that can't play in this region (region-blocked / not embeddable)
@@ -117,6 +118,7 @@ const meta={};          // source id -> resolved meta
 let navSeq=0;           // bumps on every route change; async guards compare against it
 let cur={kind:null,key:null,token:"",done:false}; // current list view paging state
 let currentAvatar="";
+let currentAutoNextList=""; // when set, player embeds the playlist so it auto-advances
 
 const decoder=document.createElement("textarea");
 const decode=t=>{ decoder.innerHTML=t||""; return decoder.value; };
@@ -256,6 +258,8 @@ async function getPlaylistHeader(pid){
 }
 async function showVideos(pid,seq){
   cur={kind:"videos",key:pid,token:"",done:false}; currentAvatar="";
+  const asrc=SOURCES.find(s=>s.playlistId===pid);
+  currentAutoNextList = (asrc && asrc.autonext) ? pid : ""; // play as a playlist so it auto-advances
   navEl.hidden=false; navTitle.textContent="…";
   setView("grid"); bump(gridEl); gridEl.innerHTML=skeletons(8);
   try{
@@ -308,8 +312,9 @@ function addCard(v){
 const modal=$("#modal"), frameHost=$("#frameHost"), ptitle=$("#ptitle");
 const frameWrap=document.querySelector(".frameWrap");
 function openPlayer(vid,title){
+  const listParam = currentAutoNextList ? ("&list="+encodeURIComponent(currentAutoNextList)) : "";
   frameHost.innerHTML='<iframe src="https://www.youtube-nocookie.com/embed/'+encodeURIComponent(vid)+
-    '?rel=0&modestbranding=1&playsinline=1&autoplay=1&fs=1&cc_load_policy=1&cc_lang_pref=en&hl=en"'+
+    '?rel=0&modestbranding=1&playsinline=1&autoplay=1&fs=1&cc_load_policy=1&cc_lang_pref=en&hl=en'+listParam+'"'+
     ' allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
   ptitle.textContent=title;
   modal.classList.add("open"); modal.setAttribute("aria-hidden","false"); document.body.style.overflow="hidden";
