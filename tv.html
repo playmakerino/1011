@@ -282,6 +282,9 @@ async function loadVideos(first,seq){
     if(first) gridEl.innerHTML="";
     vids.forEach(addCard);
     cur.token=jp.nextPageToken||""; cur.done=!jp.nextPageToken;
+    // whole page filtered out but more pages exist -> keep fetching so sparse
+    // watchable videos (e.g. only a few playable in this region) still show up
+    if(vids.length===0 && !cur.done){ return loadVideos(false,seq); }
     moreWrap.hidden=cur.done;
     if(gridEl.children.length===0) showState("No videos here yet.");
   }catch(e){ if(seq!==navSeq) return; if(first) gridEl.innerHTML=""; showState("Couldn't load videos.<br><small>"+esc(e.message)+"</small>"); }
