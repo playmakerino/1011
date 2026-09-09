@@ -25,15 +25,14 @@ jobs:
         run: |
           set -o pipefail
           gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
-      - name: Publish build log to job summary
+      - name: Surface build errors as annotations (visible without login)
         if: failure()
         run: |
-          echo '## Gradle build log (tail)' >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          grep -nE 'error|FAILURE|What went wrong|Exception|Caused by' -i android/build.log | head -60 >> "$GITHUB_STEP_SUMMARY" || true
-          echo '--- tail ---' >> "$GITHUB_STEP_SUMMARY"
-          tail -n 80 android/build.log >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          enc() { sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g'; }
+          KEY=$(grep -nE 'error|FAILURE|What went wrong|Exception|Caused by' -i android/build.log | head -40 | cut -c1-300 | enc)
+          TAIL=$(tail -n 60 android/build.log | cut -c1-300 | enc)
+          echo "::error title=gradle key lines::${KEY:0:3900}"
+          echo "::warning title=gradle tail::${TAIL:0:3900}"
       - name: Rename
         run: cp android/app/build/outputs/apk/release/app-release.apk tv.apk
       - uses: actions/upload-artifact@v4
