@@ -169,14 +169,15 @@ async function api(path,params){
 // Every list is drawn from its last copy at once (instant start on a TV box, works through API hiccups),
 // then re-fetched; the fresh copy only touches the screen when it differs from what was drawn.
 const CK="tv1:";
+const HOME_KEY="home:"+SOURCES.map(s=>s.id).join(","); // changing the source list invalidates the cached home
 function cacheGet(k){ try{ const s=localStorage.getItem(CK+k); return s?{s,v:JSON.parse(s)}:null; }catch(_){ return null; } }
 function cacheSet(k,s){ try{ localStorage.setItem(CK+k,s); }catch(_){ try{ cacheClear(); localStorage.setItem(CK+k,s); }catch(__){} } }
 function cacheClear(){ try{ Object.keys(localStorage).filter(x=>x.startsWith(CK)).forEach(x=>localStorage.removeItem(x)); }catch(_){} }
 // paint(value) runs synchronously with the cached value (if any), then again with the fetched one if it differs.
 // Resolves once the fetch settles; rejects only when there was nothing cached to fall back on.
 async function swr(key,fetcher,paint){
-  const c=cacheGet(key);
-  if(c) paint(c.v);
+  let c=cacheGet(key);
+  if(c){ try{ paint(c.v); }catch(_){ c=null; try{ localStorage.removeItem(CK+key); }catch(__){} } } // a bad copy must never block the fetch
   try{
     const v=await fetcher(), s=JSON.stringify(v);
     if(!c||s!==c.s){ cacheSet(key,s); paint(v); }
@@ -267,8 +268,8 @@ async function renderHome(seq){
     });
     refocus(homeEl,fi); painted=true;
   };
-  if(!cacheGet("home")) homeEl.innerHTML=skeletonsSrc(SOURCES.length);
-  try{ await swr("home",fetchHome,paint); }
+  if(!cacheGet(HOME_KEY)) homeEl.innerHTML=skeletonsSrc(SOURCES.length);
+  try{ await swr(HOME_KEY,fetchHome,paint); }
   catch(e){ if(seq!==navSeq||painted) return; homeEl.innerHTML=""; showState("Couldn't load the list.",e,true); }
 }
 
@@ -290,7 +291,7 @@ async function showChannel(id,seq){
   if(!meta[id]) homeEl.innerHTML=skeletonsSrc(6);
   try{
     if(!meta[id]){ // deep link before the home list was ever loaded
-      const p=swr("home",fetchHome,absorbHome);
+      const p=swr(HOME_KEY,fetchHome,absorbHome);
       if(!meta[id]) await p; else p.catch(()=>{});
       if(seq!==navSeq) return;
     }
