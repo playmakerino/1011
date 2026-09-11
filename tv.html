@@ -517,7 +517,7 @@ var tm=0;function toast(m){t.innerHTML=m;t.style.display='block';clearTimeout(tm
 var ICO_PLAY='▶',ICO_PAUSE='❚❚'; /* same glyphs as the YouTube player's toast */
 function f(s){s=Math.max(0,Math.floor(s));var m=Math.floor(s/60),x=s%60;return m+':'+(x<10?'0':'')+x;}
 function ev(n){try{TVNative.event(n);}catch(e){}}
-v.loop=true; /* like TikTok: a video repeats until Back */
+/* no loop, no auto-advance: the video stops at its end (OK replays it, Back returns to the grid) */
 /* Playback starts (with sound) while the WebView is still hidden — on Android nothing decodes before play(),
    and this WebView refuses to unmute a video that started muted. The app shows the player on "playing"
    (first frame), a few ms later, so picture and sound effectively appear together. */
