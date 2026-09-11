@@ -222,7 +222,7 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (ttVisible) { ttClose(); return; }
+        if (ttVisible || ttLoadingId != null || ttWantShow) { ttClose(); return; } // also cancels a video still loading
         if (fullscreenView != null) {
             web.evaluateJavascript("document.exitFullscreen&&document.exitFullscreen()", null);
             return;
@@ -333,6 +333,7 @@ public class MainActivity extends Activity {
         if (id.equals(ttReadyId)) { if (play) ttWant(); return; } // prefetched (silent, first frame decoded): show + start
         if (id.equals(ttLoadingId)) { if (play) ttWant(); return; } // already on its way
         ui.removeCallbacks(ttPoll); ui.removeCallbacks(ttReady); ui.removeCallbacks(ttShowAnyway);
+        if (ttVisible) ttHide(); // Up/Down: the TikTok page must load unseen, not in the WebView on screen
         tt.stopLoading(); // whatever was loading (another video's page) is abandoned
         ttLoadingId = id; ttReadyId = null; ttUser = user; ttWantShow = ttFirstFrame = false; ttStage = 0;
         if (play) notifyPage("loading");
@@ -459,6 +460,14 @@ public class MainActivity extends Activity {
         immersive();
         tt.evaluateJavascript("window.__tt&&(__tt.play(),__tt.unmute&&__tt.unmute())", null); // on screen now: sound on
         notifyPage("started");
+    }
+
+    // Take the player off screen (its video stops) while the next one loads; the grid shows "loading".
+    private void ttHide() {
+        ttVisible = false;
+        if (tt != null) { tt.evaluateJavascript("window.__tt&&__tt.stop()", null); tt.setVisibility(View.GONE); }
+        web.setVisibility(View.VISIBLE);
+        web.requestFocus();
     }
 
     private void ttClose() {
