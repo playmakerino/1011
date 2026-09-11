@@ -8,6 +8,12 @@ on:
 permissions:
   contents: write
 
+# Two pushes in a row used to build in parallel; the later build then failed to
+# rebase its tv.apk over the earlier one's (binary conflict). Queue them instead.
+concurrency:
+  group: apk-build
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -61,5 +67,5 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "ci: update tv.apk [skip ci]"
           # main may have moved while we built (page-only pushes): rebase our one commit onto it, then push
-          for i in 1 2 3; do git pull --rebase origin main && git push && exit 0; sleep 5; done
+          for i in 1 2 3; do git pull --rebase -X theirs origin main && git push && exit 0; sleep 5; done
           exit 1
