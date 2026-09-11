@@ -60,4 +60,6 @@ jobs:
           git add tv.apk android/tv.jks
           git diff --cached --quiet && exit 0
           git commit -m "ci: update tv.apk [skip ci]"
-          git push
+          # main may have moved while we built (page-only pushes): rebase our one commit onto it, then push
+          for i in 1 2 3; do git pull --rebase origin main && git push && exit 0; sleep 5; done
+          exit 1
