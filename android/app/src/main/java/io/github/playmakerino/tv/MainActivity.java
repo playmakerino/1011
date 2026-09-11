@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -30,6 +31,8 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import java.io.ByteArrayInputStream;
+import java.util.Locale;
+import java.util.regex.Pattern;
 
 public class MainActivity extends Activity {
     private static final String URL = "https://playmakerino.github.io/1011/tv.html";
@@ -234,7 +237,12 @@ public class MainActivity extends Activity {
     @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); }
     @Override protected void onPause() { super.onPause(); web.onPause(); if (tt != null) tt.onPause(); }
     @Override protected void onResume() { super.onResume(); web.onResume(); if (tt != null) tt.onResume(); }
-    @Override protected void onDestroy() { if (tt != null) tt.destroy(); web.destroy(); super.onDestroy(); }
+    @Override protected void onDestroy() {
+        root.removeAllViews(); // WebView.destroy() wants the view detached first
+        if (tt != null) tt.destroy();
+        web.destroy();
+        super.onDestroy();
+    }
 
     // ======================= TikTok player =======================
     // TikTok's embed player picks an H.265 stream that TV boxes can't decode (picture frozen, audio
@@ -245,24 +253,31 @@ public class MainActivity extends Activity {
     // Chromium decodes H.264 in hardware; the remote drives it through evaluateJavascript.
     private WebView tt;
     private boolean ttVisible;
-    private String ttLoadingId, ttReadyId, ttUser;
+    private String ttLoadingId, ttReadyId;
     private boolean ttPlayWhenReady;
     // 1: the TikTok video page is loading (we poll it for the stream URL); 2: our own blank page (origin
     // tiktok.com via loadDataWithBaseURL) is loading; 3: the bare player is in place. While >= 2 every
     // navigation is blocked — TikTok's SPA otherwise redirects/reloads and takes the WebView back.
     private int ttStage;
-    private String ttFoundUrl;
     private long ttDeadline;                                         // uptime ms; a challenge reload can't extend it
     // Fail fast: when TikTok answers with a challenge/empty page the user would rather see "timeout" and
     // press again than wait through reloads.
     private static final int TT_POLL_MS = 200, TT_TIMEOUT_MS = 10000;
+    private static final Pattern TT_ID = Pattern.compile("\\d{5,25}"), TT_USER = Pattern.compile("[\\w.\\-]{1,64}");
+    // Requests the TikTok video page makes that only slow it down (the stream list is in the HTML itself).
+    private static final Pattern TT_STATIC = Pattern.compile("\\.(png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf|mp3|m4a)$");
+    private static final String[] TT_NOISE = { "/monitor_browser/", "/report/", "mcs.tiktok", "mon.tiktok", "p16-", "p19-", "-sign-va", "-sign-sg" };
+
+    // A play request is in flight (page loading, or ready and waiting for its first frame): a prefetch must
+    // not replace it — the user pressed OK and is watching the "loading" toast.
+    private boolean ttPlayPending() { return ttPlayWhenReady && (ttLoadingId != null || ttWantShow); }
 
     // Called from tv.html (runs on a WebView thread; hop to the UI thread).
     private class Bridge {
         @JavascriptInterface public void playTikTok(String id, String user) { if (ok(id, user)) ui.post(() -> ttLoad(id, user, true)); }
-        @JavascriptInterface public void prefetchTikTok(String id, String user) { if (ok(id, user)) ui.post(() -> { if (!ttVisible) ttLoad(id, user, false); }); }
+        @JavascriptInterface public void prefetchTikTok(String id, String user) { if (ok(id, user)) ui.post(() -> { if (!ttVisible && !ttPlayPending()) ttLoad(id, user, false); }); }
         @JavascriptInterface public void closeTikTok() { ui.post(MainActivity.this::ttClose); }
-        private boolean ok(String id, String user) { return id != null && user != null && id.matches("\\d{5,25}") && user.matches("[\\w.\\-]{1,64}"); }
+        private boolean ok(String id, String user) { return id != null && user != null && TT_ID.matcher(id).matches() && TT_USER.matcher(user).matches(); }
     }
 
     // Called from the injected player page (video events).
@@ -293,11 +308,10 @@ public class MainActivity extends Activity {
             @Override // images/fonts/analytics only slow the page down; the stream list is in the HTML itself
             public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest req) {
                 if (req.isForMainFrame() || ttStage >= 2) return null; // our player document loads what it likes (cover poster)
-                String u = String.valueOf(req.getUrl()).toLowerCase();
-                String p = u.split("\\?")[0];
-                boolean block = p.matches(".*\\.(png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf|mp3|m4a)$")
-                        || u.contains("/monitor_browser/") || u.contains("/report/") || u.contains("mcs.tiktok") || u.contains("mon.tiktok")
-                        || u.contains("p16-") || u.contains("p19-") || u.contains("-sign-va") || u.contains("-sign-sg");
+                String u = String.valueOf(req.getUrl()).toLowerCase(Locale.ROOT);
+                int q = u.indexOf('?');
+                boolean block = TT_STATIC.matcher(q < 0 ? u : u.substring(0, q)).find();
+                for (int i = 0; !block && i < TT_NOISE.length; i++) block = u.contains(TT_NOISE[i]);
                 return block ? new WebResourceResponse("text/plain", "utf-8", new ByteArrayInputStream(new byte[0])) : null;
             }
             @Override
@@ -319,7 +333,7 @@ public class MainActivity extends Activity {
                 if (v != tt) return true;
                 root.removeView(tt); tt.destroy(); tt = null;
                 boolean wasVisible = ttVisible;
-                ttVisible = false; ttLoadingId = ttReadyId = null; ttStage = 0; ttFoundUrl = null;
+                ttVisible = false; ttLoadingId = ttReadyId = null; ttStage = 0;
                 web.setVisibility(View.VISIBLE);
                 if (wasVisible) { web.requestFocus(); notifyPage("closed"); }
                 return true;
@@ -337,7 +351,7 @@ public class MainActivity extends Activity {
         ui.removeCallbacks(ttPoll); ui.removeCallbacks(ttReady); ui.removeCallbacks(ttShowAnyway);
         if (ttVisible) ttHide(); // Up/Down: the TikTok page must load unseen, not in the WebView on screen
         tt.stopLoading(); // whatever was loading (another video's page) is abandoned
-        ttLoadingId = id; ttReadyId = null; ttUser = user; ttWantShow = ttFirstFrame = false; ttStage = 0;
+        ttLoadingId = id; ttReadyId = null; ttWantShow = ttFirstFrame = false; ttStage = 0;
         if (play) notifyPage("loading");
         // The two scripts run in the TikTok WebView live in tv.html (window.TT_EXTRACT_JS / TT_PLAYER_JS):
         // a TikTok page change is fixed by editing the page, never by rebuilding the app. The app holds
@@ -355,8 +369,8 @@ public class MainActivity extends Activity {
             if (ttExtractJs == null || ttExtractJs.isEmpty() || ttPlayerJs == null || ttPlayerJs.isEmpty()) { ttFail("page has no TT scripts"); return; }
             // the page decides what browser TikTok sees (TV WebView UAs get challenge/unsupported pages)
             if (!ua.isEmpty()) tt.getSettings().setUserAgentString(ua);
-            ttDeadline = android.os.SystemClock.uptimeMillis() + TT_TIMEOUT_MS;
-            ttStage = 1; ttFoundUrl = null;
+            ttDeadline = SystemClock.uptimeMillis() + TT_TIMEOUT_MS;
+            ttStage = 1;
             tt.loadUrl("https://www.tiktok.com/@" + user + "/video/" + id);
             ui.removeCallbacks(ttPoll); ui.postDelayed(ttPoll, 300);
         });
@@ -390,7 +404,7 @@ public class MainActivity extends Activity {
                     catch (Exception e) { ttFail("parse"); return; }
                     // Data read off the previous video's page while this one is still loading: keep waiting.
                     if (!vid.isEmpty() && !vid.equals(id)) {
-                        if (android.os.SystemClock.uptimeMillis() >= ttDeadline) ttFailDiag("timeout (page of " + vid + ")");
+                        if (SystemClock.uptimeMillis() >= ttDeadline) ttFailDiag("timeout (page of " + vid + ")");
                         else ui.postDelayed(this, TT_POLL_MS);
                         return;
                     }
@@ -398,7 +412,7 @@ public class MainActivity extends Activity {
                     if (ttPlayWhenReady) ttWant(); // the player document autoplays; "playing" may even beat onPageFinished
                     // Leave TikTok's page (its scripts would redirect/reload over us) for a blank page of our
                     // own that still has the tiktok.com origin, so the CDN gets the session cookies + Referer.
-                    ttFoundUrl = url; ttStage = 2;
+                    ttStage = 2;
                     tt.stopLoading();
                     // The player script is inlined into this document (our own, so no CSP), so it runs exactly
                     // when the document loads — no evaluateJavascript race with about:blank / the data load.
@@ -406,7 +420,7 @@ public class MainActivity extends Activity {
                     ui.removeCallbacks(ttReady); ui.postDelayed(ttReady, 3000); // in case onPageFinished reports another URL
                 } else if (r.startsWith("ERR")) {
                     ttFailDiag(r.substring(3).trim());
-                } else if (android.os.SystemClock.uptimeMillis() >= ttDeadline) {
+                } else if (SystemClock.uptimeMillis() >= ttDeadline) {
                     ttFailDiag("timeout");
                 } else {
                     ui.postDelayed(this, TT_POLL_MS);
@@ -474,7 +488,7 @@ public class MainActivity extends Activity {
 
     private void ttClose() {
         ui.removeCallbacks(ttPoll); ui.removeCallbacks(ttReady); ui.removeCallbacks(ttShowAnyway);
-        ttLoadingId = ttReadyId = null; ttStage = 0; ttFoundUrl = null; ttWantShow = ttFirstFrame = false;
+        ttLoadingId = ttReadyId = null; ttStage = 0; ttWantShow = ttFirstFrame = false;
         if (tt != null) {
             tt.evaluateJavascript("window.__tt&&__tt.stop()", null);
             tt.loadUrl("about:blank"); // drop the page (and its stream) entirely
@@ -487,11 +501,11 @@ public class MainActivity extends Activity {
         if (was) notifyPage("closed");
     }
 
+    // Every caller reports on the load in flight, so the whole state goes; ttClose also drops the TikTok
+    // page still loading in the hidden WebView (otherwise it lives on, and its own player may autoplay).
     private void ttFail(String why) {
-        ui.removeCallbacks(ttPoll);
-        ttLoadingId = null;
         boolean wanted = ttPlayWhenReady;
-        if (ttVisible) ttClose();
+        ttClose();
         if (wanted) notifyPage("error:" + why);
     }
 
@@ -507,7 +521,7 @@ public class MainActivity extends Activity {
 
     // Remote while the TikTok player is showing. Returns true when the key was consumed.
     private boolean ttKey(KeyEvent ev) {
-        String js = null; String page = null;
+        String js = null;
         switch (ev.getKeyCode()) {
             case KeyEvent.KEYCODE_DPAD_CENTER: case KeyEvent.KEYCODE_ENTER: case KeyEvent.KEYCODE_NUMPAD_ENTER:
             case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE: case KeyEvent.KEYCODE_MEDIA_PLAY: case KeyEvent.KEYCODE_MEDIA_PAUSE:
@@ -520,10 +534,7 @@ public class MainActivity extends Activity {
                 return true;
             default: return false; // volume etc. pass through
         }
-        if (ev.getAction() == KeyEvent.ACTION_DOWN && tt != null) {
-            if (js != null) tt.evaluateJavascript(js, null);
-            if (page != null) notifyPage(page);
-        }
+        if (js != null && ev.getAction() == KeyEvent.ACTION_DOWN && tt != null) tt.evaluateJavascript(js, null);
         return true;
     }
 }

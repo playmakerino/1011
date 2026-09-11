@@ -9,8 +9,6 @@
 <link rel="preconnect" href="https://i.ytimg.com">
 <link rel="preconnect" href="https://www.youtube.com">
 <link rel="preconnect" href="https://www.youtube-nocookie.com">
-<!-- Roboto is fetched without blocking first paint (Android already has Roboto as its system font) -->
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
   :root{ --bg:#0f0f0f; --ink:#f1f1f1; --muted:#aaa; --line:rgba(255,255,255,.3); --chip:#272727; --chip-hover:#3f3f3f; --ph:#272727; --focus:#fff; color-scheme:dark }
   *{box-sizing:border-box}
@@ -197,7 +195,8 @@ const imgTag=t=>'<img loading="lazy" decoding="async" src="'+esc(t.s)+'"'+(t.ss?
 const avpick=th=>(th&&(th.default||th.medium||th.high||{}).url)||"";
 
 function fmtDur(iso){ const m=(iso||"").match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/); if(!m) return ""; const h=+m[1]||0,mi=+m[2]||0,s=+m[3]||0,p=n=>String(n).padStart(2,"0"); return h? h+":"+p(mi)+":"+p(s):mi+":"+p(s); }
-function fmtViews(n){ n=+n; if(!isFinite(n)||n<=0) return ""; if(n>=1e6) return +(n/1e6).toFixed(n>=1e7?0:1)+"M views"; if(n>=1e3) return +(n/1e3).toFixed(n>=1e4?0:1)+"K views"; return n+" views"; }
+function fmtCount(n){ n=+n; if(!isFinite(n)||n<=0) return ""; if(n>=1e6) return +(n/1e6).toFixed(n>=1e7?0:1)+"M"; if(n>=1e3) return +(n/1e3).toFixed(n>=1e4?0:1)+"K"; return String(n); }
+function fmtViews(n){ const c=fmtCount(n); return c?c+" views":""; }
 function ago(iso){ const d=(Date.now()-new Date(iso))/1000; for(const [nm,sec] of [["year",31536000],["month",2592000],["week",604800],["day",86400],["hour",3600],["minute",60]]){ const v=Math.floor(d/sec); if(v>=1) return v+" "+nm+(v>1?"s":"")+" ago"; } return "just now"; }
 function watchable(v){
   if(v.status && v.status.embeddable===false) return false;
@@ -469,7 +468,6 @@ function patchCards(items){ // true when the grid holds exactly these videos and
 
 // ---------------- TIKTOK ----------------
 // A daily GitHub Action (scripts/tiktok.py) writes tiktok/<handle>.json; we just read it.
-function fmtDurSec(s){ s=+s; if(!isFinite(s)||s<=0) return ""; const h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=Math.floor(s%60),p=n=>String(n).padStart(2,"0"); return h?h+":"+p(m)+":"+p(ss):m+":"+p(ss); }
 async function fetchTikTok(file){
   const ac=new AbortController(), tm=setTimeout(()=>ac.abort(),15000);
   let r,j;
@@ -524,20 +522,19 @@ function ev(n){try{TVNative.event(n);}catch(e){}}
 v.addEventListener('playing',function(){ev('playing')});
 v.addEventListener('error',function(){ev('error')});
 var st=null,sti=0;
-window.__tt={start:function(){v.play().catch(function(){});},unmute:function(){v.muted=false;},
-play:function(){v.play().catch(function(){});},pause:function(){v.pause();},
-toggle:function(){if(v.paused){v.play().catch(function(){});toast(ICO_PAUSE);}else{v.pause();toast(ICO_PLAY);}}, /* icon = state now: paused shows ▶ */
+function play(){v.play().catch(function(){});}
+window.__tt={start:play,play:play,unmute:function(){v.muted=false;},pause:function(){v.pause();},
+toggle:function(){if(v.paused){play();toast(ICO_PAUSE);}else{v.pause();toast(ICO_PLAY);}}, /* icon = state now: paused shows ▶ */
 seek:function(d){var dur=v.duration||0,b2=(st==null?v.currentTime:st)+d;if(b2<0)b2=0;if(dur&&b2>dur-1)b2=dur-1;st=b2;var dl=Math.round(b2-v.currentTime);
 toast(((dl>=0?'+':'−')+Math.abs(dl)+'s &nbsp; '+f(b2)+(dur?' / '+f(dur):'')));clearTimeout(sti);sti=setTimeout(function(){var x=st;st=null;v.currentTime=x;},350);},
 stop:function(){try{v.pause();v.removeAttribute('src');v.load();}catch(e){}}};
-v.src=u;if(ap){v.play().catch(function(){});} /* the app shows the player on the first frame */
+v.src=u;if(ap)play(); /* the app shows the player on the first frame */
 }catch(e){try{TVNative.event('error');}catch(x){}}})`;
 const PLAY_ICON='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 function ttItem(v,i){
   const b=document.createElement("button"); b.className="ttitem"; b.type="button"; b.dataset.vid=v.id;
-  const views=fmtViews(v.views).replace(" views","");
   b.innerHTML=(v.thumb?'<img loading="lazy" decoding="async" src="'+esc(v.thumb)+'" alt="">':'')+
-    '<span class="v">'+PLAY_ICON+(views?esc(views):"")+'</span>';
+    '<span class="v">'+PLAY_ICON+esc(fmtCount(v.views))+'</span>';
   const open=()=>openFeed(i);
   b.onclick=open;
   b.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
@@ -807,6 +804,8 @@ moreBtn.onclick=()=>{ const seq=navSeq; if(cur.kind==="videos"&&!cur.done) loadV
 
 render();     // initial route first so its API requests go out before the player script
 initPlayer(); // load the YouTube player once, up front
+// Roboto webfont for browsers, fetched after first paint. Skipped in the app: Android's system-ui IS Roboto.
+if(!IN_APP){ const l=document.createElement("link"); l.rel="stylesheet"; l.href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"; document.head.appendChild(l); }
 </script>
 </body>
 </html>
