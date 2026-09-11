@@ -675,12 +675,15 @@ function ttNativeOpen(i){
   clearTimeout(ttPreTimer);
   try{ TVApp.playTikTok(ttList[ttIndex].id,ttUser); }catch(_){ pageToast("Không mở được video",2500); }
 }
+let ttDbgLog=[]; // "dbg:" trace from the app, shown on the grid after the player closes (debug until stable)
 window.tvTikTok=function(ev){ // events from the app
-  if(ev==="loading") pageToast("Đang tải…",8000);
+  if(ev.startsWith("dbg:")){ ttDbgLog.push(ev.slice(4)); if(ttDbgLog.length>12) ttDbgLog.shift(); return; }
+  if(ev==="loading"){ ttDbgLog=[]; pageToast("Đang tải…",8000); }
   else if(ev==="started") pageToastHide();
   else if(ev==="next"||ev==="ended"){ if(ttIndex<ttList.length-1) ttNativeOpen(ttIndex+1); else if(ev==="ended") try{ TVApp.closeTikTok(); }catch(_){} }
   else if(ev==="prev"){ if(ttIndex>0) ttNativeOpen(ttIndex-1); }
-  else if(ev==="closed"){ pageToastHide(); const el=ttgridEl.children[ttIndex]; if(el&&!ttgridEl.hidden) el.focus({preventScroll:false}); }
+  else if(ev==="closed"){ pageToastHide(); const el=ttgridEl.children[ttIndex]; if(el&&!ttgridEl.hidden) el.focus({preventScroll:false});
+    if(ttDbgLog.length) pageToast("trace: "+ttDbgLog.join(" › "),15000); }
   else if(ev.startsWith("error")) pageToast("Không phát được: "+ev.slice(6),ev.length>60?15000:3000); // long = diagnostics, keep it up
 };
 
