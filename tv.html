@@ -487,31 +487,36 @@ let ttUser="";                 // handle (without @) of that source; the app nee
 // by editing tv.html — no APK rebuild/reinstall. Plain ES5; no backticks or ${} inside.
 // 1) Runs on the TikTok video page: 'WAIT' until the embedded video-detail data exists (a bot-challenge
 //    page reloads itself first), 'ERR …' when the post is unavailable, else JSON {url} of the best H.264 stream.
-window.TT_EXTRACT_JS=`(function(){try{var v=null,e=document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');
+window.TT_EXTRACT_JS=`(function(){try{var v=null,id='',e=document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');
 if(e){var j=JSON.parse(e.textContent),d=j.__DEFAULT_SCOPE__&&j.__DEFAULT_SCOPE__['webapp.video-detail'];if(!d)return 'WAIT';
-if(d.statusCode!==0)return 'ERR status '+d.statusCode;v=d.itemInfo&&d.itemInfo.itemStruct&&d.itemInfo.itemStruct.video;}
+if(d.statusCode!==0)return 'ERR status '+d.statusCode;var it=d.itemInfo&&d.itemInfo.itemStruct;v=it&&it.video;id=String(it&&it.id||'');}
 else{var s=document.getElementById('SIGI_STATE');if(!s)return 'WAIT';var g=JSON.parse(s.textContent),im=g.ItemModule;if(!im)return 'WAIT';
-var k=Object.keys(im)[0];if(!k)return 'ERR no item';v=im[k].video;}
+var k=Object.keys(im)[0];if(!k)return 'ERR no item';v=im[k].video;id=String(k);}
 if(!v)return 'ERR no video';
 var b=(v.bitrateInfo||[]).filter(function(x){return /h264|avc/i.test(x.CodecType||'')}).sort(function(a,c){return (c.Bitrate||0)-(a.Bitrate||0)});
 var u=b.length&&b[0].PlayAddr&&b[0].PlayAddr.UrlList&&b[0].PlayAddr.UrlList[0]||(v.codecType==='h264'?v.playAddr:'');
-if(!u)return 'ERR no h264';return JSON.stringify({url:u});}catch(x){return 'WAIT'}})()`;
+if(!u)return 'ERR no h264';
+/* id lets the app reject data read off the previous page while the next one is still loading */
+return JSON.stringify({url:u,id:id||String(v.id||''),cover:String(v.cover||v.originCover||'')});}catch(x){return 'WAIT'}})()`;
 // 3) User agent for the app's TikTok WebView (empty = the WebView's own). TV boxes ship old WebView UAs
 //    that TikTok may answer with a challenge/unsupported page; a desktop Chrome UA gets the normal page.
 window.TT_UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
 // 4) Run by the app when a load fails: a one-line description of what the TikTok WebView ended up showing.
 window.TT_DIAG_JS=`(function(){try{var t=(document.body&&document.body.innerText||'').replace(/\\s+/g,' ').slice(0,140);
 return 'url='+location.href.slice(0,80)+' title='+document.title.slice(0,40)+' rehyd='+!!document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__')+' sigi='+!!document.getElementById('SIGI_STATE')+' scripts='+document.scripts.length+' ua='+navigator.userAgent.slice(0,70)+' text='+t;}catch(e){return 'diag err '+e}})()`;
-// 2) function(u, ap): replaces that page with a bare <video> on the H.264 URL u (autoplay when ap). Built
-//    from JS, not markup, so the page's CSP can't block it. window.__tt is what the remote drives.
-window.TT_PLAYER_JS=`(function(u,ap){try{
+// 2) function(u, ap, cover): builds a bare <video> on the H.264 URL u into the app's own blank page (autoplay
+//    when ap; cover = poster so the WebView's grey placeholder never shows). window.__tt is what the remote drives.
+window.TT_PLAYER_JS=`(function(u,ap,cover){try{
 var h=document.documentElement,b=document.body||h.appendChild(document.createElement('body'));
 h.style.cssText=b.style.cssText='margin:0;height:100%;background:#000;overflow:hidden';b.innerHTML='';
-var v=document.createElement('video');v.setAttribute('playsinline','');v.preload='auto';
+var v=document.createElement('video');v.setAttribute('playsinline','');v.preload='auto';if(cover)v.poster=cover;
 v.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;background:#000';
 var t=document.createElement('div');t.style.cssText='position:absolute;left:50%;bottom:12%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;font:500 22px system-ui,sans-serif;padding:10px 18px;border-radius:10px;display:none;white-space:nowrap';
 b.appendChild(v);b.appendChild(t);
-var tm=0;function toast(m){t.textContent=m;t.style.display='block';clearTimeout(tm);tm=setTimeout(function(){t.style.display='none'},1200);}
+var tm=0;function toast(m){t.innerHTML=m;t.style.display='block';clearTimeout(tm);tm=setTimeout(function(){t.style.display='none'},1200);}
+/* icons drawn with CSS so they look the same on any TV font: a triangle for play, two bars for pause */
+var ICO_PLAY='<b style="display:inline-block;vertical-align:middle;width:0;height:0;border-left:22px solid #fff;border-top:13px solid transparent;border-bottom:13px solid transparent"></b>';
+var ICO_PAUSE='<b style="display:inline-block;vertical-align:middle;width:7px;height:26px;background:#fff;margin-right:6px"></b><b style="display:inline-block;vertical-align:middle;width:7px;height:26px;background:#fff"></b>';
 function f(s){s=Math.max(0,Math.floor(s));var m=Math.floor(s/60),x=s%60;return m+':'+(x<10?'0':'')+x;}
 function ev(n){try{TVNative.event(n);}catch(e){}}
 v.loop=true; /* like TikTok: a video repeats; Down goes to the next one */
@@ -519,9 +524,9 @@ v.addEventListener('playing',function(){ev('playing')});
 v.addEventListener('error',function(){ev('error')});
 var st=null,sti=0;
 window.__tt={play:function(){v.play().catch(function(){});},pause:function(){v.pause();},
-toggle:function(){if(v.paused){v.play().catch(function(){});toast('▶');}else{v.pause();toast('❚❚');}},
+toggle:function(){if(v.paused){v.play().catch(function(){});toast(ICO_PLAY);}else{v.pause();toast(ICO_PAUSE);}},
 seek:function(d){var dur=v.duration||0,b2=(st==null?v.currentTime:st)+d;if(b2<0)b2=0;if(dur&&b2>dur-1)b2=dur-1;st=b2;var dl=Math.round(b2-v.currentTime);
-toast((dl>=0?'+':'−')+Math.abs(dl)+'s   '+f(b2)+(dur?' / '+f(dur):''));clearTimeout(sti);sti=setTimeout(function(){var x=st;st=null;v.currentTime=x;},350);},
+toast(((dl>=0?'+':'−')+Math.abs(dl)+'s &nbsp; '+f(b2)+(dur?' / '+f(dur):'')));clearTimeout(sti);sti=setTimeout(function(){var x=st;st=null;v.currentTime=x;},350);},
 stop:function(){try{v.pause();v.removeAttribute('src');v.load();}catch(e){}}};
 v.src=u;if(ap)v.play().catch(function(){});
 }catch(e){try{TVNative.event('error');}catch(x){}}})`;

@@ -330,10 +330,14 @@ public class MainActivity extends Activity {
     private void ttLoad(String id, String user, boolean play) {
         if (tt == null) ttCreate();
         ttPlayWhenReady = play;
-        if (id.equals(ttReadyId)) { if (play) ttShow(); return; }   // prefetched: instant
+        if (id.equals(ttReadyId)) { // prefetched: start it; shown on its first frame ("playing")
+            if (play) { ttWantShow = true; notifyPage("loading"); tt.evaluateJavascript("window.__tt&&__tt.play()", null); }
+            return;
+        }
         if (id.equals(ttLoadingId)) { if (play) notifyPage("loading"); return; } // already on its way
-        ui.removeCallbacks(ttPoll);
-        ttLoadingId = id; ttReadyId = null; ttUser = user;
+        ui.removeCallbacks(ttPoll); ui.removeCallbacks(ttReady);
+        tt.stopLoading(); // whatever was loading (another video's page) is abandoned
+        ttLoadingId = id; ttReadyId = null; ttUser = user; ttWantShow = false; ttStage = 0;
         if (play) notifyPage("loading");
         // The two scripts run in the TikTok WebView live in tv.html (window.TT_EXTRACT_JS / TT_PLAYER_JS):
         // a TikTok page change is fixed by editing the page, never by rebuilding the app. The app holds
@@ -381,15 +385,23 @@ public class MainActivity extends Activity {
                 try { Object o = new JSONTokener(res == null ? "null" : res).nextValue(); r = o == null ? "WAIT" : o.toString(); }
                 catch (Exception e) { r = "WAIT"; }
                 if (r.startsWith("{")) {
-                    String url;
-                    try { url = new JSONObject(r).getString("url"); } catch (Exception e) { ttFail("parse"); return; }
+                    String url, cover, vid;
+                    try { JSONObject j = new JSONObject(r); url = j.getString("url"); cover = j.optString("cover", ""); vid = j.optString("id", ""); }
+                    catch (Exception e) { ttFail("parse"); return; }
+                    // Data read off the previous video's page while this one is still loading: keep waiting.
+                    if (!vid.isEmpty() && !vid.equals(id)) {
+                        if (android.os.SystemClock.uptimeMillis() >= ttDeadline) ttFailDiag("timeout (page of " + vid + ")");
+                        else ui.postDelayed(this, TT_POLL_MS);
+                        return;
+                    }
+                    ttCover = cover;
                     // Leave TikTok's page (its scripts would redirect/reload over us) for a blank page of our
                     // own that still has the tiktok.com origin, so the CDN gets the session cookies + Referer.
                     ttFoundUrl = url; ttStage = 2;
                     tt.stopLoading();
                     // The player script is inlined into this document (our own, so no CSP), so it runs exactly
                     // when the document loads — no evaluateJavascript race with about:blank / the data load.
-                    tt.loadDataWithBaseURL(TT_BASE, ttPlayerHtml(url, ttPlayWhenReady), "text/html", "utf-8", null);
+                    tt.loadDataWithBaseURL(TT_BASE, ttPlayerHtml(url, ttPlayWhenReady, ttCover), "text/html", "utf-8", null);
                     ui.removeCallbacks(ttReady); ui.postDelayed(ttReady, 3000); // in case onPageFinished reports another URL
                 } else if (r.startsWith("ERR")) {
                     ttFailDiag(r.substring(3).trim());
@@ -404,9 +416,12 @@ public class MainActivity extends Activity {
 
     private static final String TT_BASE = "https://www.tiktok.com/";
 
-    // The player document: tv.html's TT_PLAYER_JS (a function (u, ap)) inlined and called with the H.264 URL.
-    private String ttPlayerHtml(String url, boolean autoplay) {
-        String call = ttPlayerJs + "(" + JSONObject.quote(url) + "," + autoplay + ");";
+    private String ttCover = "";      // the video's cover image, used as the <video> poster
+    private boolean ttWantShow;       // show the player on its first frame (avoids the WebView's grey placeholder)
+
+    // The player document: tv.html's TT_PLAYER_JS (a function (u, ap, cover)) inlined and called with the H.264 URL.
+    private String ttPlayerHtml(String url, boolean autoplay, String cover) {
+        String call = ttPlayerJs + "(" + JSONObject.quote(url) + "," + autoplay + "," + JSONObject.quote(cover == null ? "" : cover) + ");";
         return "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head>"
              + "<body style=\"margin:0;background:#000\"><script>" + call.replace("</", "<\\/") + "</script></body></html>";
     }
@@ -418,12 +433,14 @@ public class MainActivity extends Activity {
             if (ttStage != 2 || ttLoadingId == null) return;
             ttStage = 3;
             ttReadyId = ttLoadingId; ttLoadingId = null;
-            if (ttPlayWhenReady) ttShow();
+            if (ttPlayWhenReady) ttWantShow = true; // the document autoplays; ttShow() runs on its "playing" event
         }
     };
 
     private void ttShow() {
         if (tt == null) return;
+        ttWantShow = false;
+        if (ttVisible) return;
         ttVisible = true;
         tt.setVisibility(View.VISIBLE);
         web.setVisibility(View.INVISIBLE); // keep it laid out; it still receives the events we send
@@ -435,7 +452,7 @@ public class MainActivity extends Activity {
 
     private void ttClose() {
         ui.removeCallbacks(ttPoll); ui.removeCallbacks(ttReady);
-        ttLoadingId = ttReadyId = null; ttStage = 0; ttFoundUrl = null;
+        ttLoadingId = ttReadyId = null; ttStage = 0; ttFoundUrl = null; ttWantShow = false;
         if (tt != null) {
             tt.evaluateJavascript("window.__tt&&__tt.stop()", null);
             tt.loadUrl("about:blank"); // drop the page (and its stream) entirely
@@ -458,8 +475,8 @@ public class MainActivity extends Activity {
 
     private void ttEvent(String ev) {
         if ("ended".equals(ev)) notifyPage("ended");
-        else if ("error".equals(ev)) { if (ttVisible) ttFail("playback"); }
-        else if ("playing".equals(ev)) notifyPage("started");
+        else if ("error".equals(ev)) { if (ttVisible || ttWantShow) ttFail("playback"); }
+        else if ("playing".equals(ev)) { if (ttWantShow) ttShow(); notifyPage("started"); }
     }
 
     private void notifyPage(String ev) {
