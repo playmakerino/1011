@@ -93,7 +93,8 @@
   .ttinfo .ttdate{color:#bbb}
   .ttinfo .ttsub{color:#f1f1f1; font-size:15px; margin-top:12px; line-height:1.5; white-space:pre-wrap; word-break:break-word} /* full caption, no clamp */
   .ttinfo .tttoast{display:inline-block; margin-top:16px; background:rgba(255,255,255,.14); color:#fff; font-size:20px; font-weight:600; padding:8px 16px; border-radius:10px}
-  .ttinfo .ttdbg{color:#8a8a8a; font-size:12px; margin-top:10px; font-family:monospace; word-break:break-word} /* temporary on-screen diagnostics */
+  /* page-level toast (e.g. "Đang tải…" while the app resolves a TikTok stream) */
+  .pagetoast{position:fixed; left:50%; bottom:10%; transform:translateX(-50%); z-index:70; background:rgba(0,0,0,.85); color:#fff; font-size:20px; font-weight:500; padding:10px 18px; border-radius:10px; white-space:nowrap; pointer-events:none}
   @media (max-width:820px){ /* portrait phone: video on top, caption below */
     .ttfeed{flex-direction:column; gap:12px}
     .ttstage{height:68vh}
@@ -133,10 +134,11 @@
   <div class="ttinfo">
     <div class="tttitle" id="tttitle"></div>
     <div class="ttsub" id="ttsub"></div>
-    <div class="ttdbg" id="ttdbg"></div>
     <div class="tttoast" id="tttoast" hidden></div>
   </div>
 </div>
+
+<div class="pagetoast" id="pagetoast" hidden></div>
 
 <script>
 // ====== CONFIG — only the sources listed here can be watched ======
@@ -163,6 +165,9 @@ const PREBUFFER_MS = 400; // a card focused this long starts loading its video m
 
 const API = "https://www.googleapis.com/youtube/v3/";
 const IN_APP = /\bTVApp\//.test(navigator.userAgent); // the Android wrapper tags its user agent
+// The app plays TikTok natively (its own WebView on the video's H.264 stream) — the embed player's
+// H.265 stream doesn't decode on TV boxes. Outside the app the embed is used as before.
+const TT_NATIVE = IN_APP && !!(window.TVApp && typeof TVApp.playTikTok==="function");
 const $ = s => document.querySelector(s);
 const homeEl=$("#home"), gridEl=$("#grid"), ttgridEl=$("#ttgrid"), stateEl=$("#state"), moreWrap=$("#moreWrap"), moreBtn=$("#moreBtn");
 const navEl=$("#nav"), navTitle=$("#navtitle");
@@ -476,6 +481,7 @@ async function fetchTikTok(file){
     id:String(v.id), title:decode(v.title||""), thumb:v.thumb||"", dur:+v.dur||0, views:+v.views||0, pub:v.pub||"" })) };
 }
 let ttList=[];                 // videos of the source now on screen; the feed pages through this
+let ttUser="";                 // handle (without @) of that source; the app needs it for the video page URL
 const PLAY_ICON='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 function ttItem(v,i){
   const b=document.createElement("button"); b.className="ttitem"; b.type="button"; b.dataset.vid=v.id;
@@ -485,6 +491,7 @@ function ttItem(v,i){
   const open=()=>openFeed(i);
   b.onclick=open;
   b.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
+  if(TT_NATIVE){ b.onfocus=()=>ttPrefetch(v.id); b.onblur=()=>ttPrefetch(null); } // resolve the stream while the tile is focused
   return b;
 }
 function ttSkeletons(n){ let h=""; for(let i=0;i<n;i++) h+='<div class="ttitem sk"></div>'; return h; }
@@ -492,7 +499,8 @@ async function showTikTok(id,seq){
   const src=SOURCES.find(s=>s.id===id&&s.type==="tiktok");
   if(!src){ location.replace("#home"); return; }
   cur={kind:"tiktok",key:id,token:"",done:true,pages:1};
-  navEl.hidden=false; navTitle.textContent=(meta[id]&&meta[id].title)||src.handle.replace(/^@/,""); setView("ttgrid");
+  ttUser=src.handle.replace(/^@/,"");
+  navEl.hidden=false; navTitle.textContent=(meta[id]&&meta[id].title)||ttUser; setView("ttgrid");
   let painted=false;
   const paint=data=>{
     if(seq!==navSeq) return;
@@ -525,23 +533,16 @@ window.addEventListener("message",e=>{
   if(!ttFrame||e.source!==ttFrame.contentWindow) return;
   let d=e.data; if(typeof d==="string"){ try{ d=JSON.parse(d); }catch(_){ return; } }
   if(!d||d["x-tiktok-player"]!==true) return;
-  if(d.type==="onPlayerReady"){ ttReadyAt=Date.now(); ttMutedFallback=false; ttDbg={ready:1,states:""}; ttCmd("play"); ttCmd("unMute"); }
+  if(d.type==="onPlayerReady"){ ttReadyAt=Date.now(); ttMutedFallback=false; ttCmd("play"); ttCmd("unMute"); }
   else if(d.type==="onStateChange"){
-    ttState=d.value; ttDbg.states=(ttDbg.states||"")+d.value+" ";
+    ttState=d.value;
     // Paused within a moment of starting = the player rejected our programmatic unMute (no in-iframe
-    // gesture, e.g. a TV remote). Fall back to muted playback so the video at least plays.
+    // gesture). Fall back to muted playback so the video at least plays.
     if(d.value===2 && !ttMutedFallback && Date.now()-ttReadyAt<2000){
-      ttMutedFallback=true; ttDbg.fallback="muted"; ttCmd("mute"); ttCmd("play");
+      ttMutedFallback=true; ttCmd("mute"); ttCmd("play");
     }
   }
-  else if(d.type==="onMute") ttDbg.mute=d.value;
-  else if(d.type==="onPlayerError") ttDbg.err=(d.value&&d.value.errorCode)+" "+(d.value&&d.value.errorType);
-  else if(d.type==="onCurrentTime"&&d.value) ttDbg.t=Math.round(d.value.currentTime)+"/"+Math.round(d.value.duration);
-  ttDbgShow();
 });
-// Temporary diagnostics line in the panel (readable on the TV): player state sequence, mute, error, fallback.
-let ttDbg={};
-function ttDbgShow(){ $("#ttdbg").textContent=Object.entries(ttDbg).map(([k,v])=>k+":"+v).join("  "); }
 function ttToast(m){ const el=$("#tttoast"); el.textContent=m; el.hidden=false; clearTimeout(ttToastTimer); ttToastTimer=setTimeout(()=>{ el.hidden=true; },1200); }
 function removeTtFrame(){ if(ttFrame){ try{ ttFrame.remove(); }catch(_){} ttFrame=null; } }
 function ttShow(i){
@@ -581,6 +582,7 @@ function ttToggle(){ // OK: play/pause based on the player's real state
 }
 function openFeed(index){
   if(!ttList.length) return;
+  if(TT_NATIVE){ ttNativeOpen(index); return; }
   ttChannel=navTitle.textContent||""; // the channel name shown on the grid page
   ttLastFocused=document.activeElement;
   ttFeedOpen=true; ttfeedEl.hidden=false; document.body.style.overflow="hidden";
@@ -610,6 +612,31 @@ function ttKey(k){
   }
   return false;
 }
+// ---- In the app: native TikTok playback via the TVApp bridge (see MainActivity) ----
+// tv.html only picks the video; the app loads its page, extracts the H.264 stream and plays it in a
+// WebView above this one. Up/Down there come back here as "prev"/"next" so the list order is ours.
+let pageToastTimer=0;
+function pageToast(msg,ms){ const el=$("#pagetoast"); el.textContent=msg; el.hidden=false; clearTimeout(pageToastTimer); if(ms) pageToastTimer=setTimeout(()=>{ el.hidden=true; },ms); }
+function pageToastHide(){ clearTimeout(pageToastTimer); $("#pagetoast").hidden=true; }
+let ttPreTimer=0;
+function ttPrefetch(vid){ // a tile focused for a moment: have the app resolve its stream so OK plays at once
+  clearTimeout(ttPreTimer); if(!vid) return;
+  ttPreTimer=setTimeout(()=>{ try{ TVApp.prefetchTikTok(vid,ttUser); }catch(_){} },PREBUFFER_MS);
+}
+function ttNativeOpen(i){
+  ttIndex=Math.max(0,Math.min(i,ttList.length-1));
+  clearTimeout(ttPreTimer);
+  try{ TVApp.playTikTok(ttList[ttIndex].id,ttUser); }catch(_){ pageToast("Không mở được video",2500); }
+}
+window.tvTikTok=function(ev){ // events from the app
+  if(ev==="loading") pageToast("Đang tải…",8000);
+  else if(ev==="started") pageToastHide();
+  else if(ev==="next"||ev==="ended"){ if(ttIndex<ttList.length-1) ttNativeOpen(ttIndex+1); else if(ev==="ended") try{ TVApp.closeTikTok(); }catch(_){} }
+  else if(ev==="prev"){ if(ttIndex>0) ttNativeOpen(ttIndex-1); }
+  else if(ev==="closed"){ pageToastHide(); const el=ttgridEl.children[ttIndex]; if(el&&!ttgridEl.hidden) el.focus({preventScroll:false}); }
+  else if(ev.startsWith("error")) pageToast("Không phát được ("+ev.slice(6)+")",3000);
+};
+
 // Touch: vertical swipe over the letterbox margins pages the feed (over the video the iframe eats the touch).
 let ttTouchY=null;
 ttfeedEl.addEventListener("touchstart",e=>{ ttTouchY=e.touches[0].clientY; },{passive:true});
