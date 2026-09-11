@@ -66,6 +66,20 @@
   .player{position:relative; width:100%; height:100%; overflow:hidden; outline:none}
   .player iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
   .toast{position:absolute; left:50%; bottom:14%; transform:translateX(-50%); z-index:2; background:rgba(0,0,0,.8); color:#fff; font-size:22px; font-weight:500; padding:10px 18px; border-radius:10px; pointer-events:none; white-space:nowrap}
+  /* Seek bar, drawn exactly where the embed draws its own (www-player.css, .ytp-embed, not big mode — big
+     mode needs the iframe itself fullscreen, which never happens here): controls inset 12px each side;
+     progress container 5px tall, 39px up, painted at scaleY(.6) → a 3px band 40px up; 13px round scrubber
+     centred on it; a 98px bottom gradient from the very PNG the player uses. The embed only shows its own
+     bar for pointer/keyboard input inside the iframe, which the remote never gives it. Fades like it:
+     100 ms in, 250 ms out. */
+  .ybar{position:absolute; inset:0; z-index:1; pointer-events:none; opacity:0; transition:opacity .25s cubic-bezier(0,0,.2,1)}
+  .ybar.on{opacity:1; transition:opacity .1s cubic-bezier(.4,0,1,1)}
+  .ybar .yg{position:absolute; left:0; right:0; bottom:0; height:98px; background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAADGCAYAAAAT+OqFAAAAdklEQVQoz42QQQ7AIAgEF/T/D+kbq/RWAlnQyyazA4aoAB4FsBSA/bFjuF1EOL7VbrIrBuusmrt4ZZORfb6ehbWdnRHEIiITaEUKa5EJqUakRSaEYBJSCY2dEstQY7AuxahwXFrvZmWl2rh4JZ07z9dLtesfNj5q0FU3A5ObbwAAAABJRU5ErkJggg==) repeat-x bottom}
+  .ybar .yt{position:absolute; left:12px; right:12px; bottom:40px; height:3px; background:rgba(255,255,255,.2)}
+  .ybar .yl,.ybar .yp{position:absolute; left:0; top:0; bottom:0; width:0}
+  .ybar .yl{background:rgba(255,255,255,.4)}
+  .ybar .yp{background:linear-gradient(90deg,#f03 80%,#ff2791)}
+  .ybar .yk{position:absolute; left:0; top:50%; width:13px; height:13px; margin:-6.5px 0 0 -6.5px; border-radius:50%; background:#f03}
   @media (max-width:520px){ main{padding:16px 14px 60px} }
 
   /* TikTok profile: portrait 9:16 thumbnails, like the app's grid */
@@ -123,6 +137,7 @@
 <div class="modal" id="modal" aria-hidden="true">
   <div class="player" id="player" tabindex="-1">
     <div class="toast" id="toast" hidden></div>
+    <div class="ybar" id="ybar"><div class="yg"></div><div class="yt"><div class="yl" id="yload"></div><div class="yp" id="yplay"></div><div class="yk" id="yknob"></div></div></div>
   </div>
 </div>
 
@@ -744,7 +759,7 @@ function closePlayer(fromHistory){
   if(!isOpen()) return;
   const ex=document.fullscreenElement||document.webkitFullscreenElement;
   if(ex){ (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }
-  pending=null; prebuf=null; seekTarget=null; clearTimeout(seekTimer);
+  pending=null; prebuf=null; seekTarget=null; hideBar();
   if(ytReady) try{ yt.stopVideo(); }catch(_){}
   toastEl.hidden=true;
   modal.classList.remove("open"); modal.setAttribute("aria-hidden","true"); document.body.style.overflow="";
@@ -757,23 +772,34 @@ window.addEventListener("popstate",()=>{ closePlayer(true); ttCloseFeed(true); }
 // ---- remote / keyboard control of the player ----
 let toastTimer=0;
 function toast(msg){ toastEl.textContent=msg; toastEl.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>{ toastEl.hidden=true; },1200); }
-function fmtSec(t){ t=Math.max(0,Math.floor(t)); const h=Math.floor(t/3600), m=Math.floor(t%3600/60), s=t%60, p=n=>String(n).padStart(2,"0"); return h? h+":"+p(m)+":"+p(s) : m+":"+p(s); }
-// Repeated presses add up and become ONE seek once they stop: seeking on every press made the player
-// re-buffer at each intermediate position, so a 60 s jump took six buffering rounds.
-let seekTarget=null, seekTimer=0;
-function flushSeek(){ clearTimeout(seekTimer); if(seekTarget==null) return; const t=seekTarget; seekTarget=null; yt.seekTo(t,true); }
+// Seeking works like the YouTube TV app: Left/Right only move the scrubber on the bar (the video plays
+// on, nothing buffers), OK applies the jump, and the pending jump is applied anyway when the bar hides
+// after 3 s of no presses (the player's own control autohide time). One seek instead of one per press.
+const ybar=$("#ybar"), yLoad=$("#yload"), yPlay=$("#yplay"), yKnob=$("#yknob");
+const BAR_MS=3000;
+let seekTarget=null, barTimer=0, barTick=0;
+const barOpen=()=>ybar.classList.contains("on");
+function drawBar(t){
+  const d=yt.getDuration()||0, f=d?Math.max(0,Math.min(1,t/d)):0;
+  let l=0; try{ l=yt.getVideoLoadedFraction()||0; }catch(_){}
+  yPlay.style.width=(f*100)+"%"; yKnob.style.left=(f*100)+"%"; yLoad.style.width=(Math.max(f,l)*100)+"%";
+}
+function showBar(){
+  ybar.classList.add("on");
+  clearTimeout(barTimer); barTimer=setTimeout(hideBar,BAR_MS);
+  if(!barTick) barTick=setInterval(()=>{ if(seekTarget==null) drawBar(yt.getCurrentTime()); },250); // live position once applied
+}
+function hideBar(){ clearTimeout(barTimer); barTimer=0; clearInterval(barTick); barTick=0; ybar.classList.remove("on"); flushSeek(); }
+function flushSeek(){ if(seekTarget==null) return; const t=seekTarget; seekTarget=null; yt.seekTo(t,true); }
 function seekBy(sec){
   if(!ytReady){ toast("Loading…"); return; }
-  const d=yt.getDuration()||0, now=yt.getCurrentTime();
-  let t=(seekTarget!=null?seekTarget:now)+sec; if(t<0) t=0; if(d&&t>d-1) t=d-1;
-  seekTarget=t;
-  const delta=Math.round(t-now);
-  toast((delta>=0?"+":"−")+Math.abs(delta)+"s   "+fmtSec(t)+(d?" / "+fmtSec(d):""));
-  clearTimeout(seekTimer); seekTimer=setTimeout(flushSeek,350);
+  const d=yt.getDuration()||0;
+  let t=(seekTarget!=null?seekTarget:yt.getCurrentTime())+sec; if(t<0) t=0; if(d&&t>d-1) t=d-1;
+  seekTarget=t; drawBar(t); showBar();
 }
 function togglePlay(){
   if(!ytReady){ toast("Loading…"); return; }
-  flushSeek();
+  if(barOpen()){ flushSeek(); showBar(); return; } // OK while the bar is up confirms the jump — never play/pause
   if(yt.getPlayerState()===1) yt.pauseVideo(); else yt.playVideo(); // no toast: the YouTube player shows its own play/pause indicator
 }
 const KEYS={
