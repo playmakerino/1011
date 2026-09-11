@@ -23,9 +23,27 @@ opts = {
     "playlistend": LIMIT,   # newest N
     "skip_download": True,
 }
-with YoutubeDL(opts) as ydl:
-    info = ydl.extract_info(url, download=False)
-entries = info.get("entries") or []
+# TikTok throttles unpredictably (a call can return an empty page), which is worse from a datacenter
+# IP like a CI runner. Retry a few times with backoff and only accept a page that actually has videos —
+# this turns most transient empties into a success within the same run.
+import time
+ATTEMPTS = 5
+info, entries = {}, []
+for attempt in range(1, ATTEMPTS + 1):
+    try:
+        with YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+        entries = info.get("entries") or []
+    except Exception as ex:
+        print("attempt %d/%d failed: %s" % (attempt, ATTEMPTS, ex))
+        entries = []
+    if entries:
+        print("attempt %d/%d: %d entries" % (attempt, ATTEMPTS, len(entries)))
+        break
+    if attempt < ATTEMPTS:
+        wait = 8 * attempt
+        print("attempt %d/%d: empty, retrying in %ds" % (attempt, ATTEMPTS, wait))
+        time.sleep(wait)
 
 def best_thumb(e):
     best, bw = "", -1
