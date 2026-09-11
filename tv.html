@@ -71,7 +71,7 @@
 
   /* TikTok profile: portrait 9:16 thumbnails, like the app's grid */
   .ttgrid{display:grid; gap:8px; grid-template-columns:repeat(3,1fr)}
-  @media(min-width:600px){ .ttgrid{grid-template-columns:repeat(5,1fr); gap:10px} }
+  @media(min-width:600px){ .ttgrid{grid-template-columns:repeat(6,1fr); gap:10px} }
   .ttitem{position:relative; aspect-ratio:9/16; border-radius:8px; overflow:hidden; background:var(--ph); border:none; padding:0; cursor:pointer; color:inherit}
   .ttitem img{width:100%; height:100%; object-fit:cover}
   .ttitem .v{position:absolute; left:8px; bottom:7px; display:flex; align-items:center; gap:4px; color:#fff; font-size:13px; font-weight:600; text-shadow:0 1px 3px rgba(0,0,0,.7)}
@@ -495,7 +495,7 @@ async function showTikTok(id,seq){
 
 // ---- TikTok feed player (full-screen vertical) ----
 let ttFrame=null, ttFeedOpen=false, ttHistPushed=false, ttLastFocused=null;
-let ttIndex=0, ttPlaying=false, ttTime=0, ttDur=0, ttToastTimer=0;
+let ttIndex=0, ttPlaying=false, ttToastTimer=0;
 function ttPost(o){ if(!ttFrame||!ttFrame.contentWindow) return; const w=ttFrame.contentWindow;
   try{ w.postMessage(o,"*"); }catch(_){}            // the embed player's protocol isn't stable across versions,
   try{ w.postMessage(JSON.stringify(o),"*"); }catch(_){} } // so send both object and string forms; one is ignored
@@ -512,7 +512,7 @@ function ttShow(i){
   ttFrame.setAttribute("allowfullscreen","");
   ttFrame.src="https://www.tiktok.com/player/v1/"+encodeURIComponent(v.id)+"?autoplay=1&loop=1&controls=1&rel=0&native_context_menu=0&description=0&music_info=0";
   ttStage.insertBefore(ttFrame,ttStage.firstChild);
-  ttPlaying=true; ttTime=0; ttDur=0;
+  ttPlaying=true;
   setTimeout(()=>ttPost({type:"unMute"}),700);
   ttSyncMeta();
 }
@@ -524,8 +524,6 @@ function ttSyncMeta(){
   $("#ttsub").textContent=[fmtViews(v.views), v.pub?ago(v.pub):"", fmtDurSec(v.dur)].filter(Boolean).join(" · ");
 }
 function ttToggle(){ ttPlaying=!ttPlaying; ttPost({type:ttPlaying?"play":"pause"}); ttToast(ttPlaying?"▶":"❚❚"); }
-function ttSeek(sec){ let t=(ttTime||0)+sec; if(t<0)t=0; if(ttDur&&t>ttDur-1)t=ttDur-1; ttTime=t; ttPost({type:"seekTo",value:t});
-  ttToast((sec>=0?"+":"−")+Math.abs(sec)+"s"+(ttDur?"   "+fmtSec(t)+" / "+fmtSec(ttDur):"")); }
 function openFeed(index){
   if(!ttList.length) return;
   ttLastFocused=document.activeElement;
@@ -552,25 +550,12 @@ function ttKey(k){
   switch(k){
     case "ArrowDown": ttShow(ttIndex+1); return true;
     case "ArrowUp": ttShow(ttIndex-1); return true;
-    case "ArrowRight": case "MediaFastForward": ttSeek(10); return true;
-    case "ArrowLeft": case "MediaRewind": ttSeek(-10); return true;
+    case "ArrowLeft": case "ArrowRight": return true; // no seek (the embed player ignores it); swallow so focus stays put
     case "Enter": case " ": case "MediaPlayPause": case "MediaPlay": case "MediaPause": ttToggle(); return true;
     case "Escape": case "MediaStop": ttExit(); return true;
   }
   return false;
 }
-// The embed player posts progress back; keep the last time/duration so seek has something to work from.
-window.addEventListener("message",e=>{
-  if(!ttFrame || e.source!==ttFrame.contentWindow) return;
-  let d=e.data; if(typeof d==="string"){ try{ d=JSON.parse(d); }catch(_){ return; } }
-  if(!d||typeof d!=="object") return;
-  const t=d.type||d.event, v=(d.value!==undefined?d.value:d.data);
-  if(t==="onCurrentTime"||t==="currentTime"){
-    if(typeof v==="number") ttTime=v;
-    else if(v&&typeof v==="object"){ if(v.currentTime!=null) ttTime=+v.currentTime; if(v.duration!=null) ttDur=+v.duration; }
-  }
-  if(d.duration!=null) ttDur=+d.duration;
-});
 // Touch: vertical swipe over the letterbox margins pages the feed (over the video the iframe eats the touch).
 let ttTouchY=null;
 ttfeedEl.addEventListener("touchstart",e=>{ ttTouchY=e.touches[0].clientY; },{passive:true});
