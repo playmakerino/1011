@@ -290,7 +290,7 @@ public class MainActivity extends Activity {
             }
             @Override // images/fonts/analytics only slow the page down; the stream list is in the HTML itself
             public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest req) {
-                if (req.isForMainFrame()) return null;
+                if (req.isForMainFrame() || ttStage >= 2) return null; // our player document loads what it likes (cover poster)
                 String u = String.valueOf(req.getUrl()).toLowerCase();
                 String p = u.split("\\?")[0];
                 boolean block = p.matches(".*\\.(png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf|mp3|m4a)$")
@@ -422,7 +422,8 @@ public class MainActivity extends Activity {
     private boolean ttWantShow, ttFirstFrame;
     private void ttWant() {
         ttWantShow = true; notifyPage("loading");
-        ui.removeCallbacks(ttShowAnyway); ui.postDelayed(ttShowAnyway, 6000); // never leave sound playing unseen
+        ui.removeCallbacks(ttShowAnyway); ui.postDelayed(ttShowAnyway, 6000); // never leave it stuck on "loading"
+        if (ttStage == 3 && tt != null) tt.evaluateJavascript("window.__tt&&__tt.start()", null); // muted start → "playing" → show
         ttMaybeShow();
     }
     // ttShow() also starts playback, so picture and sound begin together — the player never autoplays.
@@ -456,7 +457,7 @@ public class MainActivity extends Activity {
         web.setVisibility(View.INVISIBLE); // keep it laid out; it still receives the events we send
         tt.requestFocus();
         immersive();
-        tt.evaluateJavascript("window.__tt&&__tt.play()", null);
+        tt.evaluateJavascript("window.__tt&&(__tt.play(),__tt.unmute&&__tt.unmute())", null); // on screen now: sound on
         notifyPage("started");
     }
 
@@ -486,8 +487,7 @@ public class MainActivity extends Activity {
     private void ttEvent(String ev) {
         if ("ended".equals(ev)) notifyPage("ended");
         else if ("error".equals(ev)) { if (ttVisible || ttWantShow) ttFail("playback"); }
-        else if ("frame".equals(ev)) { ttFirstFrame = true; ttMaybeShow(); }
-        else if ("playing".equals(ev)) { if (ttVisible) notifyPage("started"); }
+        else if ("playing".equals(ev)) { ttFirstFrame = true; ttMaybeShow(); if (ttVisible) notifyPage("started"); }
     }
 
     private void notifyPage(String ev) {
