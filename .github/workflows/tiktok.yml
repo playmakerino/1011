@@ -1,0 +1,33 @@
+name: Update TikTok
+on:
+  schedule:
+    - cron: "17 3 * * *"   # daily ~03:17 UTC (~10:17 Vietnam)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tiktok
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install yt-dlp
+        run: pip install -U yt-dlp
+      - name: Fetch @teubongday -> tiktok/teubongday.json
+        run: python scripts/tiktok.py "@teubongday" tiktok/teubongday.json
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tiktok/teubongday.json
+          git diff --cached --quiet && { echo "no change"; exit 0; }
+          git commit -m "ci: update teubongday TikTok list [skip ci]"
+          git push

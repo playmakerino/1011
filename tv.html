@@ -69,9 +69,29 @@
   .toast{position:absolute; left:50%; bottom:14%; transform:translateX(-50%); z-index:2; background:rgba(0,0,0,.8); color:#fff; font-size:22px; font-weight:500; padding:10px 18px; border-radius:10px; pointer-events:none; white-space:nowrap}
   @media (max-width:520px){ main{padding:16px 14px 60px} }
 
+  /* TikTok profile: portrait 9:16 thumbnails, like the app's grid */
+  .ttgrid{display:grid; gap:8px; grid-template-columns:repeat(3,1fr)}
+  @media(min-width:600px){ .ttgrid{grid-template-columns:repeat(5,1fr); gap:10px} }
+  .ttitem{position:relative; aspect-ratio:9/16; border-radius:8px; overflow:hidden; background:var(--ph); border:none; padding:0; cursor:pointer; color:inherit}
+  .ttitem img{width:100%; height:100%; object-fit:cover}
+  .ttitem .v{position:absolute; left:8px; bottom:7px; display:flex; align-items:center; gap:4px; color:#fff; font-size:13px; font-weight:600; text-shadow:0 1px 3px rgba(0,0,0,.7)}
+  .ttitem .v svg{width:15px; height:15px; fill:#fff; filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}
+  .ttitem:hover img{filter:brightness(1.08)}
+
+  /* TikTok player: full-screen vertical feed */
+  .ttfeed{position:fixed; inset:0; z-index:60; background:#000; display:flex; align-items:center; justify-content:center; outline:none}
+  .ttstage{position:relative; height:100%; aspect-ratio:9/16; max-width:100%; background:#000 center/cover no-repeat}
+  .ttstage iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
+  .ttcount{position:absolute; top:14px; right:14px; z-index:3; background:rgba(0,0,0,.6); color:#fff; font-size:14px; font-weight:600; padding:5px 12px; border-radius:999px}
+  .ttmeta{position:absolute; left:0; right:0; bottom:0; z-index:2; padding:40px 16px 18px; pointer-events:none; background:linear-gradient(transparent,rgba(0,0,0,.65)); color:#fff}
+  .ttmeta .tttitle{font-size:15px; font-weight:600; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  .ttmeta .ttsub{color:#ddd; font-size:13px; margin-top:5px}
+  .tttoast{position:absolute; left:50%; top:14%; transform:translateX(-50%); z-index:4; background:rgba(0,0,0,.8); color:#fff; font-size:22px; font-weight:500; padding:10px 18px; border-radius:10px; pointer-events:none; white-space:nowrap}
+
   /* D-pad / keyboard focus (Android TV WebView has no mouse cursor): white ring like the YouTube TV app */
-  .src:focus,.card:focus{outline:none}
+  .src:focus,.card:focus,.ttitem:focus{outline:none}
   .src:focus-visible .banner,.card:focus-visible .thumb{outline:4px solid var(--focus); outline-offset:2px}
+  .ttitem:focus-visible{outline:4px solid var(--focus); outline-offset:-2px}
   .btn:focus-visible{outline:4px solid var(--focus); outline-offset:2px}
 </style>
 </head>
@@ -82,6 +102,7 @@
   </div>
   <div class="home" id="home" hidden></div>
   <div class="grid" id="grid" hidden></div>
+  <div class="ttgrid" id="ttgrid" hidden></div>
   <div class="state" id="state" hidden></div>
   <div class="more" id="moreWrap" hidden><button class="btn" id="moreBtn" type="button">Load more</button></div>
 </main>
@@ -92,10 +113,21 @@
   </div>
 </div>
 
+<!-- TikTok: full-screen vertical feed. Up/Down (or swipe) change video; we swap the iframe ourselves, so
+     paging always works even though the embed player exposes almost no control API. -->
+<div class="ttfeed" id="ttfeed" tabindex="-1" hidden>
+  <div class="ttstage" id="ttstage">
+    <div class="ttcount" id="ttcount"></div>
+    <div class="ttmeta"><div class="tttitle" id="tttitle"></div><div class="ttsub" id="ttsub"></div></div>
+    <div class="tttoast" id="tttoast" hidden></div>
+  </div>
+</div>
+
 <script>
 // ====== CONFIG — only the sources listed here can be watched ======
 const API_KEY = "AIzaSyDGWoJDMbutkYWJZZzullATm1cnttCAQUE"; // restricted: github.io referrer + YouTube Data API only
 // type: "playlist" (its videos) | "channel" (its uploads as videos) | "channelPlaylists" (click -> its playlists, sorted by count)
+//     | "tiktok" (opens a full-screen vertical TikTok feed; videos come from a JSON file a daily GitHub Action refreshes)
 // subs:false  -> don't force English subtitles on for this source (default: forced on)
 // autonext    -> play as a playlist so the next video starts by itself
 const SOURCES = [
@@ -116,8 +148,9 @@ const PREBUFFER_MS = 400; // a card focused this long starts loading its video m
 const API = "https://www.googleapis.com/youtube/v3/";
 const IN_APP = /\bTVApp\//.test(navigator.userAgent); // the Android wrapper tags its user agent
 const $ = s => document.querySelector(s);
-const homeEl=$("#home"), gridEl=$("#grid"), stateEl=$("#state"), moreWrap=$("#moreWrap"), moreBtn=$("#moreBtn");
+const homeEl=$("#home"), gridEl=$("#grid"), ttgridEl=$("#ttgrid"), stateEl=$("#state"), moreWrap=$("#moreWrap"), moreBtn=$("#moreBtn");
 const navEl=$("#nav"), navTitle=$("#navtitle");
+const ttfeedEl=$("#ttfeed"), ttStage=$("#ttstage");
 
 const meta={};          // source id -> resolved meta (filled from the home list)
 const headers={};       // playlistId -> {title, avatar} learned while listing; saves a request when opening it
@@ -189,22 +222,25 @@ function route(){
   const h=decodeURIComponent(location.hash.replace(/^#/,""));
   if(!h||h==="home") return {v:"home"};
   if(h.startsWith("ch/")) return {v:"channel",id:h.slice(3)};
+  if(h.startsWith("tt/")) return {v:"tiktok",id:h.slice(3)};
   if(h.startsWith("pl/")) return {v:"playlist",pid:h.slice(3)};
   return {v:"home"};
 }
 function render(){
   const seq=++navSeq;
-  closePlayer(true);
+  closePlayer(true); ttCloseFeed(true);
   const r=route();
   if(r.v==="home") renderHome(seq);
   else if(r.v==="channel") showChannel(r.id,seq);
+  else if(r.v==="tiktok") showTikTok(r.id,seq);
   else showVideos(r.pid,seq);
 }
 window.addEventListener("hashchange",render);
 
-function setView(which){ // "home" grid of source/playlist cards, or "grid" video cards
+function setView(which){ // "home" source cards | "grid" YouTube video cards | "ttgrid" TikTok portrait grid
   homeEl.hidden = which!=="home";
   gridEl.hidden = which!=="grid";
+  ttgridEl.hidden = which!=="ttgrid";
   stateEl.hidden=true; moreWrap.hidden=true;
   window.scrollTo(0,0);
 }
@@ -219,7 +255,7 @@ function skeletons(n){ let h=""; for(let i=0;i<n;i++) h+='<div class="card sk"><
 function focusFirst(container){
   const a=document.activeElement;
   if(a && a!==document.body && a.isConnected && a!==moreBtn) return;
-  const el=container.querySelector(".src,.card"); if(el) el.focus({preventScroll:true});
+  const el=container.querySelector(".src,.card,.ttitem"); if(el) el.focus({preventScroll:true});
 }
 function refocus(container,index){ // keep the D-pad position when a list is redrawn under the user
   const el=index>=0&&container.children[index];
@@ -234,11 +270,15 @@ function srcButton(thumb,badge,title,count,onclick){
 
 // ---------------- HOME: list of sources ----------------
 async function fetchHome(){
-  // all playlist sources go in one request; channels need one request per handle
-  const pls=SOURCES.filter(s=>s.type==="playlist"), chs=SOURCES.filter(s=>s.type!=="playlist");
-  const [jp,...jc]=await Promise.all([
+  // all playlist sources go in one request; channels need one request per handle; tiktok reads its JSON file
+  const pls=SOURCES.filter(s=>s.type==="playlist");
+  const chs=SOURCES.filter(s=>s.type==="channel"||s.type==="channelPlaylists");
+  const tts=SOURCES.filter(s=>s.type==="tiktok");
+  const [jp,jc,jt]=await Promise.all([
     pls.length? api("playlists",{ part:"snippet,contentDetails", id:pls.map(s=>s.playlistId).join(",") }) : {items:[]},
-    ...chs.map(s=>api("channels",{ part:"snippet,contentDetails,statistics", forHandle:s.handle }))
+    Promise.all(chs.map(s=>api("channels",{ part:"snippet,contentDetails,statistics", forHandle:s.handle }))),
+    // a missing/blocked TikTok file must not blank the whole home — fall back to an empty channel
+    Promise.all(tts.map(s=>fetchTikTok(s.file).catch(()=>({title:s.handle.replace(/^@/,""),avatar:"",videos:[]}))))
   ]);
   const byPl={}; (jp.items||[]).forEach(it=>byPl[it.id]=it);
   return SOURCES.map(s=>{
@@ -247,13 +287,18 @@ async function fetchHome(){
       return { title:decode(it.snippet.title), thumb:thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
                playlistId:s.playlistId, type:"Playlist", count:it.contentDetails?.itemCount??null };
     }
+    if(s.type==="tiktok"){
+      const d=jt[tts.indexOf(s)], first=(d.videos&&d.videos[0])||{};
+      return { title:d.title||s.handle.replace(/^@/,""), thumb:{s:d.avatar||first.thumb||"",ss:""}, avatar:d.avatar||"",
+               type:"TikTok", tiktok:true, count:d.videos?d.videos.length:null, videos:d.videos||[] };
+    }
     const it=jc[chs.indexOf(s)].items?.[0]; if(!it) throw new Error("Channel not found: "+s.handle);
     return { title:decode(it.snippet.title), thumb:thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
              channelId:it.id, playlistId:it.contentDetails.relatedPlaylists.uploads, type:"Channel",
              count:Number(it.statistics?.videoCount)||null };
   });
 }
-function absorbHome(metas){ metas.forEach((m,i)=>{ meta[SOURCES[i].id]=m; headers[m.playlistId]={title:m.title,avatar:m.avatar}; }); }
+function absorbHome(metas){ metas.forEach((m,i)=>{ meta[SOURCES[i].id]=m; if(m.playlistId) headers[m.playlistId]={title:m.title,avatar:m.avatar}; }); }
 async function renderHome(seq){
   navEl.hidden=true; setView("home");
   let painted=false;
@@ -264,7 +309,7 @@ async function renderHome(seq){
     homeEl.innerHTML="";
     SOURCES.forEach((s,i)=>{
       const m=metas[i];
-      homeEl.appendChild(srcButton(m.thumb,m.type,m.title,m.count,()=>{ location.hash=(s.type==="channelPlaylists")?("ch/"+s.id):("pl/"+m.playlistId); }));
+      homeEl.appendChild(srcButton(m.thumb,m.type,m.title,m.count,()=>{ location.hash=(s.type==="channelPlaylists")?("ch/"+s.id):(s.type==="tiktok")?("tt/"+s.id):("pl/"+m.playlistId); }));
     });
     refocus(homeEl,fi); painted=true;
   };
@@ -398,6 +443,138 @@ function patchCards(items){ // true when the grid holds exactly these videos and
   return true;
 }
 
+// ---------------- TIKTOK ----------------
+// A daily GitHub Action (scripts/tiktok.py) writes tiktok/<handle>.json; we just read it.
+function fmtDurSec(s){ s=+s; if(!isFinite(s)||s<=0) return ""; const h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=Math.floor(s%60),p=n=>String(n).padStart(2,"0"); return h?h+":"+p(m)+":"+p(ss):m+":"+p(ss); }
+async function fetchTikTok(file){
+  const ac=new AbortController(), tm=setTimeout(()=>ac.abort(),15000);
+  let r,j;
+  try{ r=await fetch(file+"?t="+Date.now(),{cache:"no-store",signal:ac.signal}); j=await r.json(); }
+  catch(e){ throw new Error(ac.signal.aborted?"Request timed out":"Network error"); }
+  finally{ clearTimeout(tm); }
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return { title:decode(j.title||""), avatar:j.avatar||"", videos:(j.videos||[]).map(v=>({
+    id:String(v.id), title:decode(v.title||""), thumb:v.thumb||"", dur:+v.dur||0, views:+v.views||0, pub:v.pub||"" })) };
+}
+let ttList=[];                 // videos of the source now on screen; the feed pages through this
+const PLAY_ICON='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+function ttItem(v,i){
+  const b=document.createElement("button"); b.className="ttitem"; b.type="button"; b.dataset.vid=v.id;
+  const views=fmtViews(v.views).replace(" views","");
+  b.innerHTML=(v.thumb?'<img loading="lazy" decoding="async" src="'+esc(v.thumb)+'" alt="">':'')+
+    '<span class="v">'+PLAY_ICON+(views?esc(views):"")+'</span>';
+  const open=()=>openFeed(i);
+  b.onclick=open;
+  b.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
+  return b;
+}
+function ttSkeletons(n){ let h=""; for(let i=0;i<n;i++) h+='<div class="ttitem sk"></div>'; return h; }
+async function showTikTok(id,seq){
+  const src=SOURCES.find(s=>s.id===id&&s.type==="tiktok");
+  if(!src){ location.replace("#home"); return; }
+  cur={kind:"tiktok",key:id,token:"",done:true,pages:1};
+  navEl.hidden=false; navTitle.textContent=(meta[id]&&meta[id].title)||src.handle.replace(/^@/,""); setView("ttgrid");
+  let painted=false;
+  const paint=data=>{
+    if(seq!==navSeq) return;
+    if(data.title) navTitle.textContent=data.title;
+    ttList=data.videos||[];
+    const fi=[...ttgridEl.children].indexOf(document.activeElement);
+    ttgridEl.innerHTML="";
+    ttList.forEach((v,i)=>ttgridEl.appendChild(ttItem(v,i)));
+    refocus(ttgridEl,fi); stateEl.hidden=true;
+    if(!ttList.length) showState("Chưa có video.");
+    painted=true;
+  };
+  if(meta[id]&&meta[id].videos&&meta[id].videos.length) paint({videos:meta[id].videos,title:meta[id].title});
+  if(!painted && !cacheGet("tt:"+src.file)) ttgridEl.innerHTML=ttSkeletons(12);
+  try{ await swr("tt:"+src.file,()=>fetchTikTok(src.file),d=>{ if(meta[id]) meta[id].videos=d.videos; paint(d); }); }
+  catch(e){ if(seq!==navSeq||painted) return; ttgridEl.innerHTML=""; showState("Không tải được video.",e,true); }
+}
+
+// ---- TikTok feed player (full-screen vertical) ----
+let ttFrame=null, ttFeedOpen=false, ttHistPushed=false, ttLastFocused=null;
+let ttIndex=0, ttPlaying=false, ttTime=0, ttDur=0, ttToastTimer=0;
+function ttPost(o){ if(!ttFrame||!ttFrame.contentWindow) return; const w=ttFrame.contentWindow;
+  try{ w.postMessage(o,"*"); }catch(_){}            // the embed player's protocol isn't stable across versions,
+  try{ w.postMessage(JSON.stringify(o),"*"); }catch(_){} } // so send both object and string forms; one is ignored
+function ttToast(m){ const el=$("#tttoast"); el.textContent=m; el.hidden=false; clearTimeout(ttToastTimer); ttToastTimer=setTimeout(()=>{ el.hidden=true; },1200); }
+function removeTtFrame(){ if(ttFrame){ try{ ttFrame.remove(); }catch(_){} ttFrame=null; } }
+function ttShow(i){
+  if(!ttList.length) return;
+  ttIndex=Math.max(0,Math.min(i,ttList.length-1));
+  const v=ttList[ttIndex];
+  ttStage.style.backgroundImage=v.thumb?('url("'+v.thumb.replace(/"/g,"%22")+'")'):"none";
+  removeTtFrame();
+  ttFrame=document.createElement("iframe");
+  ttFrame.setAttribute("allow","autoplay; fullscreen; encrypted-media; picture-in-picture");
+  ttFrame.setAttribute("allowfullscreen","");
+  ttFrame.src="https://www.tiktok.com/player/v1/"+encodeURIComponent(v.id)+"?autoplay=1&loop=1&controls=1&rel=0&native_context_menu=0&description=0&music_info=0";
+  ttStage.insertBefore(ttFrame,ttStage.firstChild);
+  ttPlaying=true; ttTime=0; ttDur=0;
+  setTimeout(()=>ttPost({type:"unMute"}),700);
+  ttSyncMeta();
+}
+function ttSyncMeta(){
+  if(!ttFeedOpen) return;
+  const v=ttList[ttIndex]||{};
+  $("#ttcount").textContent=(ttIndex+1)+" / "+ttList.length;
+  $("#tttitle").textContent=v.title||"";
+  $("#ttsub").textContent=[fmtViews(v.views), v.pub?ago(v.pub):"", fmtDurSec(v.dur)].filter(Boolean).join(" · ");
+}
+function ttToggle(){ ttPlaying=!ttPlaying; ttPost({type:ttPlaying?"play":"pause"}); ttToast(ttPlaying?"▶":"❚❚"); }
+function ttSeek(sec){ let t=(ttTime||0)+sec; if(t<0)t=0; if(ttDur&&t>ttDur-1)t=ttDur-1; ttTime=t; ttPost({type:"seekTo",value:t});
+  ttToast((sec>=0?"+":"−")+Math.abs(sec)+"s"+(ttDur?"   "+fmtSec(t)+" / "+fmtSec(ttDur):"")); }
+function openFeed(index){
+  if(!ttList.length) return;
+  ttLastFocused=document.activeElement;
+  ttFeedOpen=true; ttfeedEl.hidden=false; document.body.style.overflow="hidden";
+  ttfeedEl.focus({preventScroll:true});
+  ttShow(index);
+  if(!ttHistPushed){ try{ history.pushState({ttfeed:1},""); ttHistPushed=true; }catch(_){} }
+  const req=!IN_APP && (ttfeedEl.requestFullscreen||ttfeedEl.webkitRequestFullscreen);
+  if(req) try{ Promise.resolve(req.call(ttfeedEl)).catch(()=>{}); }catch(_){}
+}
+function ttCloseFeed(fromHistory){
+  if(!ttFeedOpen) return;
+  const ex=document.fullscreenElement||document.webkitFullscreenElement;
+  if(ex){ (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }
+  ttFeedOpen=false; removeTtFrame(); ttfeedEl.hidden=true; document.body.style.overflow="";
+  ttStage.style.backgroundImage="none";
+  if(ttLastFocused && ttLastFocused.isConnected) ttLastFocused.focus({preventScroll:true});
+  ttLastFocused=null;
+  if(ttHistPushed){ ttHistPushed=false; if(fromHistory!==true) history.back(); }
+}
+function ttExit(){ if(ttHistPushed) history.back(); else ttCloseFeed(); } // Back pops the pushed state -> popstate closes
+function ttKey(k){
+  if(!ttFeedOpen) return false;
+  switch(k){
+    case "ArrowDown": ttShow(ttIndex+1); return true;
+    case "ArrowUp": ttShow(ttIndex-1); return true;
+    case "ArrowRight": case "MediaFastForward": ttSeek(10); return true;
+    case "ArrowLeft": case "MediaRewind": ttSeek(-10); return true;
+    case "Enter": case " ": case "MediaPlayPause": case "MediaPlay": case "MediaPause": ttToggle(); return true;
+    case "Escape": case "MediaStop": ttExit(); return true;
+  }
+  return false;
+}
+// The embed player posts progress back; keep the last time/duration so seek has something to work from.
+window.addEventListener("message",e=>{
+  if(!ttFrame || e.source!==ttFrame.contentWindow) return;
+  let d=e.data; if(typeof d==="string"){ try{ d=JSON.parse(d); }catch(_){ return; } }
+  if(!d||typeof d!=="object") return;
+  const t=d.type||d.event, v=(d.value!==undefined?d.value:d.data);
+  if(t==="onCurrentTime"||t==="currentTime"){
+    if(typeof v==="number") ttTime=v;
+    else if(v&&typeof v==="object"){ if(v.currentTime!=null) ttTime=+v.currentTime; if(v.duration!=null) ttDur=+v.duration; }
+  }
+  if(d.duration!=null) ttDur=+d.duration;
+});
+// Touch: vertical swipe over the letterbox margins pages the feed (over the video the iframe eats the touch).
+let ttTouchY=null;
+ttfeedEl.addEventListener("touchstart",e=>{ ttTouchY=e.touches[0].clientY; },{passive:true});
+ttfeedEl.addEventListener("touchend",e=>{ if(ttTouchY==null) return; const dy=e.changedTouches[0].clientY-ttTouchY; ttTouchY=null; if(Math.abs(dy)>60) ttShow(ttIndex+(dy<0?1:-1)); },{passive:true});
+
 // ---------------- PLAYER ----------------
 // One YT.Player lives for the whole session; opening a video only calls loadVideoById / loadPlaylist.
 // It is rebuilt only when the subtitle setting changes between sources (cc_load_policy is fixed at creation).
@@ -471,7 +648,7 @@ function closePlayer(fromHistory){
   lastFocused=null;
   if(histPushed){ histPushed=false; if(fromHistory!==true) history.back(); }
 }
-window.addEventListener("popstate",()=>closePlayer(true));
+window.addEventListener("popstate",()=>{ closePlayer(true); ttCloseFeed(true); });
 
 // ---- remote / keyboard control of the player ----
 let toastTimer=0;
@@ -501,10 +678,11 @@ const KEYS={
   MediaRewind:()=>seekBy(-10), MediaFastForward:()=>seekBy(10), MediaStop:()=>closePlayer(), Escape:()=>closePlayer(),
 };
 function handleKey(k){ const f=KEYS[k]; if(!f||!isOpen()) return false; f(); return true; }
-window.tvKey=handleKey; // called from the Android app for media buttons the WebView doesn't forward
+// called from the Android app for media buttons the WebView doesn't forward
+window.tvKey=k=>{ if(isOpen()) return handleKey(k); if(ttFeedOpen) return ttKey(k); return false; };
 document.addEventListener("keydown",e=>{
-  if(!isOpen()) return;
-  if(handleKey(e.key)){ e.preventDefault(); e.stopPropagation(); } // also blocks spatial navigation from moving focus into the iframe
+  if(isOpen()){ if(handleKey(e.key)){ e.preventDefault(); e.stopPropagation(); } return; } // block spatial nav into the iframe
+  if(ttFeedOpen){ if(ttKey(e.key)){ e.preventDefault(); e.stopPropagation(); } }
 },true);
 function onFsChange(){ if(!(document.fullscreenElement||document.webkitFullscreenElement)) closePlayer(); }
 document.addEventListener("fullscreenchange",onFsChange);
