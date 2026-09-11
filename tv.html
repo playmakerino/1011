@@ -482,6 +482,38 @@ async function fetchTikTok(file){
 }
 let ttList=[];                 // videos of the source now on screen; the feed pages through this
 let ttUser="";                 // handle (without @) of that source; the app needs it for the video page URL
+// The two scripts the app runs inside its TikTok WebView (MainActivity fetches them from here before
+// each load and falls back to its built-in copies). Kept in this file so a TikTok page change is fixed
+// by editing tv.html — no APK rebuild/reinstall. Plain ES5; no backticks or ${} inside.
+// 1) Runs on the TikTok video page: 'WAIT' until the embedded video-detail data exists (a bot-challenge
+//    page reloads itself first), 'ERR …' when the post is unavailable, else JSON {url} of the best H.264 stream.
+window.TT_EXTRACT_JS=`(function(){try{var e=document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');if(!e)return 'WAIT';
+var j=JSON.parse(e.textContent),d=j.__DEFAULT_SCOPE__&&j.__DEFAULT_SCOPE__['webapp.video-detail'];if(!d)return 'WAIT';
+if(d.statusCode!==0)return 'ERR status '+d.statusCode;var v=d.itemInfo.itemStruct.video;
+var b=(v.bitrateInfo||[]).filter(function(x){return /h264|avc/i.test(x.CodecType||'')}).sort(function(a,c){return (c.Bitrate||0)-(a.Bitrate||0)});
+var u=b.length&&b[0].PlayAddr&&b[0].PlayAddr.UrlList&&b[0].PlayAddr.UrlList[0]||(v.codecType==='h264'?v.playAddr:'');
+if(!u)return 'ERR no h264';return JSON.stringify({url:u});}catch(x){return 'WAIT'}})()`;
+// 2) function(u, ap): replaces that page with a bare <video> on the H.264 URL u (autoplay when ap). Built
+//    from JS, not markup, so the page's CSP can't block it. window.__tt is what the remote drives.
+window.TT_PLAYER_JS=`(function(u,ap){try{window.stop();}catch(e){}
+document.open();document.write('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body></body></html>');document.close();
+var b=document.body,h=document.documentElement;h.style.cssText=b.style.cssText='margin:0;height:100%;background:#000;overflow:hidden';
+var v=document.createElement('video');v.setAttribute('playsinline','');v.preload='auto';
+v.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;background:#000';
+var t=document.createElement('div');t.style.cssText='position:absolute;left:50%;bottom:12%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;font:500 22px system-ui,sans-serif;padding:10px 18px;border-radius:10px;display:none;white-space:nowrap';
+b.appendChild(v);b.appendChild(t);
+var tm=0;function toast(m){t.textContent=m;t.style.display='block';clearTimeout(tm);tm=setTimeout(function(){t.style.display='none'},1200);}
+function f(s){s=Math.max(0,Math.floor(s));var m=Math.floor(s/60),x=s%60;return m+':'+(x<10?'0':'')+x;}
+function ev(n){try{TVNative.event(n);}catch(e){}}
+v.addEventListener('playing',function(){ev('playing')});v.addEventListener('ended',function(){ev('ended')});v.addEventListener('error',function(){ev('error')});
+var st=null,sti=0;
+window.__tt={play:function(){v.play().catch(function(){});},pause:function(){v.pause();},
+toggle:function(){if(v.paused){v.play().catch(function(){});toast('▶');}else{v.pause();toast('❚❚');}},
+seek:function(d){var dur=v.duration||0,b2=(st==null?v.currentTime:st)+d;if(b2<0)b2=0;if(dur&&b2>dur-1)b2=dur-1;st=b2;var dl=Math.round(b2-v.currentTime);
+toast((dl>=0?'+':'−')+Math.abs(dl)+'s   '+f(b2)+(dur?' / '+f(dur):''));clearTimeout(sti);sti=setTimeout(function(){var x=st;st=null;v.currentTime=x;},350);},
+stop:function(){try{v.pause();v.removeAttribute('src');v.load();}catch(e){}}};
+v.src=u;if(ap)v.play().catch(function(){});
+})`;
 const PLAY_ICON='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 function ttItem(v,i){
   const b=document.createElement("button"); b.className="ttitem"; b.type="button"; b.dataset.vid=v.id;

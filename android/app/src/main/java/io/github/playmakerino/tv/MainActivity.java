@@ -322,24 +322,31 @@ public class MainActivity extends Activity {
         ui.removeCallbacks(ttPoll);
         ttLoadingId = id; ttReadyId = null; ttUser = user;
         if (play) notifyPage("loading");
-        tt.loadUrl("https://www.tiktok.com/@" + user + "/video/" + id);
+        // The two scripts run in the TikTok WebView live in tv.html (window.TT_EXTRACT_JS / TT_PLAYER_JS):
+        // a TikTok page change is fixed by editing the page, never by rebuilding the app. The app holds
+        // no copy of its own — one source of truth.
+        web.evaluateJavascript("JSON.stringify({e:String(window.TT_EXTRACT_JS||''),p:String(window.TT_PLAYER_JS||'')})", res -> {
+            ttExtractJs = ttPlayerJs = null;
+            try {
+                Object o = new JSONTokener(res == null ? "null" : res).nextValue();
+                if (o instanceof String) {
+                    JSONObject j = new JSONObject((String) o);
+                    ttExtractJs = j.optString("e", ""); ttPlayerJs = j.optString("p", "");
+                }
+            } catch (Exception ignored) {}
+            if (!id.equals(ttLoadingId) || tt == null) return; // superseded meanwhile
+            if (ttExtractJs == null || ttExtractJs.isEmpty() || ttPlayerJs == null || ttPlayerJs.isEmpty()) { ttFail("page has no TT scripts"); return; }
+            tt.loadUrl("https://www.tiktok.com/@" + user + "/video/" + id);
+        });
     }
+    private String ttExtractJs, ttPlayerJs; // fetched from tv.html per load (see ttLoad)
 
-    // Reads the embedded page data; "WAIT" until the video-detail scope exists (a bot-challenge page
-    // reloads itself first), then the best H.264 stream URL.
-    private static final String TT_EXTRACT_JS =
-        "(function(){try{var e=document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');if(!e)return 'WAIT';" +
-        "var j=JSON.parse(e.textContent),d=j.__DEFAULT_SCOPE__&&j.__DEFAULT_SCOPE__['webapp.video-detail'];if(!d)return 'WAIT';" +
-        "if(d.statusCode!==0)return 'ERR status '+d.statusCode;var v=d.itemInfo.itemStruct.video;" +
-        "var b=(v.bitrateInfo||[]).filter(function(x){return /h264|avc/i.test(x.CodecType||'')}).sort(function(a,c){return (c.Bitrate||0)-(a.Bitrate||0)});" +
-        "var u=b.length&&b[0].PlayAddr&&b[0].PlayAddr.UrlList&&b[0].PlayAddr.UrlList[0]||(v.codecType==='h264'?v.playAddr:'');" +
-        "if(!u)return 'ERR no h264';return JSON.stringify({url:u});}catch(x){return 'WAIT'}})()";
 
     private final Runnable ttPoll = new Runnable() {
         @Override public void run() {
             if (tt == null || ttLoadingId == null) return;
             final String id = ttLoadingId;
-            tt.evaluateJavascript(TT_EXTRACT_JS, res -> {
+            tt.evaluateJavascript(ttExtractJs, res -> {
                 if (!id.equals(ttLoadingId)) return; // a newer load replaced this one
                 String r;
                 try { Object o = new JSONTokener(res == null ? "null" : res).nextValue(); r = o == null ? "WAIT" : o.toString(); }
@@ -348,7 +355,7 @@ public class MainActivity extends Activity {
                     String url;
                     try { url = new JSONObject(r).getString("url"); } catch (Exception e) { ttFail("parse"); return; }
                     ttReadyId = id; ttLoadingId = null;
-                    tt.evaluateJavascript(ttPlayerJs(url, ttPlayWhenReady), null);
+                    tt.evaluateJavascript(ttPlayerCall(url, ttPlayWhenReady), null);
                     if (ttPlayWhenReady) ttShow();
                 } else if (r.startsWith("ERR")) {
                     ttFail(r.substring(3).trim());
@@ -361,29 +368,9 @@ public class MainActivity extends Activity {
         }
     };
 
-    // Replaces the TikTok page with a bare player on the H.264 URL. Everything is built from JS (not
-    // markup) so the page's CSP can't block inline styles/scripts; evaluateJavascript itself is exempt.
-    private static String ttPlayerJs(String url, boolean autoplay) {
-        return "(function(u,ap){try{window.stop();}catch(e){}" +
-            "document.open();document.write('<!doctype html><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body></body></html>');document.close();" +
-            "var b=document.body,h=document.documentElement;h.style.cssText=b.style.cssText='margin:0;height:100%;background:#000;overflow:hidden';" +
-            "var v=document.createElement('video');v.setAttribute('playsinline','');v.preload='auto';" +
-            "v.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;background:#000';" +
-            "var t=document.createElement('div');t.style.cssText='position:absolute;left:50%;bottom:12%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;font:500 22px system-ui,sans-serif;padding:10px 18px;border-radius:10px;display:none;white-space:nowrap';" +
-            "b.appendChild(v);b.appendChild(t);" +
-            "var tm=0;function toast(m){t.textContent=m;t.style.display='block';clearTimeout(tm);tm=setTimeout(function(){t.style.display='none'},1200);}" +
-            "function f(s){s=Math.max(0,Math.floor(s));var m=Math.floor(s/60),x=s%60;return m+':'+(x<10?'0':'')+x;}" +
-            "function ev(n){try{TVNative.event(n);}catch(e){}}" +
-            "v.addEventListener('playing',function(){ev('playing')});v.addEventListener('ended',function(){ev('ended')});v.addEventListener('error',function(){ev('error')});" +
-            "var st=null,sti=0;" +
-            "window.__tt={play:function(){v.play().catch(function(){});},pause:function(){v.pause();}," +
-            "toggle:function(){if(v.paused){v.play().catch(function(){});toast('▶');}else{v.pause();toast('❚❚');}}," +
-            // repeated presses add up into one seek once they stop (each seek re-buffers on a TV box)
-            "seek:function(d){var dur=v.duration||0,b2=(st==null?v.currentTime:st)+d;if(b2<0)b2=0;if(dur&&b2>dur-1)b2=dur-1;st=b2;var dl=Math.round(b2-v.currentTime);" +
-            "toast((dl>=0?'+':'−')+Math.abs(dl)+'s   '+f(b2)+(dur?' / '+f(dur):''));clearTimeout(sti);sti=setTimeout(function(){var x=st;st=null;v.currentTime=x;},350);}," +
-            "stop:function(){try{v.pause();v.removeAttribute('src');v.load();}catch(e){}}};" +
-            "v.src=u;if(ap)v.play().catch(function(){});" +
-            "})(" + JSONObject.quote(url) + "," + autoplay + ");";
+    // tv.html's TT_PLAYER_JS is a function (u, ap); call it with the H.264 URL.
+    private String ttPlayerCall(String url, boolean autoplay) {
+        return ttPlayerJs + "(" + JSONObject.quote(url) + "," + autoplay + ");";
     }
 
     private void ttShow() {
