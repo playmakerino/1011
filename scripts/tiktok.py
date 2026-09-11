@@ -9,7 +9,7 @@ from yt_dlp import YoutubeDL
 UTC = datetime.timezone.utc
 handle, out = sys.argv[1], sys.argv[2]
 display = sys.argv[3] if len(sys.argv) > 3 else ""  # channel name shown in the app
-LIMIT = 200  # newest N videos
+LIMIT = 100  # newest N videos
 # Accept a handle ("@name"), a full URL, or yt-dlp's "tiktokuser:<secUid>" scheme (the reliable one:
 # TikTok's /@handle page often won't yield the secUid on a server, so we pass the secUid directly).
 if handle.startswith(("http://", "https://", "tiktokuser:")):
