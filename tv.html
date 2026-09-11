@@ -665,11 +665,12 @@ function ttNativeOpen(i){
   clearTimeout(ttPreTimer);
   try{ TVApp.playTikTok(ttList[ttIndex].id,ttUser); }catch(_){ pageToast("Couldn't open the video",2500); }
 }
+function ttRefocus(){ const el=ttgridEl.children[ttIndex]; if(el&&!ttgridEl.hidden) el.focus({preventScroll:false}); } // back on the tile that was pressed
 window.tvTikTok=function(ev){ // events from the app
   if(ev==="loading") pageToast("Loading…",8000);
   else if(ev==="started") pageToastHide();
-  else if(ev==="closed"){ pageToastHide(); const el=ttgridEl.children[ttIndex]; if(el&&!ttgridEl.hidden) el.focus({preventScroll:false}); }
-  else if(ev.startsWith("error")) pageToast("Playback failed: "+ev.slice(6),ev.length>60?15000:3000); // long = diagnostics, keep it up
+  else if(ev==="closed"){ pageToastHide(); ttRefocus(); }
+  else if(ev.startsWith("error")){ pageToast("Playback failed: "+ev.slice(6),ev.length>60?15000:3000); ttRefocus(); } // long = diagnostics, keep it up
 };
 
 // Touch: vertical swipe over the letterbox margins pages the feed (over the video the iframe eats the touch).
