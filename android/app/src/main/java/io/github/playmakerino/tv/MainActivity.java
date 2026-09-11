@@ -330,14 +330,11 @@ public class MainActivity extends Activity {
     private void ttLoad(String id, String user, boolean play) {
         if (tt == null) ttCreate();
         ttPlayWhenReady = play;
-        if (id.equals(ttReadyId)) { // prefetched: start it; shown on its first frame ("playing")
-            if (play) { ttWantShow = true; notifyPage("loading"); tt.evaluateJavascript("window.__tt&&__tt.play()", null); }
-            return;
-        }
-        if (id.equals(ttLoadingId)) { if (play) notifyPage("loading"); return; } // already on its way
-        ui.removeCallbacks(ttPoll); ui.removeCallbacks(ttReady);
+        if (id.equals(ttReadyId)) { if (play) ttWant(); return; } // prefetched (silent, first frame decoded): show + start
+        if (id.equals(ttLoadingId)) { if (play) ttWant(); return; } // already on its way
+        ui.removeCallbacks(ttPoll); ui.removeCallbacks(ttReady); ui.removeCallbacks(ttShowAnyway);
         tt.stopLoading(); // whatever was loading (another video's page) is abandoned
-        ttLoadingId = id; ttReadyId = null; ttUser = user; ttWantShow = false; ttStage = 0;
+        ttLoadingId = id; ttReadyId = null; ttUser = user; ttWantShow = ttFirstFrame = false; ttStage = 0;
         if (play) notifyPage("loading");
         // The two scripts run in the TikTok WebView live in tv.html (window.TT_EXTRACT_JS / TT_PLAYER_JS):
         // a TikTok page change is fixed by editing the page, never by rebuilding the app. The app holds
@@ -394,7 +391,8 @@ public class MainActivity extends Activity {
                         else ui.postDelayed(this, TT_POLL_MS);
                         return;
                     }
-                    ttCover = cover;
+                    ttCover = cover; ttFirstFrame = false;
+                    if (ttPlayWhenReady) ttWant(); // the player document autoplays; "playing" may even beat onPageFinished
                     // Leave TikTok's page (its scripts would redirect/reload over us) for a blank page of our
                     // own that still has the tiktok.com origin, so the CDN gets the session cookies + Referer.
                     ttFoundUrl = url; ttStage = 2;
@@ -417,7 +415,19 @@ public class MainActivity extends Activity {
     private static final String TT_BASE = "https://www.tiktok.com/";
 
     private String ttCover = "";      // the video's cover image, used as the <video> poster
-    private boolean ttWantShow;       // show the player on its first frame (avoids the WebView's grey placeholder)
+    // The player is shown when BOTH hold, in whichever order they happen: the page asked to play
+    // (ttWantShow) and the video has a frame (ttFirstFrame, its "playing" event — which can arrive before
+    // the document's own onPageFinished). Showing earlier gave the WebView's grey placeholder; waiting
+    // for a fixed order gave sound with no picture.
+    private boolean ttWantShow, ttFirstFrame;
+    private void ttWant() {
+        ttWantShow = true; notifyPage("loading");
+        ui.removeCallbacks(ttShowAnyway); ui.postDelayed(ttShowAnyway, 6000); // never leave sound playing unseen
+        ttMaybeShow();
+    }
+    // ttShow() also starts playback, so picture and sound begin together — the player never autoplays.
+    private void ttMaybeShow() { if (ttWantShow && ttFirstFrame && !ttVisible) ttShow(); }
+    private final Runnable ttShowAnyway = () -> { if (ttWantShow && !ttVisible && ttStage == 3) ttShow(); };
 
     // The player document: tv.html's TT_PLAYER_JS (a function (u, ap, cover)) inlined and called with the H.264 URL.
     private String ttPlayerHtml(String url, boolean autoplay, String cover) {
@@ -433,13 +443,13 @@ public class MainActivity extends Activity {
             if (ttStage != 2 || ttLoadingId == null) return;
             ttStage = 3;
             ttReadyId = ttLoadingId; ttLoadingId = null;
-            if (ttPlayWhenReady) ttWantShow = true; // the document autoplays; ttShow() runs on its "playing" event
+            if (ttPlayWhenReady) ttWant();
         }
     };
 
     private void ttShow() {
         if (tt == null) return;
-        ttWantShow = false;
+        ttWantShow = false; ui.removeCallbacks(ttShowAnyway);
         if (ttVisible) return;
         ttVisible = true;
         tt.setVisibility(View.VISIBLE);
@@ -451,8 +461,8 @@ public class MainActivity extends Activity {
     }
 
     private void ttClose() {
-        ui.removeCallbacks(ttPoll); ui.removeCallbacks(ttReady);
-        ttLoadingId = ttReadyId = null; ttStage = 0; ttFoundUrl = null; ttWantShow = false;
+        ui.removeCallbacks(ttPoll); ui.removeCallbacks(ttReady); ui.removeCallbacks(ttShowAnyway);
+        ttLoadingId = ttReadyId = null; ttStage = 0; ttFoundUrl = null; ttWantShow = ttFirstFrame = false;
         if (tt != null) {
             tt.evaluateJavascript("window.__tt&&__tt.stop()", null);
             tt.loadUrl("about:blank"); // drop the page (and its stream) entirely
@@ -476,7 +486,8 @@ public class MainActivity extends Activity {
     private void ttEvent(String ev) {
         if ("ended".equals(ev)) notifyPage("ended");
         else if ("error".equals(ev)) { if (ttVisible || ttWantShow) ttFail("playback"); }
-        else if ("playing".equals(ev)) { if (ttWantShow) ttShow(); notifyPage("started"); }
+        else if ("frame".equals(ev)) { ttFirstFrame = true; ttMaybeShow(); }
+        else if ("playing".equals(ev)) { if (ttVisible) notifyPage("started"); }
     }
 
     private void notifyPage(String ev) {
