@@ -54,7 +54,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk
-          name: TV APK
+          name: Avocado TV APK
           body: "WebView wrapper for https://playmakerino.github.io/1011/tv.html - rebuilt automatically on every push."
           files: tv.apk
       # Also commit tv.apk to main so GitHub Pages serves it at a short URL:
