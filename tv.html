@@ -69,6 +69,15 @@
   .toast{position:absolute; left:50%; bottom:14%; transform:translateX(-50%); z-index:2; background:rgba(0,0,0,.8); color:#fff; font-size:22px; font-weight:500; padding:10px 18px; border-radius:10px; pointer-events:none; white-space:nowrap}
   @media (max-width:520px){ main{padding:16px 14px 60px} }
 
+  /* TikTok profile: portrait 9:16 thumbnails, like the app's grid */
+  .ttgrid{display:grid; gap:8px; grid-template-columns:repeat(3,1fr)}
+  @media(min-width:600px){ .ttgrid{grid-template-columns:repeat(5,1fr); gap:10px} }
+  .ttitem{position:relative; aspect-ratio:9/16; border-radius:8px; overflow:hidden; background:var(--ph); border:none; padding:0; cursor:pointer; color:inherit}
+  .ttitem img{width:100%; height:100%; object-fit:cover}
+  .ttitem .v{position:absolute; left:8px; bottom:7px; display:flex; align-items:center; gap:4px; color:#fff; font-size:13px; font-weight:600; text-shadow:0 1px 3px rgba(0,0,0,.7)}
+  .ttitem .v svg{width:15px; height:15px; fill:#fff; filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}
+  .ttitem:hover img{filter:brightness(1.08)}
+
   /* TikTok player: full-screen vertical feed */
   .ttfeed{position:fixed; inset:0; z-index:60; background:#000; display:flex; align-items:center; justify-content:center; outline:none}
   .ttstage{position:relative; height:100%; aspect-ratio:9/16; max-width:100%; background:#000 center/cover no-repeat}
@@ -80,8 +89,9 @@
   .tttoast{position:absolute; left:50%; top:14%; transform:translateX(-50%); z-index:4; background:rgba(0,0,0,.8); color:#fff; font-size:22px; font-weight:500; padding:10px 18px; border-radius:10px; pointer-events:none; white-space:nowrap}
 
   /* D-pad / keyboard focus (Android TV WebView has no mouse cursor): white ring like the YouTube TV app */
-  .src:focus,.card:focus{outline:none}
+  .src:focus,.card:focus,.ttitem:focus{outline:none}
   .src:focus-visible .banner,.card:focus-visible .thumb{outline:4px solid var(--focus); outline-offset:2px}
+  .ttitem:focus-visible{outline:4px solid var(--focus); outline-offset:-2px}
   .btn:focus-visible{outline:4px solid var(--focus); outline-offset:2px}
 </style>
 </head>
@@ -92,6 +102,7 @@
   </div>
   <div class="home" id="home" hidden></div>
   <div class="grid" id="grid" hidden></div>
+  <div class="ttgrid" id="ttgrid" hidden></div>
   <div class="state" id="state" hidden></div>
   <div class="more" id="moreWrap" hidden><button class="btn" id="moreBtn" type="button">Load more</button></div>
 </main>
@@ -137,7 +148,7 @@ const PREBUFFER_MS = 400; // a card focused this long starts loading its video m
 const API = "https://www.googleapis.com/youtube/v3/";
 const IN_APP = /\bTVApp\//.test(navigator.userAgent); // the Android wrapper tags its user agent
 const $ = s => document.querySelector(s);
-const homeEl=$("#home"), gridEl=$("#grid"), stateEl=$("#state"), moreWrap=$("#moreWrap"), moreBtn=$("#moreBtn");
+const homeEl=$("#home"), gridEl=$("#grid"), ttgridEl=$("#ttgrid"), stateEl=$("#state"), moreWrap=$("#moreWrap"), moreBtn=$("#moreBtn");
 const navEl=$("#nav"), navTitle=$("#navtitle");
 const ttfeedEl=$("#ttfeed"), ttStage=$("#ttstage");
 
@@ -226,9 +237,10 @@ function render(){
 }
 window.addEventListener("hashchange",render);
 
-function setView(which){ // "home" source cards | "grid" video cards (YouTube and TikTok share this)
+function setView(which){ // "home" source cards | "grid" YouTube video cards | "ttgrid" TikTok portrait grid
   homeEl.hidden = which!=="home";
   gridEl.hidden = which!=="grid";
+  ttgridEl.hidden = which!=="ttgrid";
   stateEl.hidden=true; moreWrap.hidden=true;
   window.scrollTo(0,0);
 }
@@ -243,7 +255,7 @@ function skeletons(n){ let h=""; for(let i=0;i<n;i++) h+='<div class="card sk"><
 function focusFirst(container){
   const a=document.activeElement;
   if(a && a!==document.body && a.isConnected && a!==moreBtn) return;
-  const el=container.querySelector(".src,.card"); if(el) el.focus({preventScroll:true});
+  const el=container.querySelector(".src,.card,.ttitem"); if(el) el.focus({preventScroll:true});
 }
 function refocus(container,index){ // keep the D-pad position when a list is redrawn under the user
   const el=index>=0&&container.children[index];
@@ -445,39 +457,39 @@ async function fetchTikTok(file){
     id:String(v.id), title:decode(v.title||""), thumb:v.thumb||"", dur:+v.dur||0, views:+v.views||0, pub:v.pub||"" })) };
 }
 let ttList=[];                 // videos of the source now on screen; the feed pages through this
-// Same card as the YouTube grid (thumbnail + title + views·date), so a TikTok channel looks like any other;
-// clicking still opens the vertical feed since the videos themselves are portrait.
-function ttGridCard(v,i){
-  const c=document.createElement("div"); c.className="card"; c.tabIndex=0; c.setAttribute("role","button"); c.dataset.vid=v.id;
-  const dur=fmtDurSec(v.dur);
-  c.innerHTML='<div class="thumb">'+imgTag({s:v.thumb||"",ss:""})+(dur?'<span class="dur">'+esc(dur)+'</span>':'')+'</div>'+
-    '<div class="row"><div class="txt">'+cardText({title:v.title,ch:"",views:v.views,pub:v.pub})+'</div></div>';
+const PLAY_ICON='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+function ttItem(v,i){
+  const b=document.createElement("button"); b.className="ttitem"; b.type="button"; b.dataset.vid=v.id;
+  const views=fmtViews(v.views).replace(" views","");
+  b.innerHTML=(v.thumb?'<img loading="lazy" decoding="async" src="'+esc(v.thumb)+'" alt="">':'')+
+    '<span class="v">'+PLAY_ICON+(views?esc(views):"")+'</span>';
   const open=()=>openFeed(i);
-  c.onclick=open;
-  c.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
-  return c;
+  b.onclick=open;
+  b.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
+  return b;
 }
+function ttSkeletons(n){ let h=""; for(let i=0;i<n;i++) h+='<div class="ttitem sk"></div>'; return h; }
 async function showTikTok(id,seq){
   const src=SOURCES.find(s=>s.id===id&&s.type==="tiktok");
   if(!src){ location.replace("#home"); return; }
   cur={kind:"tiktok",key:id,token:"",done:true,pages:1};
-  navEl.hidden=false; navTitle.textContent=(meta[id]&&meta[id].title)||src.handle.replace(/^@/,""); setView("grid");
+  navEl.hidden=false; navTitle.textContent=(meta[id]&&meta[id].title)||src.handle.replace(/^@/,""); setView("ttgrid");
   let painted=false;
   const paint=data=>{
     if(seq!==navSeq) return;
     if(data.title) navTitle.textContent=data.title;
     ttList=data.videos||[];
-    const fi=[...gridEl.children].indexOf(document.activeElement);
-    gridEl.innerHTML="";
-    ttList.forEach((v,i)=>gridEl.appendChild(ttGridCard(v,i)));
-    refocus(gridEl,fi); stateEl.hidden=true;
+    const fi=[...ttgridEl.children].indexOf(document.activeElement);
+    ttgridEl.innerHTML="";
+    ttList.forEach((v,i)=>ttgridEl.appendChild(ttItem(v,i)));
+    refocus(ttgridEl,fi); stateEl.hidden=true;
     if(!ttList.length) showState("Chưa có video.");
     painted=true;
   };
   if(meta[id]&&meta[id].videos&&meta[id].videos.length) paint({videos:meta[id].videos,title:meta[id].title});
-  if(!painted && !cacheGet("tt:"+src.file)) gridEl.innerHTML=skeletons(8);
+  if(!painted && !cacheGet("tt:"+src.file)) ttgridEl.innerHTML=ttSkeletons(12);
   try{ await swr("tt:"+src.file,()=>fetchTikTok(src.file),d=>{ if(meta[id]) meta[id].videos=d.videos; paint(d); }); }
-  catch(e){ if(seq!==navSeq||painted) return; gridEl.innerHTML=""; showState("Không tải được video.",e,true); }
+  catch(e){ if(seq!==navSeq||painted) return; ttgridEl.innerHTML=""; showState("Không tải được video.",e,true); }
 }
 
 // ---- TikTok feed player (full-screen vertical) ----
