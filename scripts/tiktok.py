@@ -72,10 +72,17 @@ if not videos:
     # Never overwrite a good list with an empty one (a blocked/failed scrape must not wipe the app)
     raise SystemExit("no videos extracted for " + handle + " — leaving the existing file untouched")
 
-# The tiktokuser:<secUid> form has no readable title, so prefer the display name passed in.
+# The tiktokuser:<secUid> form has no readable title. Prefer the display name passed in; otherwise
+# keep whatever title the existing file already has (so a manual run needn't re-pass the channel name).
+existing_title = ""
+try:
+    with open(out, encoding="utf-8") as f:
+        existing_title = (json.load(f) or {}).get("title", "")
+except Exception:
+    pass
 title = display or info.get("uploader") or info.get("channel") or ""
 if not title or title.startswith(("tiktokuser:", "http")):
-    title = display or ""
+    title = display or existing_title or ""
 
 data = {
     "handle": handle,
