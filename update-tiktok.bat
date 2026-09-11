@@ -9,7 +9,8 @@ python -m pip install -q -U yt-dlp
 
 echo.
 echo === Scrape @teubongday ===
-python scripts\tiktok.py "tiktokuser:MS4wLjABAAAAuBR1Xj56P4gfYMCiv4Bf-PzCBOtKgPBhmBlGoRDnKFftCaINmyjKruz891I41gsu" tiktok\teubongday.json
+REM 50 video moi nhat, gop vao danh sach san co (bat khong chay hang ngay nhu Action, nen lay rong hon)
+python scripts\tiktok.py "tiktokuser:MS4wLjABAAAAuBR1Xj56P4gfYMCiv4Bf-PzCBOtKgPBhmBlGoRDnKFftCaINmyjKruz891I41gsu" tiktok\teubongday.json --limit 50
 if errorlevel 1 (
   echo.
   echo [THAT BAI] TikTok chan/throttle - file cu giu nguyen, chua push. Thu lai sau vai phut.
