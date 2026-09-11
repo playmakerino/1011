@@ -94,7 +94,7 @@
   .ttinfo .ttsub{color:#f1f1f1; font-size:15px; margin-top:12px; line-height:1.5; white-space:pre-wrap; word-break:break-word} /* full caption, no clamp */
   .ttinfo .tttoast{display:inline-block; margin-top:16px; background:rgba(255,255,255,.14); color:#fff; font-size:20px; font-weight:600; padding:8px 16px; border-radius:10px}
   /* page-level toast (e.g. "Đang tải…" while the app resolves a TikTok stream) */
-  .pagetoast{position:fixed; left:50%; bottom:10%; transform:translateX(-50%); z-index:70; background:rgba(0,0,0,.85); color:#fff; font-size:20px; font-weight:500; padding:10px 18px; border-radius:10px; white-space:nowrap; pointer-events:none}
+  .pagetoast{position:fixed; left:50%; bottom:10%; transform:translateX(-50%); z-index:70; background:rgba(0,0,0,.85); color:#fff; font-size:18px; font-weight:500; padding:10px 18px; border-radius:10px; max-width:86vw; text-align:center; word-break:break-word; pointer-events:none}
   @media (max-width:820px){ /* portrait phone: video on top, caption below */
     .ttfeed{flex-direction:column; gap:12px}
     .ttstage{height:68vh}
@@ -487,12 +487,21 @@ let ttUser="";                 // handle (without @) of that source; the app nee
 // by editing tv.html — no APK rebuild/reinstall. Plain ES5; no backticks or ${} inside.
 // 1) Runs on the TikTok video page: 'WAIT' until the embedded video-detail data exists (a bot-challenge
 //    page reloads itself first), 'ERR …' when the post is unavailable, else JSON {url} of the best H.264 stream.
-window.TT_EXTRACT_JS=`(function(){try{var e=document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');if(!e)return 'WAIT';
-var j=JSON.parse(e.textContent),d=j.__DEFAULT_SCOPE__&&j.__DEFAULT_SCOPE__['webapp.video-detail'];if(!d)return 'WAIT';
-if(d.statusCode!==0)return 'ERR status '+d.statusCode;var v=d.itemInfo.itemStruct.video;
+window.TT_EXTRACT_JS=`(function(){try{var v=null,e=document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');
+if(e){var j=JSON.parse(e.textContent),d=j.__DEFAULT_SCOPE__&&j.__DEFAULT_SCOPE__['webapp.video-detail'];if(!d)return 'WAIT';
+if(d.statusCode!==0)return 'ERR status '+d.statusCode;v=d.itemInfo&&d.itemInfo.itemStruct&&d.itemInfo.itemStruct.video;}
+else{var s=document.getElementById('SIGI_STATE');if(!s)return 'WAIT';var g=JSON.parse(s.textContent),im=g.ItemModule;if(!im)return 'WAIT';
+var k=Object.keys(im)[0];if(!k)return 'ERR no item';v=im[k].video;}
+if(!v)return 'ERR no video';
 var b=(v.bitrateInfo||[]).filter(function(x){return /h264|avc/i.test(x.CodecType||'')}).sort(function(a,c){return (c.Bitrate||0)-(a.Bitrate||0)});
 var u=b.length&&b[0].PlayAddr&&b[0].PlayAddr.UrlList&&b[0].PlayAddr.UrlList[0]||(v.codecType==='h264'?v.playAddr:'');
 if(!u)return 'ERR no h264';return JSON.stringify({url:u});}catch(x){return 'WAIT'}})()`;
+// 3) User agent for the app's TikTok WebView (empty = the WebView's own). TV boxes ship old WebView UAs
+//    that TikTok may answer with a challenge/unsupported page; a desktop Chrome UA gets the normal page.
+window.TT_UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
+// 4) Run by the app when a load fails: a one-line description of what the TikTok WebView ended up showing.
+window.TT_DIAG_JS=`(function(){try{var t=(document.body&&document.body.innerText||'').replace(/\\s+/g,' ').slice(0,140);
+return 'url='+location.href.slice(0,80)+' title='+document.title.slice(0,40)+' rehyd='+!!document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__')+' sigi='+!!document.getElementById('SIGI_STATE')+' scripts='+document.scripts.length+' ua='+navigator.userAgent.slice(0,70)+' text='+t;}catch(e){return 'diag err '+e}})()`;
 // 2) function(u, ap): replaces that page with a bare <video> on the H.264 URL u (autoplay when ap). Built
 //    from JS, not markup, so the page's CSP can't block it. window.__tt is what the remote drives.
 window.TT_PLAYER_JS=`(function(u,ap){try{window.stop();}catch(e){}
@@ -666,7 +675,7 @@ window.tvTikTok=function(ev){ // events from the app
   else if(ev==="next"||ev==="ended"){ if(ttIndex<ttList.length-1) ttNativeOpen(ttIndex+1); else if(ev==="ended") try{ TVApp.closeTikTok(); }catch(_){} }
   else if(ev==="prev"){ if(ttIndex>0) ttNativeOpen(ttIndex-1); }
   else if(ev==="closed"){ pageToastHide(); const el=ttgridEl.children[ttIndex]; if(el&&!ttgridEl.hidden) el.focus({preventScroll:false}); }
-  else if(ev.startsWith("error")) pageToast("Không phát được ("+ev.slice(6)+")",3000);
+  else if(ev.startsWith("error")) pageToast("Không phát được: "+ev.slice(6),ev.length>60?15000:3000); // long = diagnostics, keep it up
 };
 
 // Touch: vertical swipe over the letterbox margins pages the feed (over the video the iframe eats the touch).

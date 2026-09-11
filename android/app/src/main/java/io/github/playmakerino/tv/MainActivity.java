@@ -247,8 +247,8 @@ public class MainActivity extends Activity {
     private boolean ttVisible;
     private String ttLoadingId, ttReadyId, ttUser;
     private boolean ttPlayWhenReady;
-    private int ttPolls;
-    private static final int TT_POLL_MS = 200, TT_POLL_MAX = 75; // ~15 s for the page (bot challenge included)
+    private long ttDeadline;                                         // uptime ms; a challenge reload can't extend it
+    private static final int TT_POLL_MS = 200, TT_TIMEOUT_MS = 20000; // for the page, bot challenge included
 
     // Called from tv.html (runs on a WebView thread; hop to the UI thread).
     private class Bridge {
@@ -293,7 +293,8 @@ public class MainActivity extends Activity {
             }
             @Override
             public void onPageStarted(WebView v, String url, Bitmap favicon) {
-                if (ttLoadingId != null && url != null && url.contains("/video/" + ttLoadingId)) { ttPolls = 0; ui.removeCallbacks(ttPoll); ui.postDelayed(ttPoll, 50); }
+                // any navigation while loading (the video page, a challenge reload, a redirect): keep polling
+                if (ttLoadingId != null) { ui.removeCallbacks(ttPoll); ui.postDelayed(ttPoll, 50); }
             }
             @Override
             public void onReceivedError(WebView v, WebResourceRequest req, WebResourceError err) {
@@ -325,21 +326,36 @@ public class MainActivity extends Activity {
         // The two scripts run in the TikTok WebView live in tv.html (window.TT_EXTRACT_JS / TT_PLAYER_JS):
         // a TikTok page change is fixed by editing the page, never by rebuilding the app. The app holds
         // no copy of its own — one source of truth.
-        web.evaluateJavascript("JSON.stringify({e:String(window.TT_EXTRACT_JS||''),p:String(window.TT_PLAYER_JS||'')})", res -> {
-            ttExtractJs = ttPlayerJs = null;
+        web.evaluateJavascript("JSON.stringify({e:String(window.TT_EXTRACT_JS||''),p:String(window.TT_PLAYER_JS||''),ua:String(window.TT_UA||''),d:String(window.TT_DIAG_JS||'')})", res -> {
+            ttExtractJs = ttPlayerJs = ttDiagJs = null; String ua = "";
             try {
                 Object o = new JSONTokener(res == null ? "null" : res).nextValue();
                 if (o instanceof String) {
                     JSONObject j = new JSONObject((String) o);
-                    ttExtractJs = j.optString("e", ""); ttPlayerJs = j.optString("p", "");
+                    ttExtractJs = j.optString("e", ""); ttPlayerJs = j.optString("p", ""); ttDiagJs = j.optString("d", ""); ua = j.optString("ua", "");
                 }
             } catch (Exception ignored) {}
             if (!id.equals(ttLoadingId) || tt == null) return; // superseded meanwhile
             if (ttExtractJs == null || ttExtractJs.isEmpty() || ttPlayerJs == null || ttPlayerJs.isEmpty()) { ttFail("page has no TT scripts"); return; }
+            // the page decides what browser TikTok sees (TV WebView UAs get challenge/unsupported pages)
+            if (!ua.isEmpty()) tt.getSettings().setUserAgentString(ua);
+            ttDeadline = android.os.SystemClock.uptimeMillis() + TT_TIMEOUT_MS;
             tt.loadUrl("https://www.tiktok.com/@" + user + "/video/" + id);
+            ui.removeCallbacks(ttPoll); ui.postDelayed(ttPoll, 300);
         });
     }
-    private String ttExtractJs, ttPlayerJs; // fetched from tv.html per load (see ttLoad)
+    private String ttExtractJs, ttPlayerJs, ttDiagJs; // fetched from tv.html per load (see ttLoad)
+
+    // Failure with a one-line description of what the TikTok WebView is showing (tv.html's TT_DIAG_JS),
+    // readable on the TV where there is no console.
+    private void ttFailDiag(String why) {
+        if (tt == null || ttDiagJs == null || ttDiagJs.isEmpty()) { ttFail(why); return; }
+        tt.evaluateJavascript(ttDiagJs, r -> {
+            String d = "";
+            try { Object o = new JSONTokener(r == null ? "null" : r).nextValue(); d = o == null ? "" : o.toString(); } catch (Exception ignored) {}
+            ttFail(why + (d.isEmpty() ? "" : " | " + d));
+        });
+    }
 
 
     private final Runnable ttPoll = new Runnable() {
@@ -358,9 +374,9 @@ public class MainActivity extends Activity {
                     tt.evaluateJavascript(ttPlayerCall(url, ttPlayWhenReady), null);
                     if (ttPlayWhenReady) ttShow();
                 } else if (r.startsWith("ERR")) {
-                    ttFail(r.substring(3).trim());
-                } else if (++ttPolls >= TT_POLL_MAX) {
-                    ttFail("timeout");
+                    ttFailDiag(r.substring(3).trim());
+                } else if (android.os.SystemClock.uptimeMillis() >= ttDeadline) {
+                    ttFailDiag("timeout");
                 } else {
                     ui.postDelayed(this, TT_POLL_MS);
                 }
