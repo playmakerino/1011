@@ -294,7 +294,7 @@ async function fetchHome(){
       // so use unavatar's stable proxy keyed by handle (always the current avatar, no expiry).
       const av=s.avatar||("https://unavatar.io/tiktok/"+s.handle.replace(/^@/,""));
       return { title:d.title||s.handle.replace(/^@/,""), thumb:{s:av,ss:""}, avatar:av,
-               type:"TikTok", tiktok:true, count:d.videos?d.videos.length:null, videos:d.videos||[] };
+               type:"Channel", tiktok:true, count:d.videos?d.videos.length:null, videos:d.videos||[] };
     }
     const it=jc[chs.indexOf(s)].items?.[0]; if(!it) throw new Error("Channel not found: "+s.handle);
     return { title:decode(it.snippet.title), thumb:thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
