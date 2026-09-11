@@ -9,6 +9,8 @@
 # Default runs (the daily Action, update-tiktok.bat) fetch only the newest --limit videos and MERGE them into
 # the existing file: new ids go in, known ids get their fresh view counts, nothing is dropped. A one-off
 # --all run on a home IP seeds the complete channel; the daily runs then keep it current cheaply.
+# If TikTok throttles the IP (200 with an empty body → "Expecting value in ''"), seed from the browser
+# instead: scripts/tiktok-seed.browser.js + scripts/tiktok_seed_merge.py (see their headers).
 import sys, os, json, time, argparse, datetime
 from yt_dlp import YoutubeDL
 
