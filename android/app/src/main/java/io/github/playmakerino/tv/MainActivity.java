@@ -512,8 +512,7 @@ public class MainActivity extends Activity {
                 js = "window.__tt&&__tt.toggle()"; break;
             case KeyEvent.KEYCODE_DPAD_LEFT: case KeyEvent.KEYCODE_MEDIA_REWIND: js = "window.__tt&&__tt.seek(-10)"; break;
             case KeyEvent.KEYCODE_DPAD_RIGHT: case KeyEvent.KEYCODE_MEDIA_FAST_FORWARD: js = "window.__tt&&__tt.seek(10)"; break;
-            case KeyEvent.KEYCODE_DPAD_UP: page = "prev"; break;     // tv.html opens the neighbouring video
-            case KeyEvent.KEYCODE_DPAD_DOWN: page = "next"; break;
+            case KeyEvent.KEYCODE_DPAD_UP: case KeyEvent.KEYCODE_DPAD_DOWN: break; // swallowed: Back to the grid to pick another video
             case KeyEvent.KEYCODE_BACK: case KeyEvent.KEYCODE_MEDIA_STOP: case KeyEvent.KEYCODE_ESCAPE:
                 if (ev.getAction() == KeyEvent.ACTION_DOWN) ttClose();
                 return true;

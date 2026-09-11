@@ -519,7 +519,7 @@ var ICO_PLAY='<b style="display:inline-block;vertical-align:middle;width:0;heigh
 var ICO_PAUSE='<b style="display:inline-block;vertical-align:middle;width:7px;height:26px;background:#fff;margin-right:6px"></b><b style="display:inline-block;vertical-align:middle;width:7px;height:26px;background:#fff"></b>';
 function f(s){s=Math.max(0,Math.floor(s));var m=Math.floor(s/60),x=s%60;return m+':'+(x<10?'0':'')+x;}
 function ev(n){try{TVNative.event(n);}catch(e){}}
-v.loop=true; /* like TikTok: a video repeats; Down goes to the next one */
+v.loop=true; /* like TikTok: a video repeats until Back */
 /* Playback starts (with sound) while the WebView is still hidden — on Android nothing decodes before play(),
    and this WebView refuses to unmute a video that started muted. The app shows the player on "playing"
    (first frame), a few ms later, so picture and sound effectively appear together. */
@@ -666,7 +666,7 @@ function ttKey(k){
 }
 // ---- In the app: native TikTok playback via the TVApp bridge (see MainActivity) ----
 // tv.html only picks the video; the app loads its page, extracts the H.264 stream and plays it in a
-// WebView above this one. Up/Down there come back here as "prev"/"next" so the list order is ours.
+// WebView above this one. Back returns to this grid (no Up/Down paging inside the player).
 let pageToastTimer=0;
 function pageToast(msg,ms){ const el=$("#pagetoast"); el.textContent=msg; el.hidden=false; clearTimeout(pageToastTimer); if(ms) pageToastTimer=setTimeout(()=>{ el.hidden=true; },ms); }
 function pageToastHide(){ clearTimeout(pageToastTimer); $("#pagetoast").hidden=true; }
@@ -683,8 +683,6 @@ function ttNativeOpen(i){
 window.tvTikTok=function(ev){ // events from the app
   if(ev==="loading") pageToast("Đang tải…",8000);
   else if(ev==="started") pageToastHide();
-  else if(ev==="next"){ if(ttIndex<ttList.length-1) ttNativeOpen(ttIndex+1); } // a video loops; only Down advances
-  else if(ev==="prev"){ if(ttIndex>0) ttNativeOpen(ttIndex-1); }
   else if(ev==="closed"){ pageToastHide(); const el=ttgridEl.children[ttIndex]; if(el&&!ttgridEl.hidden) el.focus({preventScroll:false}); }
   else if(ev.startsWith("error")) pageToast("Không phát được: "+ev.slice(6),ev.length>60?15000:3000); // long = diagnostics, keep it up
 };
