@@ -225,7 +225,12 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (ttVisible || ttLoadingId != null || ttWantShow) { ttClose(); return; } // also cancels a video still loading
+        // The player is up, or a video the user pressed OK on is still loading: Back closes/cancels it.
+        // A silent prefetch (tile merely focused) is dropped too, but must not swallow the key — the grid
+        // is nearly always prefetching something, and Back there means "leave the channel".
+        boolean playing = ttVisible || ttPlayPending();
+        if (playing || ttLoadingId != null || ttReadyId != null) ttClose();
+        if (playing) return;
         if (fullscreenView != null) {
             web.evaluateJavascript("document.exitFullscreen&&document.exitFullscreen()", null);
             return;
