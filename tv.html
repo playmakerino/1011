@@ -510,25 +510,21 @@ h.style.cssText=b.style.cssText='margin:0;height:100%;background:#000;overflow:h
 var v=document.createElement('video');v.setAttribute('playsinline','');v.preload='auto';
 v.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;background:#000';
 var t=document.createElement('div');t.style.cssText='position:absolute;left:50%;bottom:12%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;font:500 22px system-ui,sans-serif;padding:10px 18px;border-radius:10px;display:none;white-space:nowrap';
-var dbg=document.createElement('div');dbg.style.cssText='position:absolute;left:8px;top:8px;right:8px;color:#8f8;font:12px monospace;white-space:pre-wrap;word-break:break-all;text-shadow:0 0 2px #000';
-b.appendChild(v);b.appendChild(t);b.appendChild(dbg);
+b.appendChild(v);b.appendChild(t);
 var tm=0;function toast(m){t.textContent=m;t.style.display='block';clearTimeout(tm);tm=setTimeout(function(){t.style.display='none'},1200);}
 function f(s){s=Math.max(0,Math.floor(s));var m=Math.floor(s/60),x=s%60;return m+':'+(x<10?'0':'')+x;}
 function ev(n){try{TVNative.event(n);}catch(e){}}
-var lastErr='';
-v.addEventListener('playing',function(){ev('playing')});v.addEventListener('ended',function(){ev('ended')});
-v.addEventListener('error',function(){var e=v.error;lastErr='ERR code='+(e&&e.code)+' '+((e&&e.message)||'');setTimeout(function(){ev('error')},8000);});
-function upd(){try{var bf=v.buffered.length?Math.round(v.buffered.end(v.buffered.length-1)):0;
-dbg.textContent='origin='+location.origin+' rs='+v.readyState+' ns='+v.networkState+' t='+Math.round(v.currentTime)+' buf='+bf+' '+v.videoWidth+'x'+v.videoHeight+' paused='+v.paused+' '+lastErr+'\\nsrc='+u.slice(0,72);}catch(e){}}
-setInterval(upd,500);
+v.loop=true; /* like TikTok: a video repeats; Down goes to the next one */
+v.addEventListener('playing',function(){ev('playing')});
+v.addEventListener('error',function(){ev('error')});
 var st=null,sti=0;
-window.__tt={play:function(){v.play().catch(function(e){lastErr='play() '+e;});},pause:function(){v.pause();},
-toggle:function(){if(v.paused){v.play().catch(function(e){lastErr='play() '+e;});toast('▶');}else{v.pause();toast('❚❚');}},
+window.__tt={play:function(){v.play().catch(function(){});},pause:function(){v.pause();},
+toggle:function(){if(v.paused){v.play().catch(function(){});toast('▶');}else{v.pause();toast('❚❚');}},
 seek:function(d){var dur=v.duration||0,b2=(st==null?v.currentTime:st)+d;if(b2<0)b2=0;if(dur&&b2>dur-1)b2=dur-1;st=b2;var dl=Math.round(b2-v.currentTime);
 toast((dl>=0?'+':'−')+Math.abs(dl)+'s   '+f(b2)+(dur?' / '+f(dur):''));clearTimeout(sti);sti=setTimeout(function(){var x=st;st=null;v.currentTime=x;},350);},
 stop:function(){try{v.pause();v.removeAttribute('src');v.load();}catch(e){}}};
-v.src=u;if(ap)v.play().catch(function(e){lastErr='play() '+e;});
-}catch(e){try{document.body.textContent='player error: '+e;}catch(x){}}})`;
+v.src=u;if(ap)v.play().catch(function(){});
+}catch(e){try{TVNative.event('error');}catch(x){}}})`;
 const PLAY_ICON='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 function ttItem(v,i){
   const b=document.createElement("button"); b.className="ttitem"; b.type="button"; b.dataset.vid=v.id;
@@ -675,15 +671,12 @@ function ttNativeOpen(i){
   clearTimeout(ttPreTimer);
   try{ TVApp.playTikTok(ttList[ttIndex].id,ttUser); }catch(_){ pageToast("Không mở được video",2500); }
 }
-let ttDbgLog=[]; // "dbg:" trace from the app, shown on the grid after the player closes (debug until stable)
 window.tvTikTok=function(ev){ // events from the app
-  if(ev.startsWith("dbg:")){ ttDbgLog.push(ev.slice(4)); if(ttDbgLog.length>12) ttDbgLog.shift(); return; }
-  if(ev==="loading"){ ttDbgLog=[]; pageToast("Đang tải…",8000); }
+  if(ev==="loading") pageToast("Đang tải…",8000);
   else if(ev==="started") pageToastHide();
-  else if(ev==="next"||ev==="ended"){ if(ttIndex<ttList.length-1) ttNativeOpen(ttIndex+1); else if(ev==="ended") try{ TVApp.closeTikTok(); }catch(_){} }
+  else if(ev==="next"){ if(ttIndex<ttList.length-1) ttNativeOpen(ttIndex+1); } // a video loops; only Down advances
   else if(ev==="prev"){ if(ttIndex>0) ttNativeOpen(ttIndex-1); }
-  else if(ev==="closed"){ pageToastHide(); const el=ttgridEl.children[ttIndex]; if(el&&!ttgridEl.hidden) el.focus({preventScroll:false});
-    if(ttDbgLog.length) pageToast("trace: "+ttDbgLog.join(" › "),15000); }
+  else if(ev==="closed"){ pageToastHide(); const el=ttgridEl.children[ttIndex]; if(el&&!ttgridEl.hidden) el.focus({preventScroll:false}); }
   else if(ev.startsWith("error")) pageToast("Không phát được: "+ev.slice(6),ev.length>60?15000:3000); // long = diagnostics, keep it up
 };
 

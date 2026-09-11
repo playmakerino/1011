@@ -302,16 +302,11 @@ public class MainActivity extends Activity {
             public void onPageStarted(WebView v, String url, Bitmap favicon) {
                 // any navigation while the video page loads (challenge reload, redirect): keep polling
                 if (ttLoadingId != null && ttStage == 1) { ui.removeCallbacks(ttPoll); ui.postDelayed(ttPoll, 50); }
-                if (ttStage >= 2) notifyPage("dbg:start " + url);
             }
             @Override
             public void onPageFinished(WebView v, String url) {
-                if (ttStage >= 2) notifyPage("dbg:finish " + url);
-                if (ttStage != 2 || ttLoadingId == null || ttFoundUrl == null) return;
-                // our player document (tiktok.com origin, script inlined) is up
-                ttStage = 3;
-                ttReadyId = ttLoadingId; ttLoadingId = null;
-                if (ttPlayWhenReady) ttShow();
+                // the player document reports its base URL; the video page's own late "finished" must not count
+                if (ttStage == 2 && TT_BASE.equals(url)) ttReady.run();
             }
             @Override
             public void onReceivedError(WebView v, WebResourceRequest req, WebResourceError err) {
@@ -391,11 +386,11 @@ public class MainActivity extends Activity {
                     // Leave TikTok's page (its scripts would redirect/reload over us) for a blank page of our
                     // own that still has the tiktok.com origin, so the CDN gets the session cookies + Referer.
                     ttFoundUrl = url; ttStage = 2;
-                    notifyPage("dbg:url ok " + url.replaceAll("^https?://([^/]+).*$", "$1"));
                     tt.stopLoading();
                     // The player script is inlined into this document (our own, so no CSP), so it runs exactly
                     // when the document loads — no evaluateJavascript race with about:blank / the data load.
-                    tt.loadDataWithBaseURL("https://www.tiktok.com/", ttPlayerHtml(url, ttPlayWhenReady), "text/html", "utf-8", null);
+                    tt.loadDataWithBaseURL(TT_BASE, ttPlayerHtml(url, ttPlayWhenReady), "text/html", "utf-8", null);
+                    ui.removeCallbacks(ttReady); ui.postDelayed(ttReady, 3000); // in case onPageFinished reports another URL
                 } else if (r.startsWith("ERR")) {
                     ttFailDiag(r.substring(3).trim());
                 } else if (android.os.SystemClock.uptimeMillis() >= ttDeadline) {
@@ -407,13 +402,25 @@ public class MainActivity extends Activity {
         }
     };
 
+    private static final String TT_BASE = "https://www.tiktok.com/";
+
     // The player document: tv.html's TT_PLAYER_JS (a function (u, ap)) inlined and called with the H.264 URL.
     private String ttPlayerHtml(String url, boolean autoplay) {
         String call = ttPlayerJs + "(" + JSONObject.quote(url) + "," + autoplay + ");";
         return "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head>"
-             + "<body style=\"margin:0;background:#000;color:#8f8;font:12px monospace\">player document loaded, script pending…"
-             + "<script>" + call.replace("</", "<\\/") + "</script></body></html>";
+             + "<body style=\"margin:0;background:#000\"><script>" + call.replace("</", "<\\/") + "</script></body></html>";
     }
+
+    // The player document is up: mark the video ready and show it if that was asked for.
+    private final Runnable ttReady = new Runnable() { // (anonymous: a lambda can't refer to itself in its initializer)
+        @Override public void run() {
+            ui.removeCallbacks(this);
+            if (ttStage != 2 || ttLoadingId == null) return;
+            ttStage = 3;
+            ttReadyId = ttLoadingId; ttLoadingId = null;
+            if (ttPlayWhenReady) ttShow();
+        }
+    };
 
     private void ttShow() {
         if (tt == null) return;
@@ -423,12 +430,11 @@ public class MainActivity extends Activity {
         tt.requestFocus();
         immersive();
         tt.evaluateJavascript("window.__tt&&__tt.play()", null);
-        notifyPage("dbg:show");
         notifyPage("started");
     }
 
     private void ttClose() {
-        ui.removeCallbacks(ttPoll);
+        ui.removeCallbacks(ttPoll); ui.removeCallbacks(ttReady);
         ttLoadingId = ttReadyId = null; ttStage = 0; ttFoundUrl = null;
         if (tt != null) {
             tt.evaluateJavascript("window.__tt&&__tt.stop()", null);
@@ -451,7 +457,6 @@ public class MainActivity extends Activity {
     }
 
     private void ttEvent(String ev) {
-        notifyPage("dbg:ev " + ev);
         if ("ended".equals(ev)) notifyPage("ended");
         else if ("error".equals(ev)) { if (ttVisible) ttFail("playback"); }
         else if ("playing".equals(ev)) notifyPage("started");
