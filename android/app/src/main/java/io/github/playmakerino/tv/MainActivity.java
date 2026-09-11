@@ -253,12 +253,9 @@ public class MainActivity extends Activity {
     private int ttStage;
     private String ttFoundUrl;
     private long ttDeadline;                                         // uptime ms; a challenge reload can't extend it
-    private static final int TT_POLL_MS = 200, TT_TIMEOUT_MS = 24000; // for the page, bot challenge included
-    // TikTok sometimes answers a page request with a challenge/empty page that never yields the data
-    // (worse when the home IP has been busy). If nothing shows up within TT_RETRY_MS, load the page
-    // again — a fresh request usually goes through — up to TT_RETRIES times inside the deadline.
-    private static final int TT_RETRY_MS = 7000, TT_RETRIES = 2;
-    private long ttAttemptStart; private int ttReloads; private String ttPageUrl;
+    // Fail fast: when TikTok answers with a challenge/empty page the user would rather see "timeout" and
+    // press again than wait through reloads.
+    private static final int TT_POLL_MS = 200, TT_TIMEOUT_MS = 10000;
 
     // Called from tv.html (runs on a WebView thread; hop to the UI thread).
     private class Bridge {
@@ -359,10 +356,8 @@ public class MainActivity extends Activity {
             // the page decides what browser TikTok sees (TV WebView UAs get challenge/unsupported pages)
             if (!ua.isEmpty()) tt.getSettings().setUserAgentString(ua);
             ttDeadline = android.os.SystemClock.uptimeMillis() + TT_TIMEOUT_MS;
-            ttAttemptStart = android.os.SystemClock.uptimeMillis(); ttReloads = 0;
             ttStage = 1; ttFoundUrl = null;
-            ttPageUrl = "https://www.tiktok.com/@" + user + "/video/" + id;
-            tt.loadUrl(ttPageUrl);
+            tt.loadUrl("https://www.tiktok.com/@" + user + "/video/" + id);
             ui.removeCallbacks(ttPoll); ui.postDelayed(ttPoll, 300);
         });
     }
@@ -412,11 +407,7 @@ public class MainActivity extends Activity {
                 } else if (r.startsWith("ERR")) {
                     ttFailDiag(r.substring(3).trim());
                 } else if (android.os.SystemClock.uptimeMillis() >= ttDeadline) {
-                    ttFailDiag("timeout after " + ttReloads + " reloads");
-                } else if (android.os.SystemClock.uptimeMillis() - ttAttemptStart > TT_RETRY_MS && ttReloads < TT_RETRIES && ttStage == 1) {
-                    ttReloads++; ttAttemptStart = android.os.SystemClock.uptimeMillis();
-                    tt.stopLoading(); tt.loadUrl(ttPageUrl); // fresh request; onPageStarted re-arms the poll
-                    ui.postDelayed(this, TT_POLL_MS);
+                    ttFailDiag("timeout");
                 } else {
                     ui.postDelayed(this, TT_POLL_MS);
                 }
