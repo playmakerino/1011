@@ -2,13 +2,20 @@
 # Build the video list for a TikTok handle into the small JSON that tv.html reads.
 # One flat request per handle (extract_flat) — no per-video extraction, so it is fast
 # and the least likely thing to trip TikTok's rate limiting on a CI runner.
-#   python scripts/tiktok.py "@teubongday" tiktok/teubongday.json
+#   python scripts/tiktok.py "tiktokuser:<secUid>" tiktok/teubongday.json "Em Tệu đây"
 import sys, os, json, datetime
 from yt_dlp import YoutubeDL
 
+UTC = datetime.timezone.utc
 handle, out = sys.argv[1], sys.argv[2]
+display = sys.argv[3] if len(sys.argv) > 3 else ""  # channel name shown in the app
 LIMIT = 40  # newest N videos
-url = "https://www.tiktok.com/" + handle
+# Accept a handle ("@name"), a full URL, or yt-dlp's "tiktokuser:<secUid>" scheme (the reliable one:
+# TikTok's /@handle page often won't yield the secUid on a server, so we pass the secUid directly).
+if handle.startswith(("http://", "https://", "tiktokuser:")):
+    url = handle
+else:
+    url = "https://www.tiktok.com/" + handle
 
 opts = {
     "quiet": True, "no_warnings": True,
@@ -40,18 +47,23 @@ for e in entries:
         "thumb": best_thumb(e),
         "dur": int(e.get("duration") or 0),
         "views": int(e.get("view_count") or 0),
-        "pub": (datetime.datetime.utcfromtimestamp(ts).isoformat() + "Z") if ts else "",
+        "pub": (datetime.datetime.fromtimestamp(ts, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")) if ts else "",
     })
 
 if not videos:
     # Never overwrite a good list with an empty one (a blocked/failed scrape must not wipe the app)
     raise SystemExit("no videos extracted for " + handle + " — leaving the existing file untouched")
 
+# The tiktokuser:<secUid> form has no readable title, so prefer the display name passed in.
+title = display or info.get("uploader") or info.get("channel") or ""
+if not title or title.startswith(("tiktokuser:", "http")):
+    title = display or ""
+
 data = {
     "handle": handle,
-    "title": info.get("title") or info.get("uploader") or handle.lstrip("@"),
+    "title": title,
     "avatar": "",  # channel avatar isn't reliably present in flat mode
-    "updated": datetime.datetime.utcnow().isoformat() + "Z",
+    "updated": datetime.datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
     "count": len(videos),
     "videos": videos,
 }

@@ -22,7 +22,9 @@ jobs:
       - name: Install yt-dlp
         run: pip install -U yt-dlp
       - name: Fetch @teubongday -> tiktok/teubongday.json
-        run: python scripts/tiktok.py "@teubongday" tiktok/teubongday.json
+        # The /@handle page won't give up the secUid on a server, so pass the account's secUid directly.
+        # (It's stable per account. To add another channel: open its profile, read user.secUid from the page.)
+        run: python scripts/tiktok.py "tiktokuser:MS4wLjABAAAAuBR1Xj56P4gfYMCiv4Bf-PzCBOtKgPBhmBlGoRDnKFftCaINmyjKruz891I41gsu" tiktok/teubongday.json "Em Tệu đây"
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
