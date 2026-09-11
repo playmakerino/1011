@@ -79,10 +79,11 @@
   .ttitem:hover img{filter:brightness(1.08)}
 
   /* TikTok player: full-screen vertical feed; caption/date live in a side panel, not over the video */
-  .ttfeed{position:fixed; inset:0; z-index:60; background:#000; display:flex; align-items:center; justify-content:center; gap:28px; outline:none}
+  .ttfeed{position:fixed; inset:0; z-index:60; background:#000; display:flex; align-items:center; justify-content:center; outline:none}
   .ttstage{position:relative; height:100%; aspect-ratio:9/16; max-width:100%; background:#000 center/cover no-repeat; flex:0 0 auto}
   .ttstage iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
-  .ttinfo{width:320px; max-width:32vw; color:#fff; order:-1} /* left of the video */
+  /* absolute so it sits in the left black bar without pushing the video off-centre */
+  .ttinfo{position:absolute; left:28px; top:50%; transform:translateY(-50%); width:300px; max-width:22vw; color:#fff}
   .ttinfo .ttcount{display:inline-block; background:rgba(255,255,255,.14); color:#fff; font-size:14px; font-weight:600; padding:5px 12px; border-radius:999px; margin-bottom:14px}
   .ttinfo .tttitle{font-size:18px; font-weight:600; line-height:1.4}
   .ttinfo .ttsub{color:#bbb; font-size:14px; margin-top:10px}
@@ -90,7 +91,7 @@
   @media (max-width:820px){ /* portrait phone: video on top, caption below */
     .ttfeed{flex-direction:column; gap:12px}
     .ttstage{height:68vh}
-    .ttinfo{width:100%; max-width:none; padding:0 16px; text-align:center; order:0} /* below the video on phones */
+    .ttinfo{position:static; transform:none; width:100%; max-width:none; padding:0 16px; text-align:center} /* below the video on phones */
     .ttinfo .tttitle{font-size:15px} .ttinfo .ttsub{font-size:13px}
   }
 
