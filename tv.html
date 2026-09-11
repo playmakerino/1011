@@ -512,9 +512,19 @@ async function showTikTok(id,seq){
 // ---- TikTok feed player (full-screen vertical) ----
 let ttFrame=null, ttFeedOpen=false, ttHistPushed=false, ttLastFocused=null;
 let ttIndex=0, ttPlaying=false, ttToastTimer=0, ttChannel="";
-function ttPost(o){ if(!ttFrame||!ttFrame.contentWindow) return; const w=ttFrame.contentWindow;
-  try{ w.postMessage(o,"*"); }catch(_){}            // the embed player's protocol isn't stable across versions,
-  try{ w.postMessage(JSON.stringify(o),"*"); }catch(_){} } // so send both object and string forms; one is ignored
+// The TikTok embed player only obeys messages carrying "x-tiktok-player":true, and it loads paused+muted
+// (no real autoplay), so we send play/unMute ourselves once it reports onPlayerReady.
+function ttCmd(type,value){
+  if(!ttFrame||!ttFrame.contentWindow) return;
+  const o={type,"x-tiktok-player":true}; if(value!==undefined) o.value=value;
+  try{ ttFrame.contentWindow.postMessage(o,"*"); }catch(_){}
+}
+window.addEventListener("message",e=>{
+  if(!ttFrame||e.source!==ttFrame.contentWindow) return;
+  let d=e.data; if(typeof d==="string"){ try{ d=JSON.parse(d); }catch(_){ return; } }
+  if(!d||d["x-tiktok-player"]!==true) return;
+  if(d.type==="onPlayerReady"){ ttPlaying=true; ttCmd("play"); ttCmd("unMute"); ttCmd("muted",false); }
+});
 function ttToast(m){ const el=$("#tttoast"); el.textContent=m; el.hidden=false; clearTimeout(ttToastTimer); ttToastTimer=setTimeout(()=>{ el.hidden=true; },1200); }
 function removeTtFrame(){ if(ttFrame){ try{ ttFrame.remove(); }catch(_){} ttFrame=null; } }
 function ttShow(i){
@@ -528,8 +538,7 @@ function ttShow(i){
   ttFrame.setAttribute("allowfullscreen","");
   ttFrame.src="https://www.tiktok.com/player/v1/"+encodeURIComponent(v.id)+"?autoplay=1&loop=1&controls=1&rel=0&native_context_menu=0&description=0&music_info=0";
   ttStage.insertBefore(ttFrame,ttStage.firstChild);
-  ttPlaying=true;
-  setTimeout(()=>ttPost({type:"unMute"}),700);
+  ttPlaying=true; // play/unMute are sent on the player's onPlayerReady message
   ttSyncMeta();
 }
 // TikTok-style date: recent -> "N ngày/giờ/phút trước", this year -> "M-D", older -> "YYYY-M-D"
@@ -550,7 +559,7 @@ function ttSyncMeta(){
   $("#tttitle").innerHTML='<b>'+esc(ttChannel)+'</b>'+(date?' · <span class="ttdate">'+esc(date)+'</span>':'');
   $("#ttsub").textContent=v.title||""; // full caption, no truncation
 }
-function ttToggle(){ ttPlaying=!ttPlaying; ttPost({type:ttPlaying?"play":"pause"}); ttToast(ttPlaying?"▶":"❚❚"); }
+function ttToggle(){ ttPlaying=!ttPlaying; ttCmd(ttPlaying?"play":"pause"); ttToast(ttPlaying?"▶":"❚❚"); }
 function openFeed(index){
   if(!ttList.length) return;
   ttChannel=navTitle.textContent||""; // the channel name shown on the grid page
