@@ -116,6 +116,8 @@
 
   /* D-pad / keyboard focus (Android TV WebView has no mouse cursor): white ring like the YouTube TV app */
   .src:focus,.card:focus,.ttitem:focus{outline:none}
+  /* keep a focused tile off the very edge when the D-pad scrolls it into view (scrollIntoView respects this) */
+  .src,.card,.ttitem{scroll-margin:44px 0}
   .src:focus-visible .banner,.card:focus-visible .thumb{outline:4px solid var(--focus); outline-offset:2px}
   .ttitem:focus-visible{outline:4px solid var(--focus); outline-offset:-2px}
   .btn:focus-visible{outline:4px solid var(--focus); outline-offset:2px}
@@ -251,6 +253,16 @@ async function swr(key,fetcher,paint){
   }catch(e){ if(!c) throw e; }
 }
 
+// ---------------- RECENCY: the source/playlist of the last-played video floats to the top ----------------
+// Kept under its own key prefix so cacheClear() (a quota wipe) never drops it.
+const RECENT_SRC="tvr:src", RECENT_PL="tvr:pl";
+function recentGet(k){ try{ return JSON.parse(localStorage.getItem(k))||[]; }catch(_){ return []; } }
+function recentBump(k,id){ if(!id) return; try{ const a=recentGet(k).filter(x=>x!==id); a.unshift(id); localStorage.setItem(k,JSON.stringify(a.slice(0,60))); }catch(_){} }
+// stable reorder: ids seen recently come first (newest first), everything else keeps its original order
+function byRecent(k,items,idOf){ const order=recentGet(k), rank=id=>{ const i=order.indexOf(id); return i<0?1e9:i; };
+  return items.map((x,i)=>[x,i]).sort((a,b)=>{ const d=rank(idOf(a[0]))-rank(idOf(b[0])); return d||a[1]-b[1]; }).map(p=>p[0]); }
+let currentTopSource=""; // the top-level SOURCES id the current view belongs to (bumped when a video plays)
+
 // ---------------- ROUTER (hash = page) ----------------
 function route(){
   const h=decodeURIComponent(location.hash.replace(/^#/,""));
@@ -345,8 +357,7 @@ async function renderHome(seq){
     absorbHome(metas);
     const fi=[...homeEl.children].indexOf(document.activeElement);
     homeEl.innerHTML="";
-    SOURCES.forEach((s,i)=>{
-      const m=metas[i];
+    byRecent(RECENT_SRC,SOURCES.map((s,i)=>({s,m:metas[i]})),p=>p.s.id).forEach(({s,m})=>{
       homeEl.appendChild(srcButton(m.thumb,m.type,m.title,m.count,()=>{ location.hash=(s.type==="channelPlaylists")?("ch/"+s.id):(s.type==="tiktok")?("tt/"+s.id):("pl/"+m.playlistId); }));
     });
     refocus(homeEl,fi); painted=true;
@@ -369,7 +380,7 @@ async function fetchPlaylists(cid){
 async function showChannel(id,seq){
   const src=SOURCES.find(s=>s.id===id);
   if(!src){ location.replace("#home"); return; }
-  cur={kind:"channel",key:null,token:"",done:false,pages:0};
+  cur={kind:"channel",key:null,token:"",done:false,pages:0}; currentTopSource=id;
   navEl.hidden=false; navTitle.textContent="…"; setView("home");
   if(!meta[id]) homeEl.innerHTML=skeletonsSrc(6);
   try{
@@ -385,7 +396,7 @@ async function showChannel(id,seq){
     if(seq!==navSeq) return;
     const fi=[...homeEl.children].indexOf(document.activeElement);
     homeEl.innerHTML="";
-    list.forEach(pl=>{
+    byRecent(RECENT_PL,list,pl=>pl.id).forEach(pl=>{
       headers[pl.id]={title:pl.title,avatar:pl.avatar};
       homeEl.appendChild(srcButton(pl.thumb,"Playlist",pl.title,pl.count,()=>{ location.hash="pl/"+pl.id; }));
     });
@@ -424,6 +435,7 @@ async function fetchVideoPage(pid,token){
 async function showVideos(pid,seq){
   cur={kind:"videos",key:pid,token:"",done:false,pages:0}; currentAvatar="";
   const src=sourceOf(pid);
+  if(src) currentTopSource=src.id; // else this playlist was opened from a channel, whose id is already set
   currentAutoNextList=(src&&src.autonext)?pid:"";
   currentSubs=!(src&&src.subs===false);
   navEl.hidden=false; navTitle.textContent="…"; setView("grid");
@@ -595,7 +607,7 @@ function ttRenderMore(){
 async function showTikTok(id,seq){
   const src=SOURCES.find(s=>s.id===id&&s.type==="tiktok");
   if(!src){ location.replace("#home"); return; }
-  cur={kind:"tiktok",key:id,token:"",done:true,pages:1};
+  cur={kind:"tiktok",key:id,token:"",done:true,pages:1}; currentTopSource=id;
   ttUser=src.handle.replace(/^@/,"");
   navEl.hidden=false; navTitle.textContent=(meta[id]&&meta[id].title)||ttUser; setView("ttgrid");
   let painted=false;
@@ -668,6 +680,7 @@ function ttToggle(){ // OK: play/pause based on the player's real state
 }
 function openFeed(index){
   if(!ttList.length) return;
+  recentBump(RECENT_SRC,currentTopSource); // this TikTok source floats to the top of the home list
   if(TT_NATIVE){ ttNativeOpen(index); return; }
   ttChannel=navTitle.textContent||""; // the channel name shown on the grid page
   ttLastFocused=document.activeElement;
@@ -772,6 +785,7 @@ function schedulePrebuffer(vid){
 }
 function openPlayer(vid){
   clearTimeout(preTimer);
+  recentBump(RECENT_SRC,currentTopSource); recentBump(RECENT_PL,cur.key); // this source/playlist floats to the top of its list
   lastFocused=document.activeElement; lastPlayed=vid;
   modal.classList.add("open"); modal.setAttribute("aria-hidden","false"); document.body.style.overflow="hidden";
   // Focus stays on our own element, not inside the iframe: remote keys then reach the keydown
@@ -864,7 +878,7 @@ function gridNav(key){
   const i=Array.prototype.indexOf.call(items,a), row=Math.floor(i/cols), lastRow=Math.floor((n-1)/cols);
   let t;
   if(key==="ArrowLeft"||key==="ArrowRight"){ t=i+(key==="ArrowRight"?1:-1); if(t<0||t>=n||Math.floor(t/cols)!==row) return true; } // stay in the row
-  else if(key==="ArrowUp"){ if(row===0) return true; t=i-cols; }
+  else if(key==="ArrowUp"){ if(row===0){ window.scrollTo(0,0); return true; } t=i-cols; } // top row: scroll up to reveal the channel title
   else{ // ArrowDown
     t=i+cols;
     if(t>=n){
