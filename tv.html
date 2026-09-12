@@ -527,7 +527,16 @@ h.style.cssText=b.style.cssText='margin:0;height:100%;background:#000;overflow:h
 var v=document.createElement('video');v.setAttribute('playsinline','');v.preload='auto';if(cover)v.poster=cover;
 v.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;background:#000';
 var t=document.createElement('div');t.style.cssText='position:absolute;left:50%;bottom:12%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;font:500 22px system-ui,sans-serif;padding:10px 18px;border-radius:10px;display:none;white-space:nowrap';
-b.appendChild(v);b.appendChild(t);
+/* progress bar with the YouTube embed's metrics (see .ybar in tv.html) plus a time display, since a bare <video> has no UI of its own */
+var bar=document.createElement('div');bar.style.cssText='position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none;opacity:0;transition:opacity .25s cubic-bezier(0,0,.2,1)';
+bar.innerHTML='<div style="position:absolute;left:0;right:0;bottom:0;height:98px;background:url(data:image/png;base64,__GRAD__) repeat-x bottom"></div>'
++'<div id="tm" style="position:absolute;left:17px;bottom:0;font:13px/39px Roboto,Arial,sans-serif;color:#fff;text-shadow:0 0 2px rgba(0,0,0,.5)"></div>'
++'<div style="position:absolute;left:12px;right:12px;bottom:40px;height:3px;background:rgba(255,255,255,.2)">'
++'<div id="ld" style="position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(255,255,255,.4)"></div>'
++'<div id="pl" style="position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#f03 80%,#ff2791)"></div>'
++'<div id="kn" style="position:absolute;left:0;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#f03"></div></div>';
+b.appendChild(v);b.appendChild(bar);b.appendChild(t);
+var LD=bar.querySelector('#ld'),PL=bar.querySelector('#pl'),KN=bar.querySelector('#kn'),TM=bar.querySelector('#tm');
 var tm=0;function toast(m){t.innerHTML=m;t.style.display='block';clearTimeout(tm);tm=setTimeout(function(){t.style.display='none'},1200);}
 var ICO_PLAY='▶',ICO_PAUSE='❚❚'; /* same glyphs as the YouTube player's toast */
 function f(s){s=Math.max(0,Math.floor(s));var m=Math.floor(s/60),x=s%60;return m+':'+(x<10?'0':'')+x;}
@@ -538,15 +547,23 @@ function ev(n){try{TVNative.event(n);}catch(e){}}
    (first frame), a few ms later, so picture and sound effectively appear together. */
 v.addEventListener('playing',function(){ev('playing')});
 v.addEventListener('error',function(){ev('error')});
-var st=null,sti=0;
 function play(){v.play().catch(function(){});}
+/* Seeking as in the YouTube player: Left/Right move the scrubber only, OK applies the jump (or it is applied
+   when the bar hides, 3 s after the last press). The bar stays up while paused, so the time can be read. */
+var target=null,barT=0,tick=0;
+function draw(x){var d=v.duration||0,fr=d?Math.max(0,Math.min(1,x/d)):0,l=0;try{var r=v.buffered;if(d&&r.length)l=r.end(r.length-1)/d;}catch(e){}
+PL.style.width=fr*100+'%';KN.style.left=fr*100+'%';LD.style.width=Math.max(fr,l)*100+'%';TM.textContent=f(x)+' / '+f(d);}
+function showBar(){bar.style.opacity='1';clearTimeout(barT);if(!v.paused)barT=setTimeout(hideBar,3000);
+if(!tick)tick=setInterval(function(){if(target==null)draw(v.currentTime);},250);}
+function hideBar(){clearTimeout(barT);clearInterval(tick);tick=0;bar.style.opacity='0';flush();}
+function flush(){if(target==null)return;var x=target;target=null;v.currentTime=x;}
 window.__tt={start:play,play:play,unmute:function(){v.muted=false;},pause:function(){v.pause();},
-toggle:function(){if(v.paused){play();toast(ICO_PAUSE);}else{v.pause();toast(ICO_PLAY);}}, /* icon = state now: paused shows ▶ */
-seek:function(d){var dur=v.duration||0,b2=(st==null?v.currentTime:st)+d;if(b2<0)b2=0;if(dur&&b2>dur-1)b2=dur-1;st=b2;var dl=Math.round(b2-v.currentTime);
-toast(((dl>=0?'+':'−')+Math.abs(dl)+'s &nbsp; '+f(b2)+(dur?' / '+f(dur):'')));clearTimeout(sti);sti=setTimeout(function(){var x=st;st=null;v.currentTime=x;},350);},
-stop:function(){try{v.pause();v.removeAttribute('src');v.load();}catch(e){}}};
+toggle:function(){if(target!=null){flush();showBar();return;} /* OK with a jump pending confirms it — never play/pause */
+if(v.paused){play();toast(ICO_PAUSE);}else{v.pause();toast(ICO_PLAY);draw(v.currentTime);}showBar();}, /* icon = state now: paused shows ▶ */
+seek:function(d){var dur=v.duration||0,x=(target==null?v.currentTime:target)+d;if(x<0)x=0;if(dur&&x>dur-1)x=dur-1;target=x;draw(x);showBar();},
+stop:function(){clearTimeout(barT);clearInterval(tick);tick=0;target=null;try{v.pause();v.removeAttribute('src');v.load();}catch(e){}}};
 v.src=u;if(ap)play(); /* the app shows the player on the first frame */
-}catch(e){try{TVNative.event('error');}catch(x){}}})`;
+}catch(e){try{TVNative.event('error');}catch(x){}}})`.replace("__GRAD__","iVBORw0KGgoAAAANSUhEUgAAAAEAAADGCAYAAAAT+OqFAAAAdklEQVQoz42QQQ7AIAgEF/T/D+kbq/RWAlnQyyazA4aoAB4FsBSA/bFjuF1EOL7VbrIrBuusmrt4ZZORfb6ehbWdnRHEIiITaEUKa5EJqUakRSaEYBJSCY2dEstQY7AuxahwXFrvZmWl2rh4JZ07z9dLtesfNj5q0FU3A5ObbwAAAABJRU5ErkJggg==");
 const PLAY_ICON='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 function ttItem(v,i){
   const b=document.createElement("button"); b.className="ttitem"; b.type="button"; b.dataset.vid=v.id;
@@ -778,7 +795,6 @@ function toast(msg){ toastEl.textContent=msg; toastEl.hidden=false; clearTimeout
 const ybar=$("#ybar"), yLoad=$("#yload"), yPlay=$("#yplay"), yKnob=$("#yknob");
 const BAR_MS=3000;
 let seekTarget=null, barTimer=0, barTick=0;
-const barOpen=()=>ybar.classList.contains("on");
 function drawBar(t){
   const d=yt.getDuration()||0, f=d?Math.max(0,Math.min(1,t/d)):0;
   let l=0; try{ l=yt.getVideoLoadedFraction()||0; }catch(_){}
@@ -799,8 +815,11 @@ function seekBy(sec){
 }
 function togglePlay(){
   if(!ytReady){ toast("Loading…"); return; }
-  if(barOpen()){ flushSeek(); showBar(); return; } // OK while the bar is up confirms the jump — never play/pause
-  if(yt.getPlayerState()===1) yt.pauseVideo(); else yt.playVideo(); // no toast: the YouTube player shows its own play/pause indicator
+  if(seekTarget!=null){ flushSeek(); showBar(); return; } // OK with a jump pending confirms it — never play/pause
+  if(yt.getPlayerState()===1) yt.pauseVideo(); else yt.playVideo();
+  // The embed's own controls (bar, time, title) come up only for real input inside its iframe: the app
+  // fakes a mouse hover there. They stay while paused, hide 3 s after play — as with a mouse.
+  if(IN_APP&&window.TVApp&&TVApp.wakePlayer) try{ TVApp.wakePlayer(); }catch(_){}
 }
 const KEYS={
   ArrowLeft:()=>seekBy(-10), ArrowRight:()=>seekBy(10), ArrowUp:()=>{}, ArrowDown:()=>{}, // up/down: swallowed so focus never leaves the player

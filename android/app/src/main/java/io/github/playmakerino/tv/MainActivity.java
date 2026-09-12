@@ -9,7 +9,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.view.Gravity;
+import android.view.InputDevice;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -303,6 +305,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void playTikTok(String id, String user) { if (ok(id, user)) ui.post(() -> ttLoad(id, user, true)); }
         @JavascriptInterface public void prefetchTikTok(String id, String user) { if (ok(id, user)) ui.post(() -> { if (!ttVisible && !ttPlayPending()) ttLoad(id, user, false); }); }
         @JavascriptInterface public void closeTikTok() { ui.post(MainActivity.this::ttClose); }
+        @JavascriptInterface public void wakePlayer() { ui.post(MainActivity.this::wakeWeb); }
         private boolean ok(String id, String user) { return id != null && user != null && TT_ID.matcher(id).matches() && TT_USER.matcher(user).matches(); }
     }
 
@@ -549,6 +552,30 @@ public class MainActivity extends Activity {
         if ("ended".equals(ev)) notifyPage("ended");
         else if ("error".equals(ev)) { if (ttVisible || ttWantShow) { ttCache.remove(ttStreamId); ttFail("playback"); } } // expired/denied URL: next press resolves afresh
         else if ("playing".equals(ev)) { ttFirstFrame = true; ttMaybeShow(); if (ttVisible) notifyPage("started"); }
+    }
+
+    // The YouTube embed shows its own controls (bar, time, title) only for real input inside its iframe;
+    // play/pause through the IFrame API wakes nothing. A mouse hover dispatched into the WebView IS real
+    // input to Chromium: it reaches the iframe as mousemove and the player wakes as it would for a mouse —
+    // controls stay while paused, autohide 3 s after play. Hover, not touch: a touch/click on the video
+    // would toggle playback.
+    private void wakeWeb() {
+        if (web == null || web.getWidth() == 0) return;
+        float x = web.getWidth() / 2f, y = web.getHeight() / 2f;
+        long t = SystemClock.uptimeMillis();
+        hover(MotionEvent.ACTION_HOVER_ENTER, x, y, t);
+        hover(MotionEvent.ACTION_HOVER_MOVE, x + 8, y + 4, t + 8);
+        hover(MotionEvent.ACTION_HOVER_MOVE, x + 16, y + 8, t + 16);
+    }
+    private void hover(int action, float x, float y, long t) {
+        MotionEvent.PointerProperties pp = new MotionEvent.PointerProperties();
+        pp.id = 0; pp.toolType = MotionEvent.TOOL_TYPE_MOUSE;
+        MotionEvent.PointerCoords pc = new MotionEvent.PointerCoords();
+        pc.x = x; pc.y = y; pc.pressure = 0; pc.size = 1;
+        MotionEvent ev = MotionEvent.obtain(t, t, action, 1, new MotionEvent.PointerProperties[]{ pp }, new MotionEvent.PointerCoords[]{ pc },
+                0, 0, 1f, 1f, 0, 0, InputDevice.SOURCE_MOUSE, 0);
+        web.dispatchGenericMotionEvent(ev);
+        ev.recycle();
     }
 
     private void notifyPage(String ev) {
