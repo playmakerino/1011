@@ -484,7 +484,7 @@ function patchCards(items){ // true when the grid holds exactly these videos and
 }
 
 // ---------------- TIKTOK ----------------
-// A daily GitHub Action (scripts/tiktok.py) writes tiktok/<handle>.json; we just read it.
+// tiktok/<handle>.json is seeded from the browser (scripts/tiktok-seed.browser.js + tiktok_seed_merge.py); we just read it.
 async function fetchTikTok(file){
   const ac=new AbortController(), tm=setTimeout(()=>ac.abort(),15000);
   let r,j;
