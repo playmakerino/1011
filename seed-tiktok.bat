@@ -1,27 +1,33 @@
 @echo off
-REM Cap nhat danh sach video TikTok bang cach seed tu trinh duyet (cach duy nhat con chay duoc).
-REM yt-dlp da bi TikTok chan (tra body rong o moi IP) nen khong con Action tu dong nua.
+REM Cap nhat danh sach video TikTok (cach browser - cach duy nhat con chay duoc).
+REM Chi 1 file nay lo tat ca: copy script, mo TikTok, doc clipboard, merge, push.
 REM
-REM CACH DUNG (3 buoc):
-REM   1. Mo https://www.tiktok.com/@teubongday trong Chrome -> F12 -> tab Console.
-REM      Mo file scripts\tiktok-seed.browser.js, copy TOAN BO, dan vao Console, Enter.
-REM      Cho toi khi hien "done - dump copied to clipboard" (~1 phut, no tu scroll).
-REM   2. Mo Notepad, dan (Ctrl+V), luu thanh:  scratch\tt_dump.json  (trong thu muc nay).
-REM   3. Chay file .bat nay (double-click). No merge + commit + push.
+REM CACH DUNG:
+REM   1. Double-click file nay. No tu copy script va mo trang TikTok.
+REM   2. Trong Chrome: F12 -> tab Console -> bam vao vung Console -> Ctrl+V -> Enter.
+REM      Cho toi khi Console hien: done - dump copied to clipboard  (~1 phut).
+REM   3. Quay lai cua so nay, nhan phim bat ky. Xong (no tu merge + push).
 setlocal
 cd /d "%~dp0"
+if not exist scratch md scratch >nul 2>&1
 
-if not exist "scratch\tt_dump.json" (
-  echo [THIEU FILE] Chua thay scratch\tt_dump.json
-  echo Lam buoc 1-2 o tren truoc: chay script trong Console roi luu clipboard thanh scratch\tt_dump.json
-  pause
-  exit /b 1
-)
+echo === Buoc 1: copy script + mo TikTok ===
+powershell -NoProfile -Command "Get-Content -Raw 'scripts\tiktok-seed.browser.js' | Set-Clipboard"
+start "" "https://www.tiktok.com/@teubongday"
+echo.
+echo   Trong Chrome vua mo:  F12  ->  tab Console  ->  bam vao Console  ->  Ctrl+V  ->  Enter
+echo   Cho toi khi Console hien:  done - dump copied to clipboard
+echo.
+echo Sau khi thay chu "done", quay lai day:
+pause
 
-echo === Merge dump vao tiktok\teubongday.json ===
+echo.
+echo === Buoc 2: doc clipboard -> merge -> push ===
+powershell -NoProfile -Command "$t=Get-Clipboard -Raw; [IO.File]::WriteAllText((Join-Path (Get-Location) 'scratch\tt_dump.json'), $t, (New-Object Text.UTF8Encoding($false)))"
 python scripts\tiktok_seed_merge.py scratch\tt_dump.json tiktok\teubongday.json
 if errorlevel 1 (
-  echo [LOI] Merge that bai - kiem tra file scratch\tt_dump.json co dung JSON khong.
+  echo [LOI] Clipboard khong phai dump JSON hop le.
+  echo Chay lai, va nho cho Console hien "done" TRUOC khi nhan phim o buoc 1.
   pause
   exit /b 1
 )
@@ -37,5 +43,5 @@ if errorlevel 1 (
 )
 
 echo.
-echo [XONG] Da cap nhat va push. GitHub Pages co ban moi sau ~1 phut.
+echo [XONG] Da cap nhat va push. App co ban moi sau ~1 phut.
 pause
