@@ -25,8 +25,13 @@
   }
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const cards = () => document.querySelectorAll('[data-e2e="user-post-item"]').length;
+  // Only the newest videos are needed for a routine refresh, so stop once TARGET are captured
+  // instead of crawling the whole channel (a few seconds vs ~1 min). The merge keeps every
+  // older video already in the JSON. Set TARGET = 0 to seed the whole channel (first-time seed).
+  const TARGET = 40;
   let last = cards(), stall = 0;
   while (TT.hasMore !== false && stall < 10) {
+    if (TARGET && Object.keys(TT.items).length >= TARGET) { console.log('reached TARGET', TARGET, '- stopping'); break; }
     window.scrollTo(0, document.body.scrollHeight);
     await sleep(1200);
     const c = cards();
