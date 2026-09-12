@@ -852,8 +852,8 @@ document.addEventListener("keydown",e=>{
 },true);
 
 // ---- D-pad on the grids. Chromium's spatial navigation scrolls one step first when the next tile is
-// off-screen, so a press looked like it did nothing; here focus moves at once and the focused row is
-// kept in the middle of the screen. Reaching the end loads/renders more.
+// off-screen, so a press looked like it did nothing; here focus moves at once and the page scrolls only
+// as far as needed to bring the tile in. Reaching the end loads/renders more.
 function gridNav(key){
   if(!/^Arrow(Up|Down|Left|Right)$/.test(key)) return false;
   const a=document.activeElement; if(!a) return false;
@@ -881,7 +881,7 @@ function gridNav(key){
   if(grid===gridEl&&!cur.done&&!cur.pending&&Math.floor(t/cols)===lastRow) loadVideos(false,navSeq);
   return true;
 }
-function gridFocus(el){ el.focus({preventScroll:true}); el.scrollIntoView({block:"center"}); }
+function gridFocus(el){ el.focus({preventScroll:true}); el.scrollIntoView({block:"nearest"}); } // scroll only when off-screen, and only just enough
 // Mouse/touch scrolling (browsers): more comes in as the end scrolls near.
 const io=("IntersectionObserver" in window)?new IntersectionObserver(es=>{ es.forEach(en=>{
   if(!en.isIntersecting) return;
