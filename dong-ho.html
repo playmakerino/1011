@@ -1429,7 +1429,7 @@
       const nowLine = $('wkNow');
       if(nowLine){
         nowLine.style.left = wkPos(h + m/60);
-        nowLine.style.display = h < WK_H0 ? 'none' : '';
+        nowLine.style.display = (h < WK_H0 || h >= 22) ? 'none' : '';
       }
       updateBadge(elTextHt, String(gio12(h)));   // lớp số giờ (solid, trên kính)
       updateBadge(elTextMt, String(m));          // lớp số phút (solid, trên kính)
