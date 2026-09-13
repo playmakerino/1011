@@ -51,7 +51,6 @@
 
   .btn{ cursor:pointer; font-size:14px; font-weight:500; border:1px solid var(--line); padding:9px 16px; border-radius:999px; background:var(--chip); color:var(--ink); }
   .btn:hover{background:var(--chip-hover)}
-  .btn:disabled{opacity:.5; cursor:default}
 
   .state{text-align:center; color:var(--muted); padding:70px 20px; font-size:15px}
   .state .btn{margin-top:18px}
@@ -75,7 +74,7 @@
      100 ms in, 250 ms out. */
   .ybar{position:absolute; inset:0; z-index:1; pointer-events:none; opacity:0; transition:opacity .25s cubic-bezier(0,0,.2,1)}
   .ybar.on{opacity:1; transition:opacity .1s cubic-bezier(.4,0,1,1)}
-  .ybar .yg{position:absolute; left:0; right:0; bottom:0; height:98px; background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAADGCAYAAAAT+OqFAAAAdklEQVQoz42QQQ7AIAgEF/T/D+kbq/RWAlnQyyazA4aoAB4FsBSA/bFjuF1EOL7VbrIrBuusmrt4ZZORfb6ehbWdnRHEIiITaEUKa5EJqUakRSaEYBJSCY2dEstQY7AuxahwXFrvZmWl2rh4JZ07z9dLtesfNj5q0FU3A5ObbwAAAABJRU5ErkJggg==) repeat-x bottom}
+  .ybar .yg{position:absolute; left:0; right:0; bottom:0; height:98px; background:var(--grad) repeat-x bottom} /* --grad: the player's gradient PNG, set from GRAD_PNG in the script */
   .ybar .yt{position:absolute; left:12px; right:12px; bottom:40px; height:3px; background:rgba(255,255,255,.2)}
   .ybar .yl,.ybar .yp{position:absolute; left:0; top:0; bottom:0; width:0}
   .ybar .yl{background:rgba(255,255,255,.4)}
@@ -186,7 +185,7 @@ const API = "https://www.googleapis.com/youtube/v3/";
 const IN_APP = /\bTVApp\//.test(navigator.userAgent); // the Android wrapper tags its user agent
 // The app plays TikTok natively (its own WebView on the video's H.264 stream) — the embed player's
 // H.265 stream doesn't decode on TV boxes. Outside the app the embed is used as before.
-const TT_NATIVE = IN_APP && !!(window.TVApp && typeof TVApp.playTikTok==="function");
+const TT_NATIVE = IN_APP && typeof window.TVApp?.playTikTok==="function";
 const $ = s => document.querySelector(s);
 const homeEl=$("#home"), gridEl=$("#grid"), ttgridEl=$("#ttgrid"), stateEl=$("#state");
 const navEl=$("#nav"), navTitle=$("#navtitle");
@@ -199,7 +198,12 @@ let cur={kind:null,key:null,token:"",done:false,pages:0}; // current list view p
 let currentAvatar="";
 let currentAutoNextList=""; // when set, player embeds the playlist so it auto-advances
 let currentSubs=true;       // force English subtitles for the list being watched
-const positions={};         // videoId -> index in the current playlist (to start a playlist at that video)
+let positions={};           // videoId -> index in the current playlist (to start a playlist at that video)
+
+// The 98px bottom gradient the YouTube embed paints under its controls (its own PNG): used by the seek
+// bar overlay here (.ybar .yg) and by the TikTok player script the app runs.
+const GRAD_PNG="iVBORw0KGgoAAAANSUhEUgAAAAEAAADGCAYAAAAT+OqFAAAAdklEQVQoz42QQQ7AIAgEF/T/D+kbq/RWAlnQyyazA4aoAB4FsBSA/bFjuF1EOL7VbrIrBuusmrt4ZZORfb6ehbWdnRHEIiITaEUKa5EJqUakRSaEYBJSCY2dEstQY7AuxahwXFrvZmWl2rh4JZ07z9dLtesfNj5q0FU3A5ObbwAAAABJRU5ErkJggg==";
+document.documentElement.style.setProperty("--grad","url(data:image/png;base64,"+GRAD_PNG+")");
 
 // <img sizes>: 1 column under 600px, else 3 columns inside a 1280px main — lets the browser pick a
 // thumbnail that fits the slot instead of always downloading the 1280px one
@@ -207,7 +211,23 @@ const SIZES="(max-width:599px) calc(100vw - 28px), (max-width:1280px) calc((100v
 
 const decoder=document.createElement("textarea");
 const decode=t=>{ decoder.innerHTML=t||""; return decoder.value; };
-const esc=t=>(t||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ESC={"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"};
+const esc=t=>(t||"").replace(/[&<>"]/g,c=>ESC[c]);
+// Enter / Space (D-pad OK) activate a div like a click does
+const onActivate=(el,fn)=>{ el.onclick=fn; el.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); fn(); } }; };
+// toast(msg[,ms]) shows msg on el for ms (default 1.2 s; 0 = until toast.hide())
+const mkToast=el=>{ let t=0; const show=(msg,ms=1200)=>{ el.textContent=msg; el.hidden=false; clearTimeout(t); if(ms) t=setTimeout(()=>{ el.hidden=true; },ms); };
+  show.hide=()=>{ clearTimeout(t); el.hidden=true; }; return show; };
+// GET JSON with a 15 s cap — a hung request must not freeze the screen
+async function fetchJson(url,init){
+  const ac=new AbortController(), tm=setTimeout(()=>ac.abort(),15000);
+  let r,j;
+  try{ r=await fetch(url,{...init,signal:ac.signal}); j=await r.json(); }
+  catch(e){ throw new Error(ac.signal.aborted?"Request timed out":"Network error"); }
+  finally{ clearTimeout(tm); }
+  if(!r.ok) throw new Error(j?.error?.message||("HTTP "+r.status));
+  return j;
+}
 const thumbs=th=>{ // {s: fallback src, ss: srcset from every size YouTube offers}
   th=th||{}; const big=th.maxres||th.standard||th.high||th.medium||th.default;
   return { s:big?big.url:"", ss:Object.values(th).filter(t=>t&&t.url&&t.width).map(t=>t.url+" "+t.width+"w").join(",") };
@@ -220,23 +240,17 @@ function fmtCount(n){ n=+n; if(!isFinite(n)||n<=0) return ""; if(n>=1e6) return 
 function fmtViews(n){ const c=fmtCount(n); return c?c+" views":""; }
 function ago(iso){ const d=(Date.now()-new Date(iso))/1000; for(const [nm,sec] of [["year",31536000],["month",2592000],["week",604800],["day",86400],["hour",3600],["minute",60]]){ const v=Math.floor(d/sec); if(v>=1) return v+" "+nm+(v>1?"s":"")+" ago"; } return "just now"; }
 function watchable(v){
-  if(v.status && v.status.embeddable===false) return false;
-  const rr=v.contentDetails&&v.contentDetails.regionRestriction;
-  if(rr){ if(rr.blocked&&rr.blocked.includes(REGION)) return false; if(rr.allowed&&!rr.allowed.includes(REGION)) return false; }
+  if(v.status?.embeddable===false) return false;
+  const rr=v.contentDetails?.regionRestriction;
+  if(rr){ if(rr.blocked?.includes(REGION)) return false; if(rr.allowed&&!rr.allowed.includes(REGION)) return false; }
   return true;
 }
 
-async function api(path,params){
+function api(path,params){
   const u=new URL(API+path);
   Object.entries(params).forEach(([k,v])=>v!=null&&u.searchParams.set(k,v));
   u.searchParams.set("key",API_KEY);
-  const ac=new AbortController(), tm=setTimeout(()=>ac.abort(),15000); // a hung request must not freeze the screen
-  let r,j;
-  try{ r=await fetch(u,{signal:ac.signal}); j=await r.json(); }
-  catch(e){ throw new Error(ac.signal.aborted?"Request timed out":"Network error"); }
-  finally{ clearTimeout(tm); }
-  if(!r.ok) throw new Error(j.error?.message||("HTTP "+r.status));
-  return j;
+  return fetchJson(u);
 }
 
 // ---------------- CACHE: localStorage, stale-while-revalidate ----------------
@@ -301,8 +315,8 @@ function showState(msg,err,retry){
   stateEl.innerHTML=msg+(err?'<br><small>'+esc(err.message||String(err))+'</small>':'')+(retry?'<div><button class="btn" id="retryBtn" type="button">Retry</button></div>':'');
   if(retry){ const b=$("#retryBtn"); b.onclick=render; b.focus({preventScroll:true}); }
 }
-function skeletonsSrc(n){ let h=""; for(let i=0;i<n;i++) h+='<div class="src sk"><div class="banner"></div><div class="l"></div><div class="l s"></div></div>'; return h; }
-function skeletons(n){ let h=""; for(let i=0;i<n;i++) h+='<div class="card sk"><div class="thumb"></div><div class="row"><div class="txt" style="flex:1"><div class="l"></div><div class="l s"></div></div></div></div>'; return h; }
+const skeletonsSrc=n=>'<div class="src sk"><div class="banner"></div><div class="l"></div><div class="l s"></div></div>'.repeat(n);
+const skeletons=n=>'<div class="card sk"><div class="thumb"></div><div class="row"><div class="txt" style="flex:1"><div class="l"></div><div class="l s"></div></div></div></div>'.repeat(n);
 // D-pad: put focus on the first item of a freshly rendered list if nothing else has it
 function focusFirst(container){
   const a=document.activeElement;
@@ -325,30 +339,30 @@ function srcButton(thumb,badge,title,count,onclick){
 async function newestThumb(pid){
   if(!pid) return null;
   try{ const j=await api("playlistItems",{ part:"snippet", maxResults:1, playlistId:pid });
-       const sn=j.items&&j.items[0]&&j.items[0].snippet, t=sn?thumbs(sn.thumbnails):null; return t&&t.s?t:null; }
+       const t=thumbs(j.items?.[0]?.snippet?.thumbnails); return t.s?t:null; }
   catch(_){ return null; }
 }
 
 // ---------------- HOME: list of sources ----------------
+const handleOf=s=>s.handle.replace(/^@/,"");
 async function fetchHome(){
-  // all playlist sources go in one request; channels need one request per handle; tiktok reads its JSON file
+  // all playlist sources go in one request; channels need one request per handle (then one more for the
+  // newest upload's thumbnail); tiktok reads its JSON file. Everything runs in parallel.
   const pls=SOURCES.filter(s=>s.type==="playlist");
-  const chs=SOURCES.filter(s=>s.type==="channel"||s.type==="channelPlaylists");
-  const tts=SOURCES.filter(s=>s.type==="tiktok");
-  const [jp,jc,jt]=await Promise.all([
-    pls.length? api("playlists",{ part:"snippet,contentDetails", id:pls.map(s=>s.playlistId).join(",") }) : {items:[]},
-    Promise.all(chs.map(s=>api("channels",{ part:"snippet,contentDetails,statistics", forHandle:s.handle }))),
-    // a missing/blocked TikTok file must not blank the whole home — fall back to an empty channel
-    Promise.all(tts.map(s=>fetchTikTok(s.file).catch(()=>({title:s.handle.replace(/^@/,""),avatar:"",videos:[]}))))
+  const byPl={}, ch={}, tt={};
+  await Promise.all([
+    pls.length && api("playlists",{ part:"snippet,contentDetails", id:pls.map(s=>s.playlistId).join(",") }).then(j=>(j.items||[]).forEach(it=>byPl[it.id]=it)),
+    ...SOURCES.map(async s=>{
+      if(s.type==="channel"||s.type==="channelPlaylists"){
+        const it=(await api("channels",{ part:"snippet,contentDetails,statistics", forHandle:s.handle })).items?.[0];
+        // Channel tiles show their newest upload's thumbnail (item[0] of the uploads playlist, which is
+        // newest-first) instead of the channel avatar. Playlist tiles keep the cover the API returns.
+        ch[s.id]={ it, thumb:await newestThumb(it?.contentDetails?.relatedPlaylists?.uploads) };
+      }
+      // a missing/blocked TikTok file must not blank the whole home — fall back to an empty channel
+      else if(s.type==="tiktok") tt[s.id]=await fetchTikTok(s.file).catch(()=>({title:handleOf(s),avatar:"",videos:[]}));
+    })
   ]);
-  const byPl={}; (jp.items||[]).forEach(it=>byPl[it.id]=it);
-  // Channel/channelPlaylists tiles show their newest upload's thumbnail (item[0] of the uploads playlist,
-  // which is newest-first) instead of the channel avatar. Playlist tiles keep the cover the API returns.
-  const chThumbs=await Promise.all(chs.map(s=>{
-    const it=(jc[chs.indexOf(s)].items||[])[0];
-    const up=it&&it.contentDetails&&it.contentDetails.relatedPlaylists&&it.contentDetails.relatedPlaylists.uploads;
-    return newestThumb(up);
-  }));
   return SOURCES.map(s=>{
     if(s.type==="playlist"){
       const it=byPl[s.playlistId]; if(!it) throw new Error("Playlist not found: "+s.playlistId);
@@ -356,16 +370,15 @@ async function fetchHome(){
                playlistId:s.playlistId, type:"Playlist", count:it.contentDetails?.itemCount??null };
     }
     if(s.type==="tiktok"){
-      const d=jt[tts.indexOf(s)];
+      const d=tt[s.id], videos=d.videos||[];
       // Channel avatar: TikTok's own URLs are signed and expire in days, and yt-dlp doesn't expose one,
       // so use unavatar's stable proxy keyed by handle (always the current avatar, no expiry).
-      const av=s.avatar||("https://unavatar.io/tiktok/"+s.handle.replace(/^@/,""));
-      const v0=d.videos&&d.videos[0]; // newest video's thumbnail for the tile, avatar as fallback
-      return { title:d.title||s.handle.replace(/^@/,""), thumb:{s:(v0&&v0.thumb)||av,ss:""}, avatar:av,
-               type:"Channel", tiktok:true, count:d.videos?d.videos.length:null, videos:d.videos||[] };
+      const av=s.avatar||("https://unavatar.io/tiktok/"+handleOf(s));
+      return { title:d.title||handleOf(s), thumb:{s:videos[0]?.thumb||av,ss:""}, avatar:av, // newest video's thumbnail for the tile, avatar as fallback
+               type:"Channel", tiktok:true, count:d.videos?videos.length:null, videos };
     }
-    const it=jc[chs.indexOf(s)].items?.[0]; if(!it) throw new Error("Channel not found: "+s.handle);
-    return { title:decode(it.snippet.title), thumb:chThumbs[chs.indexOf(s)]||thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
+    const {it,thumb}=ch[s.id]; if(!it) throw new Error("Channel not found: "+s.handle);
+    return { title:decode(it.snippet.title), thumb:thumb||thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
              channelId:it.id, playlistId:it.contentDetails.relatedPlaylists.uploads, type:"Channel",
              count:Number(it.statistics?.videoCount)||null };
   });
@@ -432,7 +445,7 @@ async function showChannel(id,seq){
 }
 
 // ---------------- PLAYLIST: its videos ----------------
-const sourceOf=pid=>SOURCES.find(s=>s.playlistId===pid||(meta[s.id]&&meta[s.id].playlistId===pid));
+const sourceOf=pid=>SOURCES.find(s=>s.playlistId===pid||meta[s.id]?.playlistId===pid);
 async function fetchHeader(pid){
   const j=await api("playlists",{ part:"snippet", id:pid }); const it=j.items?.[0];
   return it ? {title:decode(it.snippet.title), avatar:avpick(it.snippet.thumbnails)} : {title:"",avatar:""};
@@ -458,8 +471,8 @@ async function showVideos(pid,seq){
   cur={kind:"videos",key:pid,token:"",done:false,pages:0}; currentAvatar="";
   const src=sourceOf(pid);
   if(src) currentTopSource=src.id; // else this playlist was opened from a channel, whose id is already set
-  currentAutoNextList=(src&&src.autonext)?pid:"";
-  currentSubs=!(src&&src.subs===false);
+  currentAutoNextList=src?.autonext?pid:"";
+  currentSubs=src?.subs!==false;
   navEl.hidden=false; navTitle.textContent="…"; setView("grid");
   if(headers[pid]) applyHeader(headers[pid]); // header and videos load side by side
   else swr("plh:"+pid,()=>fetchHeader(pid),h=>{ headers[pid]=h; if(seq===navSeq) applyHeader(h); }).catch(()=>{});
@@ -478,8 +491,8 @@ async function loadVideos(first,seq){
       if(!first||cur.pages>1) return;      // user paged on: cache is updated for next time, screen left alone
       if(patchCards(page.items)) return;   // same videos: texts refreshed in place, nothing rebuilt
     }
-    const keep=document.activeElement&&document.activeElement.dataset.vid;
-    if(first){ gridEl.innerHTML=""; cur.pages=0; for(const k in positions) delete positions[k]; }
+    const keep=document.activeElement?.dataset.vid;
+    if(first){ gridEl.innerHTML=""; cur.pages=0; positions={}; }
     painted=true;
     page.items.forEach(v=>{ positions[v.id]=v.pos; gridEl.appendChild(card(v)); });
     cur.token=page.next; cur.done=!page.next;
@@ -503,9 +516,7 @@ function card(v){
   c.innerHTML='<div class="thumb">'+imgTag(v.th)+(v.dur?'<span class="dur">'+esc(v.dur)+'</span>':'')+'</div>'+
     '<div class="row"><img class="av" loading="lazy" decoding="async" alt=""'+(currentAvatar?' src="'+esc(currentAvatar)+'"':' hidden')+'>'+
     '<div class="txt">'+cardText(v)+'</div></div>';
-  const open=()=>openPlayer(v.id);
-  c.onclick=open;
-  c.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
+  onActivate(c,()=>openPlayer(v.id));
   c.onfocus=()=>schedulePrebuffer(v.id);
   c.onblur=()=>schedulePrebuffer(null);
   return c;
@@ -520,12 +531,7 @@ function patchCards(items){ // true when the grid holds exactly these videos and
 // ---------------- TIKTOK ----------------
 // tiktok/<handle>.json is seeded from the browser (scripts/tiktok-seed.browser.js + tiktok_seed_merge.py); we just read it.
 async function fetchTikTok(file){
-  const ac=new AbortController(), tm=setTimeout(()=>ac.abort(),15000);
-  let r,j;
-  try{ r=await fetch(file+"?t="+Date.now(),{cache:"no-store",signal:ac.signal}); j=await r.json(); }
-  catch(e){ throw new Error(ac.signal.aborted?"Request timed out":"Network error"); }
-  finally{ clearTimeout(tm); }
-  if(!r.ok) throw new Error("HTTP "+r.status);
+  const j=await fetchJson(file+"?t="+Date.now(),{cache:"no-store"});
   return { title:decode(j.title||""), avatar:j.avatar||"", videos:(j.videos||[]).map(v=>({
     id:String(v.id), title:decode(v.title||""), thumb:v.thumb||"", dur:+v.dur||0, views:+v.views||0, pub:v.pub||"" })) };
 }
@@ -602,19 +608,17 @@ if(v.paused){play();toast(ICO_PAUSE);}else{v.pause();toast(ICO_PLAY);draw(v.curr
 seek:function(d){var dur=v.duration||0,x=(target==null?v.currentTime:target)+d;if(x<0)x=0;if(dur&&x>dur-1)x=dur-1;target=x;draw(x);showBar();},
 stop:function(){clearTimeout(barT);clearInterval(tick);tick=0;target=null;try{v.pause();v.removeAttribute('src');v.load();}catch(e){}}};
 v.src=u;if(ap)play(); /* the app shows the player on the first frame */
-}catch(e){try{TVNative.event('error');}catch(x){}}})`.replace("__GRAD__","iVBORw0KGgoAAAANSUhEUgAAAAEAAADGCAYAAAAT+OqFAAAAdklEQVQoz42QQQ7AIAgEF/T/D+kbq/RWAlnQyyazA4aoAB4FsBSA/bFjuF1EOL7VbrIrBuusmrt4ZZORfb6ehbWdnRHEIiITaEUKa5EJqUakRSaEYBJSCY2dEstQY7AuxahwXFrvZmWl2rh4JZ07z9dLtesfNj5q0FU3A5ObbwAAAABJRU5ErkJggg==");
+}catch(e){try{TVNative.event('error');}catch(x){}}})`.replace("__GRAD__",GRAD_PNG);
 const PLAY_ICON='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 function ttItem(v,i){
   const b=document.createElement("button"); b.className="ttitem"; b.type="button"; b.dataset.vid=v.id;
   b.innerHTML=(v.thumb?'<img loading="lazy" decoding="async" src="'+esc(v.thumb)+'" alt="">':'')+
     '<span class="v">'+PLAY_ICON+esc(fmtCount(v.views))+'</span>';
-  const open=()=>openFeed(i);
-  b.onclick=open;
-  b.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
+  onActivate(b,()=>openFeed(i));
   if(TT_NATIVE){ b.onfocus=()=>ttPrefetch(v.id); b.onblur=()=>ttPrefetch(null); } // resolve the stream while the tile is focused
   return b;
 }
-function ttSkeletons(n){ let h=""; for(let i=0;i<n;i++) h+='<div class="ttitem sk"></div>'; return h; }
+const ttSkeletons=n=>'<div class="ttitem sk"></div>'.repeat(n);
 // Hundreds of tiles at once stall the TV box: the grid is built 36 at a time, the rest appended as the
 // D-pad (gridNav) or the scroll (IntersectionObserver on the last tile) nears the end.
 const TT_CHUNK=36;
@@ -630,8 +634,8 @@ async function showTikTok(id,seq){
   const src=SOURCES.find(s=>s.id===id&&s.type==="tiktok");
   if(!src){ location.replace("#home"); return; }
   cur={kind:"tiktok",key:id,token:"",done:true,pages:1}; currentTopSource=id;
-  ttUser=src.handle.replace(/^@/,"");
-  navEl.hidden=false; navTitle.textContent=(meta[id]&&meta[id].title)||ttUser; setView("ttgrid");
+  ttUser=handleOf(src);
+  navEl.hidden=false; navTitle.textContent=meta[id]?.title||ttUser; setView("ttgrid");
   let painted=false;
   const paint=data=>{
     if(seq!==navSeq) return;
@@ -644,7 +648,7 @@ async function showTikTok(id,seq){
     if(!ttList.length) showState("No videos here yet.");
     painted=true;
   };
-  if(meta[id]&&meta[id].videos&&meta[id].videos.length) paint({videos:meta[id].videos,title:meta[id].title});
+  if(meta[id]?.videos?.length) paint({videos:meta[id].videos,title:meta[id].title});
   if(!painted && !cacheGet("tt:"+src.file)) ttgridEl.innerHTML=ttSkeletons(12);
   try{ await swr("tt:"+src.file,()=>fetchTikTok(src.file),d=>{ if(meta[id]) meta[id].videos=d.videos; paint(d); }); }
   catch(e){ if(seq!==navSeq||painted) return; ttgridEl.innerHTML=""; showState("Couldn't load videos.",e,true); }
@@ -652,7 +656,8 @@ async function showTikTok(id,seq){
 
 // ---- TikTok feed player (full-screen vertical) ----
 let ttFrame=null, ttFeedOpen=false, ttHistPushed=false, ttLastFocused=null;
-let ttIndex=0, ttState=-1, ttReadyAt=0, ttMutedFallback=false, ttToastTimer=0, ttChannel="";
+let ttIndex=0, ttState=-1, ttReadyAt=0, ttMutedFallback=false, ttChannel="";
+const ttTitleEl=$("#tttitle"), ttSubEl=$("#ttsub"), ttToast=mkToast($("#tttoast")), pageToast=mkToast($("#pagetoast"));
 // The TikTok embed player only obeys messages carrying "x-tiktok-player":true, and it loads paused+muted
 // (no real autoplay), so we send play/unMute ourselves once it reports onPlayerReady.
 function ttCmd(type,value){
@@ -674,7 +679,6 @@ window.addEventListener("message",e=>{
     }
   }
 });
-function ttToast(m){ const el=$("#tttoast"); el.textContent=m; el.hidden=false; clearTimeout(ttToastTimer); ttToastTimer=setTimeout(()=>{ el.hidden=true; },1200); }
 function removeTtFrame(){ if(ttFrame){ try{ ttFrame.remove(); }catch(_){} ttFrame=null; } }
 function ttShow(i){
   if(!ttList.length) return;
@@ -694,8 +698,8 @@ function ttSyncMeta(){
   if(!ttFeedOpen) return;
   const v=ttList[ttIndex]||{};
   const date=v.pub&&!isNaN(new Date(v.pub))?ago(v.pub):""; // same wording as the YouTube cards
-  $("#tttitle").innerHTML='<b>'+esc(ttChannel)+'</b>'+(date?' · <span class="ttdate">'+esc(date)+'</span>':'');
-  $("#ttsub").textContent=v.title||""; // full caption, no truncation
+  ttTitleEl.innerHTML='<b>'+esc(ttChannel)+'</b>'+(date?' · <span class="ttdate">'+esc(date)+'</span>':'');
+  ttSubEl.textContent=v.title||""; // full caption, no truncation
 }
 function ttToggle(){ // OK: play/pause based on the player's real state
   if(ttState===1){ ttCmd("pause"); ttToast("❚❚"); } else { ttCmd("play"); ttToast("▶"); }
@@ -736,9 +740,6 @@ function ttKey(k){
 // ---- In the app: native TikTok playback via the TVApp bridge (see MainActivity) ----
 // tv.html only picks the video; the app loads its page, extracts the H.264 stream and plays it in a
 // WebView above this one. Back returns to this grid (no Up/Down paging inside the player).
-let pageToastTimer=0;
-function pageToast(msg,ms){ const el=$("#pagetoast"); el.textContent=msg; el.hidden=false; clearTimeout(pageToastTimer); if(ms) pageToastTimer=setTimeout(()=>{ el.hidden=true; },ms); }
-function pageToastHide(){ clearTimeout(pageToastTimer); $("#pagetoast").hidden=true; }
 let ttPreTimer=0;
 function ttPrefetch(vid){ // a tile focused for a moment: have the app resolve its stream so OK plays at once
   clearTimeout(ttPreTimer); if(!vid) return;
@@ -752,8 +753,8 @@ function ttNativeOpen(i){
 function ttRefocus(){ const el=ttgridEl.children[ttIndex]; if(el&&!ttgridEl.hidden) el.focus({preventScroll:false}); } // back on the tile that was pressed
 window.tvTikTok=function(ev){ // events from the app
   if(ev==="loading") pageToast("Loading…",8000);
-  else if(ev==="started") pageToastHide();
-  else if(ev==="closed"){ pageToastHide(); ttRefocus(); }
+  else if(ev==="started") pageToast.hide();
+  else if(ev==="closed"){ pageToast.hide(); ttRefocus(); }
   else if(ev.startsWith("error")){ pageToast("Playback failed: "+ev.slice(6),ev.length>60?15000:3000); ttRefocus(); } // long = diagnostics, keep it up
 };
 
@@ -765,7 +766,7 @@ ttfeedEl.addEventListener("touchend",e=>{ if(ttTouchY==null) return; const dy=e.
 // ---------------- PLAYER ----------------
 // One YT.Player lives for the whole session; opening a video only calls loadVideoById / loadPlaylist.
 // It is rebuilt only when the subtitle setting changes between sources (cc_load_policy is fixed at creation).
-const modal=$("#modal"), playerEl=$("#player"), toastEl=$("#toast");
+const modal=$("#modal"), playerEl=$("#player"), toastEl=$("#toast"), toast=mkToast(toastEl);
 const isOpen=()=>modal.classList.contains("open");
 let lastFocused=null; // card to return focus to when the player closes (D-pad)
 let yt=null, ytReady=false, ytSubs=null, pending=null, histPushed=false;
@@ -830,7 +831,7 @@ function closePlayer(fromHistory){
   if(ex){ (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }
   pending=null; prebuf=null; seekTarget=null; hideBar();
   if(ytReady) try{ yt.stopVideo(); }catch(_){}
-  toastEl.hidden=true;
+  toast.hide();
   modal.classList.remove("open"); modal.setAttribute("aria-hidden","true"); document.body.style.overflow="";
   if(lastFocused && lastFocused.isConnected) lastFocused.focus({preventScroll:true});
   lastFocused=null;
@@ -839,8 +840,6 @@ function closePlayer(fromHistory){
 window.addEventListener("popstate",()=>{ closePlayer(true); ttCloseFeed(true); });
 
 // ---- remote / keyboard control of the player ----
-let toastTimer=0;
-function toast(msg){ toastEl.textContent=msg; toastEl.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>{ toastEl.hidden=true; },1200); }
 // Seeking works like the YouTube TV app: Left/Right only move the scrubber on the bar (the video plays
 // on, nothing buffers), OK applies the jump, and the pending jump is applied anyway when the bar hides
 // after 3 s of no presses (the player's own control autohide time). One seek instead of one per press.
@@ -871,7 +870,7 @@ function togglePlay(){
   if(yt.getPlayerState()===1) yt.pauseVideo(); else yt.playVideo();
   // The embed's own controls (bar, time, title) come up only for real input inside its iframe: the app
   // fakes a mouse hover there. They stay while paused, hide 3 s after play — as with a mouse.
-  if(IN_APP&&window.TVApp&&TVApp.wakePlayer) try{ TVApp.wakePlayer(); }catch(_){}
+  if(IN_APP&&window.TVApp?.wakePlayer) try{ TVApp.wakePlayer(); }catch(_){}
 }
 const KEYS={
   ArrowLeft:()=>seekBy(-10), ArrowRight:()=>seekBy(10), ArrowUp:()=>{}, ArrowDown:()=>{}, // up/down: swallowed so focus never leaves the player
