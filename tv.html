@@ -318,6 +318,15 @@ function srcButton(thumb,badge,title,count,onclick){
   b.onclick=onclick; return b;
 }
 
+// Thumbnail of the newest video in a playlist (item[0]; a channel's uploads playlist is newest-first).
+// Returns null on any failure so the caller keeps its avatar/cover fallback.
+async function newestThumb(pid){
+  if(!pid) return null;
+  try{ const j=await api("playlistItems",{ part:"snippet", maxResults:1, playlistId:pid });
+       const sn=j.items&&j.items[0]&&j.items[0].snippet, t=sn?thumbs(sn.thumbnails):null; return t&&t.s?t:null; }
+  catch(_){ return null; }
+}
+
 // ---------------- HOME: list of sources ----------------
 async function fetchHome(){
   // all playlist sources go in one request; channels need one request per handle; tiktok reads its JSON file
@@ -331,10 +340,20 @@ async function fetchHome(){
     Promise.all(tts.map(s=>fetchTikTok(s.file).catch(()=>({title:s.handle.replace(/^@/,""),avatar:"",videos:[]}))))
   ]);
   const byPl={}; (jp.items||[]).forEach(it=>byPl[it.id]=it);
+  // Every tile shows the thumbnail of its top video (item[0]) instead of a channel avatar / playlist cover;
+  // a channel's uploads playlist is newest-first, so its tile becomes the newest upload.
+  const [chThumbs,plThumbs]=await Promise.all([
+    Promise.all(chs.map(s=>{
+      const it=(jc[chs.indexOf(s)].items||[])[0];
+      const up=it&&it.contentDetails&&it.contentDetails.relatedPlaylists&&it.contentDetails.relatedPlaylists.uploads;
+      return newestThumb(up);
+    })),
+    Promise.all(pls.map(s=>newestThumb(s.playlistId))),
+  ]);
   return SOURCES.map(s=>{
     if(s.type==="playlist"){
       const it=byPl[s.playlistId]; if(!it) throw new Error("Playlist not found: "+s.playlistId);
-      return { title:decode(it.snippet.title), thumb:thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
+      return { title:decode(it.snippet.title), thumb:plThumbs[pls.indexOf(s)]||thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
                playlistId:s.playlistId, type:"Playlist", count:it.contentDetails?.itemCount??null };
     }
     if(s.type==="tiktok"){
@@ -346,7 +365,7 @@ async function fetchHome(){
                type:"Channel", tiktok:true, count:d.videos?d.videos.length:null, videos:d.videos||[] };
     }
     const it=jc[chs.indexOf(s)].items?.[0]; if(!it) throw new Error("Channel not found: "+s.handle);
-    return { title:decode(it.snippet.title), thumb:thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
+    return { title:decode(it.snippet.title), thumb:chThumbs[chs.indexOf(s)]||thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
              channelId:it.id, playlistId:it.contentDetails.relatedPlaylists.uploads, type:"Channel",
              count:Number(it.statistics?.videoCount)||null };
   });
@@ -373,12 +392,12 @@ async function renderHome(seq){
 // ---------------- CHANNEL: its playlists ----------------
 async function fetchPlaylists(cid){
   let token="", all=[];
-  do{ // every page, then sorted by video count (desc)
+  do{ // every page, kept in YouTube's default order
     const j=await api("playlists",{ part:"snippet,contentDetails", channelId:cid, maxResults:50, pageToken:token||undefined });
     all=all.concat(j.items||[]); token=j.nextPageToken||"";
   }while(token);
-  all.sort((a,b)=>(b.contentDetails?.itemCount||0)-(a.contentDetails?.itemCount||0));
-  return all.map(pl=>({ id:pl.id, title:decode(pl.snippet.title), thumb:thumbs(pl.snippet.thumbnails), avatar:avpick(pl.snippet.thumbnails), count:pl.contentDetails?.itemCount??null }));
+  const th=await Promise.all(all.map(pl=>newestThumb(pl.id))); // each tile shows its playlist's top video
+  return all.map((pl,i)=>({ id:pl.id, title:decode(pl.snippet.title), thumb:th[i]||thumbs(pl.snippet.thumbnails), avatar:avpick(pl.snippet.thumbnails), count:pl.contentDetails?.itemCount??null }));
 }
 async function showChannel(id,seq){
   const src=SOURCES.find(s=>s.id===id);
