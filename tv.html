@@ -340,20 +340,17 @@ async function fetchHome(){
     Promise.all(tts.map(s=>fetchTikTok(s.file).catch(()=>({title:s.handle.replace(/^@/,""),avatar:"",videos:[]}))))
   ]);
   const byPl={}; (jp.items||[]).forEach(it=>byPl[it.id]=it);
-  // Every tile shows the thumbnail of its top video (item[0]) instead of a channel avatar / playlist cover;
-  // a channel's uploads playlist is newest-first, so its tile becomes the newest upload.
-  const [chThumbs,plThumbs]=await Promise.all([
-    Promise.all(chs.map(s=>{
-      const it=(jc[chs.indexOf(s)].items||[])[0];
-      const up=it&&it.contentDetails&&it.contentDetails.relatedPlaylists&&it.contentDetails.relatedPlaylists.uploads;
-      return newestThumb(up);
-    })),
-    Promise.all(pls.map(s=>newestThumb(s.playlistId))),
-  ]);
+  // Channel/channelPlaylists tiles show their newest upload's thumbnail (item[0] of the uploads playlist,
+  // which is newest-first) instead of the channel avatar. Playlist tiles keep the cover the API returns.
+  const chThumbs=await Promise.all(chs.map(s=>{
+    const it=(jc[chs.indexOf(s)].items||[])[0];
+    const up=it&&it.contentDetails&&it.contentDetails.relatedPlaylists&&it.contentDetails.relatedPlaylists.uploads;
+    return newestThumb(up);
+  }));
   return SOURCES.map(s=>{
     if(s.type==="playlist"){
       const it=byPl[s.playlistId]; if(!it) throw new Error("Playlist not found: "+s.playlistId);
-      return { title:decode(it.snippet.title), thumb:plThumbs[pls.indexOf(s)]||thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
+      return { title:decode(it.snippet.title), thumb:thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
                playlistId:s.playlistId, type:"Playlist", count:it.contentDetails?.itemCount??null };
     }
     if(s.type==="tiktok"){
@@ -396,8 +393,7 @@ async function fetchPlaylists(cid){
     const j=await api("playlists",{ part:"snippet,contentDetails", channelId:cid, maxResults:50, pageToken:token||undefined });
     all=all.concat(j.items||[]); token=j.nextPageToken||"";
   }while(token);
-  const th=await Promise.all(all.map(pl=>newestThumb(pl.id))); // each tile shows its playlist's top video
-  return all.map((pl,i)=>({ id:pl.id, title:decode(pl.snippet.title), thumb:th[i]||thumbs(pl.snippet.thumbnails), avatar:avpick(pl.snippet.thumbnails), count:pl.contentDetails?.itemCount??null }));
+  return all.map(pl=>({ id:pl.id, title:decode(pl.snippet.title), thumb:thumbs(pl.snippet.thumbnails), avatar:avpick(pl.snippet.thumbnails), count:pl.contentDetails?.itemCount??null }));
 }
 async function showChannel(id,seq){
   const src=SOURCES.find(s=>s.id===id);
