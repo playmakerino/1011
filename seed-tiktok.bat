@@ -5,7 +5,8 @@ REM
 REM CACH DUNG:
 REM   1. Double-click file nay. No tu copy script va mo trang TikTok.
 REM   2. Trong Chrome: F12 -> tab Console -> bam vao vung Console -> Ctrl+V -> Enter.
-REM      Cho toi khi Console hien: done - dump copied to clipboard  (~1 phut).
+REM      Cho toi khi Console hien: done - dump copied to clipboard  (vai giay).
+REM      Neu no hien "done - clipboard unavailable" thi go dong lenh no in ra, Enter, roi moi sang buoc 3.
 REM   3. Quay lai cua so nay, nhan phim bat ky. Xong (no tu merge + push).
 setlocal
 cd /d "%~dp0"
@@ -17,6 +18,7 @@ start "" "https://www.tiktok.com/@teubongday"
 echo.
 echo   Trong Chrome vua mo:  F12  ->  tab Console  ->  bam vao Console  ->  Ctrl+V  ->  Enter
 echo   Cho toi khi Console hien:  done - dump copied to clipboard
+echo   (neu hien "clipboard unavailable": go dong lenh no in ra, Enter, roi moi quay lai day)
 echo.
 echo Sau khi thay chu "done", quay lai day:
 pause
