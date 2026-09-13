@@ -51,7 +51,14 @@
   let videoCount = null;
   try { const j = JSON.parse(document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__').textContent); videoCount = j.__DEFAULT_SCOPE__['webapp.user-detail'].userInfo.stats.videoCount; } catch (e) {}
   const dump = { videoCount, n: data.length, missing, data };
-  try { copy(JSON.stringify(dump)); console.log('done — dump copied to clipboard'); } catch (e) { console.log('done — copy() unavailable, use: JSON.stringify(window.__ttDump)'); }
   window.__ttDump = dump;
+  const txt = JSON.stringify(dump);
+  // copy() is a DevTools helper and is sometimes not in scope here; navigator.clipboard is the
+  // second try, and if both fail the user runs the one-liner below by hand.
+  try { copy(txt); console.log('done — dump copied to clipboard'); }
+  catch (e) {
+    try { await navigator.clipboard.writeText(txt); console.log('done — dump copied to clipboard'); }
+    catch (e2) { console.log('done — clipboard unavailable. Run this line, then go back to the .bat:\n  copy(JSON.stringify(window.__ttDump))'); }
+  }
   console.log('captured', data.length, 'missing', missing.length, 'profile says', videoCount);
 })();
