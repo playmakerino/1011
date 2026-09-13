@@ -30,6 +30,8 @@
   .src{ background:none; border:none; text-align:left; cursor:pointer; padding:0; display:flex; flex-direction:column; gap:10px; color:inherit }
   .src .banner{position:relative; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:var(--ph)}
   .src .banner img{width:100%; height:100%; object-fit:cover}
+  .src.tt .banner{background:#000}
+  .src.tt .banner img{object-fit:contain} /* TikTok thumbs are portrait: show the whole frame, centred, no crop */
   .src:hover .banner{filter:brightness(1.1)}
   .src .badge{ position:absolute; top:8px; left:8px; background:rgba(0,0,0,.75); color:#fff; font-weight:500; font-size:12px; padding:3px 8px; border-radius:6px; }
   .src .nm{font-size:16px; font-weight:700; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
@@ -378,7 +380,8 @@ async function renderHome(seq){
     const fi=[...homeEl.children].indexOf(document.activeElement);
     homeEl.innerHTML="";
     byRecent(RECENT_SRC,SOURCES.map((s,i)=>({s,m:metas[i]})),p=>p.s.id).forEach(({s,m})=>{
-      homeEl.appendChild(srcButton(m.thumb,m.type,m.title,m.count,()=>{ location.hash=(s.type==="channelPlaylists")?("ch/"+s.id):(s.type==="tiktok")?("tt/"+s.id):("pl/"+m.playlistId); }));
+      const btn=srcButton(m.thumb,m.type,m.title,m.count,()=>{ location.hash=(s.type==="channelPlaylists")?("ch/"+s.id):(s.type==="tiktok")?("tt/"+s.id):("pl/"+m.playlistId); });
+      if(m.tiktok) btn.classList.add("tt"); homeEl.appendChild(btn);
     });
     refocus(homeEl,fi); painted=true;
   };
