@@ -358,7 +358,8 @@ async function fetchHome(){
       // Channel avatar: TikTok's own URLs are signed and expire in days, and yt-dlp doesn't expose one,
       // so use unavatar's stable proxy keyed by handle (always the current avatar, no expiry).
       const av=s.avatar||("https://unavatar.io/tiktok/"+s.handle.replace(/^@/,""));
-      return { title:d.title||s.handle.replace(/^@/,""), thumb:{s:av,ss:""}, avatar:av,
+      const v0=d.videos&&d.videos[0]; // newest video's thumbnail for the tile, avatar as fallback
+      return { title:d.title||s.handle.replace(/^@/,""), thumb:{s:(v0&&v0.thumb)||av,ss:""}, avatar:av,
                type:"Channel", tiktok:true, count:d.videos?d.videos.length:null, videos:d.videos||[] };
     }
     const it=jc[chs.indexOf(s)].items?.[0]; if(!it) throw new Error("Channel not found: "+s.handle);
