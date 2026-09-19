@@ -135,7 +135,7 @@ async def crawl(chrome, handle, target, headless, timeout):
             have = {v["id"] for v in data}
             missing = [c for c in cards if c["id"] not in have]
             videocount = await evaluate(VIDEOCOUNT_JS)
-            return {"videoCount": videocount, "n": len(data), "missing": missing, "data": data}
+            return {"videoCount": videocount, "n": len(data), "target": target, "missing": missing, "data": data}
     finally:
         p.terminate()
 

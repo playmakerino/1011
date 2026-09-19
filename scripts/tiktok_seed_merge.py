@@ -58,7 +58,12 @@ json.dump(old, open(out, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 vc = dump.get("videoCount")
 # gap = videos the profile counts that we do not have. 1-2 is normal (private/pinned quirks); more means
 # the crawl stopped early or was blocked, and the workflow fails on it so somebody looks.
+# A whole-channel crawl (--target 0) is judged on what it CAPTURED, not on the list (which never
+# drops videos and would hide a crawl that quit halfway).
 gap = (int(vc) - len(lst)) if isinstance(vc, int) else 0
-print("wrote %d videos to %s (profile says %s, gap=%d)" % (len(lst), out, vc, max(gap, 0)))
+full = isinstance(vc, int) and dump.get("target") == 0
+fullgap = (int(vc) - dump.get("n", 0)) if full else 0
+print("wrote %d videos to %s (profile says %s, captured %s, gap=%d)"
+      % (len(lst), out, vc, dump.get("n"), max(gap, fullgap, 0)))
 if partial:
     print("no API data for %d (date from id, views from the card, dur 0): %s" % (len(partial), " ".join(partial)))
