@@ -529,11 +529,12 @@ function patchCards(items){ // true when the grid holds exactly these videos and
 }
 
 // ---------------- TIKTOK ----------------
-// tiktok/<handle>.json is maintained outside the app; we just read it.
+// tiktok/<handle>.json is maintained outside the app; we just read it. Thumbnails are our own copies in
+// tiktok/thumbs/<id>.jpg (scripts/tiktok_thumbs.py): TikTok's CDN URLs are signed and die after ~2 days.
 async function fetchTikTok(file){
   const j=await fetchJson(file+"?t="+Date.now(),{cache:"no-store"});
   return { title:decode(j.title||""), avatar:j.avatar||"", videos:(j.videos||[]).map(v=>({
-    id:String(v.id), title:decode(v.title||""), thumb:v.thumb||"", dur:+v.dur||0, views:+v.views||0, pub:v.pub||"" })) };
+    id:String(v.id), title:decode(v.title||""), thumb:"tiktok/thumbs/"+String(v.id)+".jpg", dur:+v.dur||0, views:+v.views||0, pub:v.pub||"" })) };
 }
 let ttList=[];                 // videos of the source now on screen; the feed pages through this
 let ttUser="";                 // handle (without @) of that source; the app needs it for the video page URL
@@ -612,7 +613,7 @@ v.src=u;if(ap)play(); /* the app shows the player on the first frame */
 const PLAY_ICON='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 function ttItem(v,i){
   const b=document.createElement("button"); b.className="ttitem"; b.type="button"; b.dataset.vid=v.id;
-  b.innerHTML=(v.thumb?'<img loading="lazy" decoding="async" src="'+esc(v.thumb)+'" alt="">':'')+
+  b.innerHTML='<img loading="lazy" decoding="async" src="'+esc(v.thumb)+'" alt="" onerror="this.remove()">'+
     '<span class="v">'+PLAY_ICON+esc(fmtCount(v.views))+'</span>';
   onActivate(b,()=>openFeed(i));
   if(TT_NATIVE){ b.onfocus=()=>ttPrefetch(v.id); b.onblur=()=>ttPrefetch(null); } // resolve the stream while the tile is focused
