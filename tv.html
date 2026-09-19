@@ -529,7 +529,7 @@ function patchCards(items){ // true when the grid holds exactly these videos and
 }
 
 // ---------------- TIKTOK ----------------
-// tiktok/<handle>.json is seeded from the browser (scripts/tiktok-seed.browser.js + tiktok_seed_merge.py); we just read it.
+// tiktok/<handle>.json is maintained outside the app; we just read it.
 async function fetchTikTok(file){
   const j=await fetchJson(file+"?t="+Date.now(),{cache:"no-store"});
   return { title:decode(j.title||""), avatar:j.avatar||"", videos:(j.videos||[]).map(v=>({
