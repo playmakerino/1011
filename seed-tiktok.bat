@@ -6,7 +6,7 @@ REM CACH DUNG:
 REM   1. Double-click file nay. No tu copy script va mo trang TikTok.
 REM   2. Trong Chrome: F12 -> tab Console -> bam vao vung Console -> Ctrl+V -> Enter.
 REM      (Lan dau Chrome chan paste: go  allow pasting  roi Enter, xong Ctrl+V lai.)
-REM      Cho toi khi Console hien: done - tt_dump.json saved to your Downloads folder  (vai giay).
+REM      Cho toi khi Console hien: done - tt_dump.json saved  (vai giay; file nam tren Desktop).
 REM      Neu no hien "download failed" thi go dong lenh no in ra, Enter, roi moi sang buoc 3.
 REM   3. Quay lai cua so nay, nhan phim bat ky. Xong (no tu merge + push).
 setlocal
@@ -21,7 +21,7 @@ echo.
 echo   Trong Chrome vua mo:  F12  ->  tab Console  ->  bam vao Console  ->  Ctrl+V  ->  Enter
 echo   (lan dau Chrome chan paste: go  allow pasting  roi Enter, xong Ctrl+V lai)
 echo   Cho toi khi Console hien:  done - tt_dump.json saved ...
-echo   (neu Chrome hoi noi luu file: luu vao D:\1011 hoac Downloads, giu ten tt_dump.json)
+echo   (neu Chrome hoi noi luu file: luu ra Desktop, giu ten tt_dump.json)
 echo   (neu hien "download failed": go dong lenh no in ra, Enter, roi moi quay lai day)
 echo.
 echo Sau khi thay chu "done", quay lai day:

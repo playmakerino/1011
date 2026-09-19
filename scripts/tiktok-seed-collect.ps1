@@ -5,9 +5,8 @@
 $ErrorActionPreference = 'Stop'
 $marker = 'scratch\seed.start'
 $since = if (Test-Path $marker) { (Get-Item $marker).LastWriteTime } else { (Get-Date).AddHours(-1) }
-$dl = (New-Object -ComObject Shell.Application).NameSpace('shell:Downloads').Self.Path
-$here = (Get-Location).Path
-$f = @($here, $dl) | ForEach-Object { Get-ChildItem (Join-Path $_ 'tt_dump*.json') -ErrorAction SilentlyContinue } |
+$dl = [Environment]::GetFolderPath('Desktop')
+$f = Get-ChildItem (Join-Path $dl 'tt_dump*.json') -ErrorAction SilentlyContinue |
      Where-Object { $_.LastWriteTime -ge $since } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if ($f) {
   Copy-Item $f.FullName 'scratch\tt_dump.json' -Force
@@ -21,5 +20,5 @@ if ($t -and $t.TrimStart().StartsWith('{')) {
   Write-Host '  lay dump tu clipboard'
   exit 0
 }
-Write-Host ('  [LOI] Khong thay tt_dump*.json moi trong ' + $here + ' hay ' + $dl + ', va clipboard cung khong phai JSON.')
+Write-Host ('  [LOI] Khong thay tt_dump*.json moi tren ' + $dl + ', va clipboard cung khong phai JSON.')
 exit 1

@@ -61,7 +61,7 @@
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
     a.download = 'tt_dump.json'; document.body.appendChild(a); a.click(); a.remove();
-    console.log('done - tt_dump.json saved to your Downloads folder');
+    console.log('done - tt_dump.json saved (Chrome download folder)');
   } catch (e) {
     console.log('done - download failed. Run this line (it copies the dump), then go back to the .bat:\n  copy(JSON.stringify(window.__ttDump))');
   }
