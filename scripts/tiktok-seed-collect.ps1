@@ -1,7 +1,8 @@
 # Called by seed-tiktok.bat after the browser script printed "done".
-# Picks up the dump the browser script downloaded (tt_dump*.json in Downloads, newer than the marker
-# file the .bat wrote at start) and puts it at scratch\tt_dump.json. Falls back to the clipboard for
-# the manual copy(...) one-liner. Exit 1 when neither holds a dump.
+# Picks up the dump the browser script downloaded (tt_dump*.json on the Desktop, where Chrome saves
+# on this machine, newer than the marker file the .bat wrote at start) and puts it at
+# scratch\tt_dump.json. Falls back to the clipboard for the manual copy(...) one-liner.
+# Exit 1 when neither holds a dump.
 $ErrorActionPreference = 'Stop'
 $marker = 'scratch\seed.start'
 $since = if (Test-Path $marker) { (Get-Item $marker).LastWriteTime } else { (Get-Date).AddHours(-1) }
