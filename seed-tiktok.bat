@@ -20,7 +20,8 @@ start "" "https://www.tiktok.com/@teubongday"
 echo.
 echo   Trong Chrome vua mo:  F12  ->  tab Console  ->  bam vao Console  ->  Ctrl+V  ->  Enter
 echo   (lan dau Chrome chan paste: go  allow pasting  roi Enter, xong Ctrl+V lai)
-echo   Cho toi khi Console hien:  done - tt_dump.json saved to your Downloads folder
+echo   Cho toi khi Console hien:  done - tt_dump.json saved ...
+echo   (neu Chrome hoi noi luu file: luu vao D:\1011 hoac Downloads, giu ten tt_dump.json)
 echo   (neu hien "download failed": go dong lenh no in ra, Enter, roi moi quay lai day)
 echo.
 echo Sau khi thay chu "done", quay lai day:

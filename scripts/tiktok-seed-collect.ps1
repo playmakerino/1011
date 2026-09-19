@@ -6,12 +6,13 @@ $ErrorActionPreference = 'Stop'
 $marker = 'scratch\seed.start'
 $since = if (Test-Path $marker) { (Get-Item $marker).LastWriteTime } else { (Get-Date).AddHours(-1) }
 $dl = (New-Object -ComObject Shell.Application).NameSpace('shell:Downloads').Self.Path
-$f = Get-ChildItem (Join-Path $dl 'tt_dump*.json') -ErrorAction SilentlyContinue |
+$here = (Get-Location).Path
+$f = @($here, $dl) | ForEach-Object { Get-ChildItem (Join-Path $_ 'tt_dump*.json') -ErrorAction SilentlyContinue } |
      Where-Object { $_.LastWriteTime -ge $since } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if ($f) {
   Copy-Item $f.FullName 'scratch\tt_dump.json' -Force
   Remove-Item $f.FullName
-  Write-Host ('  lay ' + $f.Name + ' tu ' + $dl)
+  Write-Host ('  lay ' + $f.FullName)
   exit 0
 }
 $t = Get-Clipboard -Raw
