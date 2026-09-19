@@ -28,7 +28,6 @@ def map_item(it):
     return {
         "id": str(it.get("id")),
         "title": (it.get("desc") or "").strip(),
-        "thumb": v.get("cover") or v.get("originCover") or "",
         "dur": int(v.get("duration") or 0),
         "views": int(s.get("playCount") or 0),
         "pub": iso(it.get("createTime")),

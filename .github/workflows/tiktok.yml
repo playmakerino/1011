@@ -1,17 +1,19 @@
 name: Refresh TikTok list
-# Weekly refresh of tiktok/teubongday.json with the newest videos, plus their thumbnails.
+# Daily refresh of tiktok/teubongday.json with the newest videos, plus their thumbnails.
 # Runs a REAL Chrome under xvfb (NOT --headless: TikTok answers --headless with 403 and the
 # unsigned API with an empty body; only the page's own signed item_list calls return data).
 # tv.html serves thumbnails from tiktok/thumbs/<id>.jpg, so new videos need their file downloaded
 # and committed too (scripts/tiktok_thumbs.py, via the oembed endpoint).
-# Schedule: Saturday 00:00 Vietnam time = Friday 17:00 UTC.
+# Schedule: every day 00:17 Vietnam time = 17:17 UTC (off the :00 mark, which GitHub delays/drops
+# under load). On the 1st of each month the whole channel is crawled (target 0) so durations and view
+# counts of old videos get refreshed too; other days only the newest 20.
 on:
   schedule:
-    - cron: "0 17 * * 5"
+    - cron: "17 17 * * *"
   workflow_dispatch:
     inputs:
       target:
-        description: "How many newest videos to fetch"
+        description: "How many newest videos to fetch (0 = whole channel)"
         default: "20"
 
 permissions:
@@ -31,8 +33,21 @@ jobs:
         run: |
           set -o pipefail
           sudo apt-get install -y -qq xvfb >/dev/null
-          T="${{ github.event.inputs.target || '20' }}"
-          xvfb-run -a python scripts/tiktok_seed.py --target "$T" --out scratch/tt_dump.json 2>&1 | tee seed.log
+          T="${{ github.event.inputs.target }}"
+          if [ -z "$T" ]; then
+            if [ "$(date -u +%d)" = "01" ]; then T=0; else T=20; fi
+          fi
+          echo "target=$T"
+          # One retry: a stray captcha/403 on the first page load should not lose a day. A fresh
+          # Chrome profile each attempt; the seed exits 1 when it captured nothing.
+          ok=0
+          for attempt in 1 2; do
+            rm -rf scripts/chrome-profile
+            echo "attempt $attempt" | tee -a seed.log
+            if xvfb-run -a python scripts/tiktok_seed.py --target "$T" --timeout 240 --out scratch/tt_dump.json 2>&1 | tee -a seed.log; then ok=1; break; fi
+            sleep 20
+          done
+          [ "$ok" = 1 ] || { echo "::error title=tiktok refresh::seed captured nothing in 2 attempts"; exit 1; }
           python scripts/tiktok_seed_merge.py scratch/tt_dump.json tiktok/teubongday.json 2>&1 | tee -a seed.log
       - name: Download thumbnails for any new videos
         run: python scripts/tiktok_thumbs.py --handle teubongday 2>&1 | tee -a seed.log || true
@@ -42,12 +57,23 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add tiktok/teubongday.json tiktok/thumbs
           git diff --cached --quiet && { echo "no new videos"; exit 0; }
-          git commit -m "tiktok: weekly refresh of newest videos + thumbnails [skip ci]"
-          for i in 1 2 3; do git pull --rebase -X ours origin main && git push && exit 0; sleep 5; done
+          git commit -m "tiktok: refresh newest videos + thumbnails [skip ci]"
+          # Under rebase, -X theirs = keep OUR commit's side of a conflict (the semantics are swapped).
+          for i in 1 2 3; do git pull --rebase -X theirs origin main && git push && exit 0; sleep 5; done
           exit 1
+      - name: Fail if the profile counts more videos than the list has
+        # The data above is already committed; this only turns the run red so somebody looks.
+        # A gap of 1-2 is normal (private/pinned quirks); more means the crawl stopped early or was blocked.
+        run: |
+          G=$(grep -o 'gap=[0-9]*' seed.log | tail -n 1 | cut -d= -f2)
+          echo "gap=${G:-?}"
+          if [ -n "$G" ] && [ "$G" -gt 3 ]; then
+            echo "::error title=tiktok refresh::profile counts $G more videos than the list — crawl incomplete?"
+            exit 1
+          fi
       - name: Surface the run summary as an annotation (visible without login)
         if: always()
         run: |
           enc() { sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g'; }
-          L=$(grep -E 'item_list|wrote|missing|done:|no new videos|profile says' seed.log 2>/dev/null | tail -n 20 | cut -c1-300 | enc)
+          L=$(grep -E 'attempt|target=|item_list|wrote|missing|done:|no new videos|profile says' seed.log 2>/dev/null | tail -n 20 | cut -c1-300 | enc)
           echo "::notice title=tiktok refresh::${L:0:3900}"

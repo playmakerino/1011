@@ -2,8 +2,9 @@
 # Merge a browser dump (scripts/tiktok-seed.browser.js) into the JSON that tv.html reads.
 #   python scripts/tiktok_seed_merge.py scratch/tt_dump.json tiktok/teubongday.json
 # Captured items replace the existing entries; `missing` cards (rendered before the hook) keep their
-# existing entry when there is one, else go in with what the DOM showed: title, thumb, views parsed
-# from "510.2K", dur 0, and the date taken from the id (see iso_from_id) so new videos still sort first.
+# existing entry when there is one, else go in with what the DOM showed: title, views parsed from
+# "510.2K", dur 0, and the date taken from the id (see iso_from_id) so new videos still sort first.
+# No `thumb` field: tv.html serves tiktok/thumbs/<id>.jpg, TikTok's CDN URLs expire in ~2 days.
 import sys, re, json, datetime
 
 def iso_from_id(vid):
@@ -32,7 +33,7 @@ except Exception:
     old = {"handle": "", "title": "", "avatar": ""}
 existing = {v["id"]: v for v in old.get("videos") or []}
 
-KEYS = ["id", "title", "thumb", "dur", "views", "pub"]
+KEYS = ["id", "title", "dur", "views", "pub"]
 videos = {}
 for v in dump["data"]:
     videos[v["id"]] = {k: v.get(k, 0 if k in ("dur", "views") else "") for k in KEYS}
@@ -40,13 +41,13 @@ partial = []
 for m in dump.get("missing") or []:
     # An entry with no date is one a previous merge stored from the DOM alone: rebuild it, don't keep it.
     if m["id"] in existing and existing[m["id"]].get("pub"):
-        videos[m["id"]] = existing[m["id"]]
+        videos[m["id"]] = {k: existing[m["id"]][k] for k in KEYS if k in existing[m["id"]]}
     else:
-        videos[m["id"]] = {"id": m["id"], "title": card_title(m.get("title")), "thumb": m.get("thumb", ""), "dur": 0,
+        videos[m["id"]] = {"id": m["id"], "title": card_title(m.get("title")), "dur": 0,
                            "views": views_from_text(m.get("views_text")), "pub": iso_from_id(m["id"])}
         partial.append(m["id"])
-for vid, v in existing.items():  # never drop a video the file already had
-    videos.setdefault(vid, v)
+for vid, v in existing.items():  # never drop a video the file already had (but shed stale fields like thumb)
+    videos.setdefault(vid, {k: v[k] for k in KEYS if k in v})
 
 lst = sorted(videos.values(), key=lambda v: v.get("pub") or "", reverse=True)
 old.update({
@@ -54,6 +55,10 @@ old.update({
     "count": len(lst), "videos": lst,
 })
 json.dump(old, open(out, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-print("wrote %d videos to %s (profile says %s)" % (len(lst), out, dump.get("videoCount")))
+vc = dump.get("videoCount")
+# gap = videos the profile counts that we do not have. 1-2 is normal (private/pinned quirks); more means
+# the crawl stopped early or was blocked, and the workflow fails on it so somebody looks.
+gap = (int(vc) - len(lst)) if isinstance(vc, int) else 0
+print("wrote %d videos to %s (profile says %s, gap=%d)" % (len(lst), out, vc, max(gap, 0)))
 if partial:
     print("no API data for %d (date from id, views from the card, dur 0): %s" % (len(partial), " ".join(partial)))
