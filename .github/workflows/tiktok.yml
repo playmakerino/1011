@@ -1,7 +1,9 @@
 name: Refresh TikTok list
-# Weekly refresh of tiktok/teubongday.json with the newest videos.
+# Weekly refresh of tiktok/teubongday.json with the newest videos, plus their thumbnails.
 # Runs a REAL Chrome under xvfb (NOT --headless: TikTok answers --headless with 403 and the
 # unsigned API with an empty body; only the page's own signed item_list calls return data).
+# tv.html serves thumbnails from tiktok/thumbs/<id>.jpg, so new videos need their file downloaded
+# and committed too (scripts/tiktok_thumbs.py, via the oembed endpoint).
 # Schedule: Saturday 00:00 Vietnam time = Friday 17:00 UTC.
 on:
   schedule:
@@ -24,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pip install --quiet websockets
+      - run: pip install --quiet websockets Pillow
       - name: Fetch newest videos and merge into the list
         run: |
           set -o pipefail
@@ -32,18 +34,20 @@ jobs:
           T="${{ github.event.inputs.target || '20' }}"
           xvfb-run -a python scripts/tiktok_seed.py --target "$T" --out scratch/tt_dump.json 2>&1 | tee seed.log
           python scripts/tiktok_seed_merge.py scratch/tt_dump.json tiktok/teubongday.json 2>&1 | tee -a seed.log
-      - name: Commit if the list changed
+      - name: Download thumbnails for any new videos
+        run: python scripts/tiktok_thumbs.py --handle teubongday 2>&1 | tee -a seed.log || true
+      - name: Commit if anything changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add tiktok/teubongday.json
+          git add tiktok/teubongday.json tiktok/thumbs
           git diff --cached --quiet && { echo "no new videos"; exit 0; }
-          git commit -m "tiktok: weekly refresh of newest videos [skip ci]"
+          git commit -m "tiktok: weekly refresh of newest videos + thumbnails [skip ci]"
           for i in 1 2 3; do git pull --rebase -X ours origin main && git push && exit 0; sleep 5; done
           exit 1
       - name: Surface the run summary as an annotation (visible without login)
         if: always()
         run: |
           enc() { sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g'; }
-          L=$(grep -E 'item_list|wrote|no new videos|profile says' seed.log 2>/dev/null | tail -n 20 | cut -c1-300 | enc)
+          L=$(grep -E 'item_list|wrote|missing|done:|no new videos|profile says' seed.log 2>/dev/null | tail -n 20 | cut -c1-300 | enc)
           echo "::notice title=tiktok refresh::${L:0:3900}"
