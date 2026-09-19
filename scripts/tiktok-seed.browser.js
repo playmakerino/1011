@@ -4,7 +4,7 @@
 //
 //   1. Open https://www.tiktok.com/@<handle> in Chrome, F12 → Console, paste this whole file, Enter.
 //   2. Wait for "done" (about a minute for ~700 videos; it scrolls to the end by itself).
-//   3. The dump is copied to the clipboard as JSON → save it as scratch/tt_dump.json.
+//   3. The dump is downloaded as tt_dump.json (Downloads folder) → move it to scratch/tt_dump.json.
 //   4. python scripts/tiktok_seed_merge.py scratch/tt_dump.json tiktok/<handle>.json
 //
 // Cards rendered BEFORE this hook was installed (the first page + pinned videos) have no API data;
@@ -53,12 +53,17 @@
   const dump = { videoCount, n: data.length, missing, data };
   window.__ttDump = dump;
   const txt = JSON.stringify(dump);
-  // copy() is a DevTools helper and is sometimes not in scope here; navigator.clipboard is the
-  // second try, and if both fail the user runs the one-liner below by hand.
-  try { copy(txt); console.log('done — dump copied to clipboard'); }
-  catch (e) {
-    try { await navigator.clipboard.writeText(txt); console.log('done — dump copied to clipboard'); }
-    catch (e2) { console.log('done — clipboard unavailable. Run this line, then go back to the .bat:\n  copy(JSON.stringify(window.__ttDump))'); }
+  // Save as a download, not to the clipboard: the DevTools copy() helper is removed from scope as
+  // soon as the synchronous part of the console command ends (i.e. at the first await above), and
+  // navigator.clipboard.writeText is refused while DevTools has focus ("Document is not focused"),
+  // so both clipboard routes failed every time when run from the .bat.
+  try {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
+    a.download = 'tt_dump.json'; document.body.appendChild(a); a.click(); a.remove();
+    console.log('done - tt_dump.json saved to your Downloads folder');
+  } catch (e) {
+    console.log('done - download failed. Run this line (it copies the dump), then go back to the .bat:\n  copy(JSON.stringify(window.__ttDump))');
   }
   console.log('captured', data.length, 'missing', missing.length, 'profile says', videoCount);
 })();
