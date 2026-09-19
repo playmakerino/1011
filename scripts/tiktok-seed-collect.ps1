@@ -20,5 +20,5 @@ if ($t -and $t.TrimStart().StartsWith('{')) {
   Write-Host '  lay dump tu clipboard'
   exit 0
 }
-Write-Host ('  [LOI] Khong thay tt_dump*.json moi trong ' + $dl + ', va clipboard cung khong phai JSON.')
+Write-Host ('  [LOI] Khong thay tt_dump*.json moi trong ' + $here + ' hay ' + $dl + ', va clipboard cung khong phai JSON.')
 exit 1
