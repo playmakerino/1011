@@ -5,15 +5,16 @@ name: Refresh TikTok list
 # tv.html serves thumbnails from tiktok/thumbs/<id>.jpg, so new videos need their file downloaded
 # and committed too (scripts/tiktok_thumbs.py, via the oembed endpoint).
 # Schedule: every day 00:17 Vietnam time = 17:17 UTC (off the :00 mark, which GitHub delays/drops
-# under load). On the 1st of each month the whole channel is crawled (target 0) so durations and view
-# counts of old videos get refreshed too; other days only the newest 20.
+# under load). Only the newest 20 each day: a whole-channel crawl does NOT work (verified 2026-09-19,
+# run 35431776917: TikTok answers item_list with an empty body after ~3 pages on a runner, ~22 pages
+# from a home IP), and the merge never drops videos, so the full list stays complete anyway.
 on:
   schedule:
     - cron: "17 17 * * *"
   workflow_dispatch:
     inputs:
       target:
-        description: "How many newest videos to fetch (0 = whole channel)"
+        description: "How many newest videos to fetch (0 = whole channel; stops early, see above)"
         default: "20"
 
 permissions:
@@ -33,11 +34,8 @@ jobs:
         run: |
           set -o pipefail
           sudo apt-get install -y -qq xvfb >/dev/null
-          T="${{ github.event.inputs.target }}"
-          if [ -z "$T" ]; then
-            if [ "$(date -u +%d)" = "01" ]; then T=0; else T=20; fi
-          fi
-          echo "target=$T"
+          T="${{ github.event.inputs.target || '20' }}"
+          echo "target=$T" | tee -a seed.log
           # One retry: a stray captcha/403 on the first page load should not lose a day. A fresh
           # Chrome profile each attempt; the seed exits 1 when it captured nothing.
           ok=0
