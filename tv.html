@@ -230,9 +230,11 @@ async function fetchJson(url,init){
   if(!r.ok) throw new Error(j?.error?.message||("HTTP "+r.status));
   return j;
 }
-const thumbs=th=>{ // {s: fallback src, ss: srcset from every size YouTube offers}
+const thumbs=th=>{ // {s: fallback src, ss: srcset from every real size YouTube offers}
   th=th||{}; const big=th.maxres||th.standard||th.high||th.medium||th.default;
-  return { s:big?big.url:"", ss:Object.values(th).filter(t=>t&&t.url&&t.width).map(t=>t.url+" "+t.width+"w").join(",") };
+  // Some playlists advertise an "fhd" size (fhddefault.jpg) but that file 404s; if the browser
+  // picks it from srcset the tile goes blank (src is not used as a fallback), so leave it out.
+  return { s:big?big.url:"", ss:Object.entries(th).filter(([k,t])=>k!=="fhd"&&t&&t.url&&t.width).map(([,t])=>t.url+" "+t.width+"w").join(",") };
 };
 const imgTag=t=>'<img loading="lazy" decoding="async" src="'+esc(t.s)+'"'+(t.ss?' srcset="'+esc(t.ss)+'" sizes="'+SIZES+'"':'')+' alt="">';
 const avpick=th=>(th&&(th.default||th.medium||th.high||{}).url)||"";
