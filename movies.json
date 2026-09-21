@@ -1,7 +1,0 @@
-{
- "title": "Phim",
- "base": "https://pub-XXXX.r2.dev/",
- "videos": [
-  { "id": "vi-du", "title": "Tên phim (ví dụ, xoá dòng này)", "url": "ten-phim.mp4", "thumb": "ten-phim.jpg", "dur": 5400 }
- ]
-}
