@@ -160,7 +160,8 @@
 const API_KEY = "AIzaSyDGWoJDMbutkYWJZZzullATm1cnttCAQUE"; // restricted: github.io referrer + YouTube Data API only
 // type: "playlist" (its videos) | "channel" (its uploads as videos) | "channelPlaylists" (click -> its playlists, sorted by count)
 //     | "tiktok" (opens a full-screen vertical TikTok feed; videos come from a JSON file a daily GitHub Action refreshes)
-//     | "video"  (a home tile that plays right away, no grid; videoIds:["a"] one video, ["a","b"] plays them back-to-back as one)
+//     | "video"  (a home tile; videoIds:["a"] plays that one video right away; ["a","b"] opens a small playlist of those
+//                videos, and playing one auto-advances to the next. Give it a fixed title.)
 // subs:false  -> don't force English subtitles on for this source (default: forced on)
 // autonext    -> play as a playlist so the next video starts by itself
 // titleMust    -> a playlist source shows only videos whose title contains this text (case-insensitive)
@@ -179,9 +180,9 @@ const SOURCES = [
   { id:"pl1",        type:"playlist",     playlistId:"PLlMHo2E1ine4T7cBoo0GnHfwOhQm4hF1T" },
   { id:"pl2",        type:"playlist",     playlistId:"PLJYf0JdTApCrVnJpQgUb4BQm_5I3KuvZZ" },
   { id:"pl3",        type:"playlist",     playlistId:"PLji6YJWrrJAwiH4mbXBpg67Fjh8Gur5qv" },
-  { id:"mv1",        type:"video",        videoIds:["bNxoYS-hwa0"] },
-  { id:"mv2",        type:"video",        videoIds:["OxDyOvlFvr0","a4RmadV-Z1s"] },
-  { id:"mv3",        type:"video",        videoIds:["HT4LGAweQ_c","vSz2js25y7c"] },
+  { id:"mv1",        type:"video",        videoIds:["bNxoYS-hwa0"], title:"101 Dalmatians (1961)" },
+  { id:"mv2",        type:"video",        videoIds:["OxDyOvlFvr0","a4RmadV-Z1s"], title:"Walt Disney - Peter Pan" },
+  { id:"mv3",        type:"video",        videoIds:["HT4LGAweQ_c","vSz2js25y7c"], title:"Walt Disney - Pinocchio" },
   { id:"gmd",        type:"playlist",     playlistId:"PLLhOnau-tupRgWFJwN7kn9Ox1sNQSE6Bh", titleMust:"The Great Mouse Detective" },
 ];
 const PAGE_SIZE = 24;
@@ -300,6 +301,7 @@ function route(){
   if(!h||h==="home") return {v:"home"};
   if(h.startsWith("ch/")) return {v:"channel",id:h.slice(3)};
   if(h.startsWith("tt/")) return {v:"tiktok",id:h.slice(3)};
+  if(h.startsWith("v/")) return {v:"videolist",id:h.slice(2)};
   if(h.startsWith("pl/")) return {v:"playlist",pid:h.slice(3)};
   return {v:"home"};
 }
@@ -311,6 +313,7 @@ function render(){
   if(r.v==="home") renderHome(seq);
   else if(r.v==="channel") showChannel(r.id,seq);
   else if(r.v==="tiktok") showTikTok(r.id,seq);
+  else if(r.v==="videolist") showVideoList(r.id,seq);
   else showVideos(r.pid,seq);
 }
 window.addEventListener("hashchange",render);
@@ -384,9 +387,9 @@ async function fetchHome(){
                playlistId:s.playlistId, type:"Playlist", count:it.contentDetails?.itemCount??null };
     }
     if(s.type==="video"){
-      const it=byVid[s.videoIds[0]]; // a single request covered every "video" tile's first id
+      const it=byVid[s.videoIds[0]]; // a single request covered every "video" tile's first id (its cover)
       return { title:s.title||(it?decode(it.snippet.title):"Video"), thumb:it?thumbs(it.snippet.thumbnails):{s:"",ss:""},
-               avatar:"", type:"Video", video:true, videoIds:s.videoIds, count:null };
+               avatar:"", type:"Video", video:true, videoIds:s.videoIds, count:s.videoIds.length>1?s.videoIds.length:null };
     }
     if(s.type==="tiktok"){
       const d=tt[s.id], videos=d.videos||[];
@@ -413,7 +416,9 @@ async function renderHome(seq){
     homeEl.innerHTML="";
     byRecent(RECENT_SRC,SOURCES.map((s,i)=>({s,m:metas[i]})),p=>p.s.id).forEach(({s,m})=>{
       const go=(s.type==="video")
-        ? ()=>{ currentTopSource=s.id; currentSubs=s.subs!==false; currentAutoNextList=""; currentAutoNextFilter=false; openVideos(s.videoIds); }
+        ? (s.videoIds.length>1
+            ? ()=>{ location.hash="v/"+s.id; } // several parts: open them as a small playlist
+            : ()=>{ currentTopSource=s.id; currentSubs=s.subs!==false; currentAutoNextList=""; currentAutoNextFilter=false; openVideos(s.videoIds); })
         : ()=>{ location.hash=(s.type==="channelPlaylists")?("ch/"+s.id):(s.type==="tiktok")?("tt/"+s.id):("pl/"+m.playlistId); };
       const btn=srcButton(m.thumb,m.type,m.title,m.count,go);
       if(m.tiktok) btn.classList.add("tt"); homeEl.appendChild(btn);
@@ -551,6 +556,38 @@ function patchCards(items){ // true when the grid holds exactly these videos and
   if(cards.length!==items.length||items.some((v,i)=>cards[i].dataset.vid!==v.id)) return false;
   items.forEach((v,i)=>{ cards[i].querySelector(".txt").innerHTML=cardText(v); const d=cards[i].querySelector(".dur"); if(d) d.textContent=v.dur; });
   return true;
+}
+
+// ---------------- VIDEO LIST: a "video" tile's explicit videoIds shown as a small playlist ----------------
+// One videos request (in the given order); playing a card auto-advances through the rest (currentAutoNextFilter).
+async function fetchVideoList(ids){
+  const jv=await api("videos",{ part:"snippet,contentDetails,statistics,status", id:ids.join(",") });
+  const by={}; (jv.items||[]).forEach(v=>by[v.id]=v);
+  return ids.map(id=>by[id]).filter(v=>v&&watchable(v)).map(v=>({
+    id:v.id, title:decode(v.snippet.title), ch:decode(v.snippet.channelTitle||""), th:thumbs(v.snippet.thumbnails),
+    dur:fmtDur(v.contentDetails?.duration), views:+(v.statistics?.viewCount)||0, pub:v.snippet.publishedAt||"" }));
+}
+async function showVideoList(id,seq){
+  const src=SOURCES.find(s=>s.id===id&&s.type==="video");
+  if(!src){ location.replace("#home"); return; }
+  cur={kind:"videolist",key:id,token:"",done:true,pages:1}; currentTopSource=id; currentAvatar="";
+  currentAutoNextList=""; currentAutoNextFilter=true; // autonext walks these shown videos (request() builds the queue from the cards)
+  currentSubs=src.subs!==false;
+  navEl.hidden=false; navTitle.textContent=meta[id]?.title||src.title||"…"; setView("grid");
+  let painted=false;
+  const paint=items=>{
+    if(seq!==navSeq) return;
+    if(!meta[id]?.title&&!src.title&&items[0]) navTitle.textContent=items[0].title;
+    const fi=[...gridEl.children].indexOf(document.activeElement);
+    gridEl.innerHTML=""; positions={};
+    items.forEach(v=>gridEl.appendChild(card(v)));
+    refocus(gridEl,fi); stateEl.hidden=true;
+    if(!items.length) showState("No videos here yet.");
+    painted=true;
+  };
+  if(!cacheGet("vl:"+id)) gridEl.innerHTML=skeletons(src.videoIds.length);
+  try{ await swr("vl:"+id,()=>fetchVideoList(src.videoIds),paint); }
+  catch(e){ if(seq!==navSeq||painted) return; gridEl.innerHTML=""; showState("Couldn't load videos.",e,true); }
 }
 
 // ---------------- TIKTOK ----------------
