@@ -160,11 +160,13 @@
 const API_KEY = "AIzaSyDGWoJDMbutkYWJZZzullATm1cnttCAQUE"; // restricted: github.io referrer + YouTube Data API only
 // type: "playlist" (its videos) | "channel" (its uploads as videos) | "channelPlaylists" (click -> its playlists, sorted by count)
 //     | "tiktok" (opens a full-screen vertical TikTok feed; videos come from a JSON file a daily GitHub Action refreshes)
+//     | "video"  (a home tile that plays right away, no grid; videoIds:["a"] one video, ["a","b"] plays them back-to-back as one)
 // subs:false  -> don't force English subtitles on for this source (default: forced on)
 // autonext    -> play as a playlist so the next video starts by itself
+// titleMust    -> a playlist source shows only videos whose title contains this text (case-insensitive)
 const SOURCES = [
   { id:"paw",     type:"channelPlaylists", handle:"@PAWPatrolOfficial" },
-  { id:"kdh",     type:"playlist",        playlistId:"PLDwbngJoT5crMIEVzjs4ltzjG2WiBX1Sm", autonext:true }, // Kpop Demon Hunters
+  { id:"kdh",     type:"playlist",        playlistId:"PLDwbngJoT5crMIEVzjs4ltzjG2WiBX1Sm", autonext:true, titleMust:"Kpop Demon Hunters" }, // Kpop Demon Hunters
   { id:"maruko",  type:"playlist",        playlistId:"PLQGFvBFre_B3zygU6fi8irYZAZw6Pz7TP" }, // Chibi Maruko Chan English
   { id:"cloud",   type:"playlist",        playlistId:"PLfYEB5yLOF-CA0qZ4j3N19waHIDQFalqE" },
   { id:"pokemon", type:"channelPlaylists", handle:"@PokémonAsiaENG" },
@@ -177,6 +179,10 @@ const SOURCES = [
   { id:"pl1",        type:"playlist",     playlistId:"PLlMHo2E1ine4T7cBoo0GnHfwOhQm4hF1T" },
   { id:"pl2",        type:"playlist",     playlistId:"PLJYf0JdTApCrVnJpQgUb4BQm_5I3KuvZZ" },
   { id:"pl3",        type:"playlist",     playlistId:"PLji6YJWrrJAwiH4mbXBpg67Fjh8Gur5qv" },
+  { id:"mv1",        type:"video",        videoIds:["bNxoYS-hwa0"] },
+  { id:"mv2",        type:"video",        videoIds:["OxDyOvlFvr0","a4RmadV-Z1s"] },
+  { id:"mv3",        type:"video",        videoIds:["HT4LGAweQ_c","vSz2js25y7c"] },
+  { id:"gmd",        type:"playlist",     playlistId:"PLLhOnau-tupRgWFJwN7kn9Ox1sNQSE6Bh", titleMust:"The Great Mouse Detective" },
 ];
 const PAGE_SIZE = 24;
 const REGION = "VN"; // hide videos that can't play in this region (region-blocked / not embeddable)
@@ -199,6 +205,7 @@ let navSeq=0;           // bumps on every route change; async guards compare aga
 let cur={kind:null,key:null,token:"",done:false,pages:0}; // current list view paging state
 let currentAvatar="";
 let currentAutoNextList=""; // when set, player embeds the playlist so it auto-advances
+let currentAutoNextFilter=false; // autonext playlist with a titleMust: play our own queue of the shown videos so autonext skips hidden ones
 let currentSubs=true;       // force English subtitles for the list being watched
 let positions={};           // videoId -> index in the current playlist (to start a playlist at that video)
 
@@ -354,9 +361,11 @@ async function fetchHome(){
   // all playlist sources go in one request; channels need one request per handle (then one more for the
   // newest upload's thumbnail); tiktok reads its JSON file. Everything runs in parallel.
   const pls=SOURCES.filter(s=>s.type==="playlist");
-  const byPl={}, ch={}, tt={};
+  const vids=SOURCES.filter(s=>s.type==="video"); // "video" tiles: cover/title come from the first videoId
+  const byPl={}, ch={}, tt={}, byVid={};
   await Promise.all([
     pls.length && api("playlists",{ part:"snippet,contentDetails", id:pls.map(s=>s.playlistId).join(",") }).then(j=>(j.items||[]).forEach(it=>byPl[it.id]=it)),
+    vids.length && api("videos",{ part:"snippet", id:vids.map(s=>s.videoIds[0]).join(",") }).then(j=>(j.items||[]).forEach(it=>byVid[it.id]=it)),
     ...SOURCES.map(async s=>{
       if(s.type==="channel"||s.type==="channelPlaylists"){
         const it=(await api("channels",{ part:"snippet,contentDetails,statistics", forHandle:s.handle })).items?.[0];
@@ -373,6 +382,11 @@ async function fetchHome(){
       const it=byPl[s.playlistId]; if(!it) throw new Error("Playlist not found: "+s.playlistId);
       return { title:decode(it.snippet.title), thumb:thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
                playlistId:s.playlistId, type:"Playlist", count:it.contentDetails?.itemCount??null };
+    }
+    if(s.type==="video"){
+      const it=byVid[s.videoIds[0]]; // a single request covered every "video" tile's first id
+      return { title:s.title||(it?decode(it.snippet.title):"Video"), thumb:it?thumbs(it.snippet.thumbnails):{s:"",ss:""},
+               avatar:"", type:"Video", video:true, videoIds:s.videoIds, count:null };
     }
     if(s.type==="tiktok"){
       const d=tt[s.id], videos=d.videos||[];
@@ -398,7 +412,10 @@ async function renderHome(seq){
     const fi=[...homeEl.children].indexOf(document.activeElement);
     homeEl.innerHTML="";
     byRecent(RECENT_SRC,SOURCES.map((s,i)=>({s,m:metas[i]})),p=>p.s.id).forEach(({s,m})=>{
-      const btn=srcButton(m.thumb,m.type,m.title,m.count,()=>{ location.hash=(s.type==="channelPlaylists")?("ch/"+s.id):(s.type==="tiktok")?("tt/"+s.id):("pl/"+m.playlistId); });
+      const go=(s.type==="video")
+        ? ()=>{ currentTopSource=s.id; currentSubs=s.subs!==false; currentAutoNextList=""; currentAutoNextFilter=false; openVideos(s.videoIds); }
+        : ()=>{ location.hash=(s.type==="channelPlaylists")?("ch/"+s.id):(s.type==="tiktok")?("tt/"+s.id):("pl/"+m.playlistId); };
+      const btn=srcButton(m.thumb,m.type,m.title,m.count,go);
       if(m.tiktok) btn.classList.add("tt"); homeEl.appendChild(btn);
     });
     refocus(homeEl,fi); painted=true;
@@ -466,9 +483,11 @@ async function fetchVideoPage(pid,token){
   let items=[];
   if(ids.length){
     const jv=await api("videos",{ part:"snippet,contentDetails,statistics,status", id:ids.join(",") });
+    const must=(sourceOf(pid)?.titleMust||"").toLowerCase(); // source restricts this playlist to titles containing this text
     items=(jv.items||[]).filter(watchable).map(v=>({ // only what the card needs, so the cache stays small
       id:v.id, title:decode(v.snippet.title), ch:decode(v.snippet.channelTitle||""), th:thumbs(v.snippet.thumbnails),
       dur:fmtDur(v.contentDetails?.duration), views:+(v.statistics?.viewCount)||0, pub:v.snippet.publishedAt||"", pos:pos[v.id] }));
+    if(must) items=items.filter(v=>v.title.toLowerCase().includes(must)); // empty page keeps paging (loadVideos), like region filtering
   }
   return { items, next:jp.nextPageToken||"" };
 }
@@ -477,6 +496,7 @@ async function showVideos(pid,seq){
   const src=sourceOf(pid);
   if(src) currentTopSource=src.id; // else this playlist was opened from a channel, whose id is already set
   currentAutoNextList=src?.autonext?pid:"";
+  currentAutoNextFilter=!!(src?.autonext&&src?.titleMust); // hidden videos are skipped during autoplay too
   currentSubs=src?.subs!==false;
   navEl.hidden=false; navTitle.textContent="…"; setView("grid");
   if(headers[pid]) applyHeader(headers[pid]); // header and videos load side by side
@@ -797,10 +817,17 @@ function initPlayer(){
 }
 function ensurePlayer(){ if(yt && ytSubs!==currentSubs) createPlayer(currentSubs); }
 function startVideo(r){
-  if(r.list && r.index!=null) yt.loadPlaylist({listType:"playlist", list:r.list, index:r.index}); // auto-advances
-  else yt.loadVideoById(r.vid);
+  if(r.ids && r.ids.length>1) yt.loadPlaylist(r.ids, r.index||0); // our own queue: a "video" tile's parts, or a filtered playlist's shown videos — auto-advances, skips nothing we didn't put in it
+  else if(r.list && r.index!=null) yt.loadPlaylist({listType:"playlist", list:r.list, index:r.index}); // the whole YouTube playlist, auto-advances
+  else yt.loadVideoById(r.vid||r.ids?.[0]);
 }
-const request=vid=>({ vid, list:currentAutoNextList||"", index:positions[vid] });
+function request(vid){
+  if(currentAutoNextFilter){ // build the autonext queue from the videos currently shown (title filter already applied), so autoplay never lands on a hidden one
+    const ids=[...gridEl.querySelectorAll('.card[data-vid]')].map(c=>c.dataset.vid), i=ids.indexOf(vid);
+    return { vid, ids:i<0?[vid]:ids, index:i<0?0:i };
+  }
+  return { vid, list:currentAutoNextList||"", index:positions[vid] };
+}
 // pre-buffer: start loading the focused card's video (muted, hidden) so OK plays it at once
 function schedulePrebuffer(vid){
   clearTimeout(preTimer);
@@ -812,24 +839,41 @@ function schedulePrebuffer(vid){
     try{ yt.mute(); startVideo(prebuf); }catch(_){ prebuf=null; }
   },PREBUFFER_MS);
 }
-function openPlayer(vid){
-  clearTimeout(preTimer);
-  recentBump(RECENT_SRC,currentTopSource); recentBump(RECENT_PL,cur.key); // this source/playlist floats to the top of its list
-  lastFocused=document.activeElement; lastPlayed=vid;
+function showModal(){ // open the player modal, take focus, push a history entry and go fullscreen off-app
+  lastFocused=document.activeElement;
   modal.classList.add("open"); modal.setAttribute("aria-hidden","false"); document.body.style.overflow="hidden";
   // Focus stays on our own element, not inside the iframe: remote keys then reach the keydown
   // handler below, which drives the player through the IFrame API.
   playerEl.focus({preventScroll:true});
-  ensurePlayer();
-  const r=request(vid), ready=prebuf && prebuf.vid===vid && prebuf.list===r.list; prebuf=null;
-  if(!ytReady){ pending=r; toast("Loading…"); }
-  else{ yt.unMute(); if(ready){ yt.seekTo(0,true); yt.playVideo(); } else startVideo(r); }
   // History entry for the open player: Back (phone gesture, or the TV remote via the app) closes the video
   if(!histPushed){ try{ history.pushState({player:1},""); histPushed=true; }catch(_){} }
   // Not inside the app: the player is already edge-to-edge there, and the WebView fullscreen
   // transition costs ~1 s of re-layout and makes the YouTube controls show a second time.
   const req=!IN_APP && (playerEl.requestFullscreen||playerEl.webkitRequestFullscreen);
   if(req) try{ Promise.resolve(req.call(playerEl)).catch(()=>{}); }catch(_){}
+}
+function openPlayer(vid){
+  clearTimeout(preTimer);
+  recentBump(RECENT_SRC,currentTopSource); recentBump(RECENT_PL,cur.key); // this source/playlist floats to the top of its list
+  lastPlayed=vid;
+  showModal();
+  ensurePlayer();
+  const r=request(vid), ready=prebuf && prebuf.vid===vid && prebuf.list===r.list; prebuf=null;
+  if(!ytReady){ pending=r; toast("Loading…"); }
+  else{ yt.unMute(); if(ready){ yt.seekTo(0,true); yt.playVideo(); } else startVideo(r); }
+}
+// A home "video" tile: play its id(s) straight away, no grid. One id = a single video; several = played back-to-back.
+function openVideos(ids){
+  clearTimeout(preTimer);
+  if(prebuf&&ytReady) try{ yt.stopVideo(); }catch(_){} // a muted pre-buffer must not keep loading underneath
+  prebuf=null; pending=null;
+  recentBump(RECENT_SRC,currentTopSource);
+  lastPlayed=ids.length===1?ids[0]:"";
+  showModal();
+  ensurePlayer();
+  const r=ids.length>1?{ids}:{vid:ids[0]};
+  if(!ytReady){ pending=r; toast("Loading…"); }
+  else{ yt.unMute(); startVideo(r); }
 }
 function closePlayer(fromHistory){
   if(!isOpen()) return;
