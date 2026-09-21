@@ -67,6 +67,7 @@
   .player iframe{position:absolute; inset:0; width:100%; height:100%; border:0; outline:none}
   /* DEBUG marker: shows exactly where OK taps (the "Skip ad" spot), so the coordinate can be tuned. */
   .skipdot{position:absolute; z-index:3; width:22px; height:22px; margin:-11px 0 0 -11px; border-radius:50%; background:rgba(255,0,0,.6); border:2px solid #fff; box-shadow:0 0 0 2px rgba(0,0,0,.5); pointer-events:none}
+  .skipcoord{position:absolute; z-index:3; left:12px; top:12px; background:rgba(0,0,0,.8); color:#fff; font-size:20px; font-weight:600; padding:6px 12px; border-radius:8px; pointer-events:none}
   .toast{position:absolute; left:50%; bottom:14%; transform:translateX(-50%); z-index:2; background:rgba(0,0,0,.8); color:#fff; font-size:22px; font-weight:500; padding:10px 18px; border-radius:10px; pointer-events:none; white-space:nowrap}
   /* Seek bar, drawn exactly where the embed draws its own (www-player.css, .ytp-embed, not big mode — big
      mode needs the iframe itself fullscreen, which never happens here): controls inset 12px each side;
@@ -142,6 +143,7 @@
     <div class="toast" id="toast" hidden></div>
     <div class="ybar" id="ybar"><div class="yg"></div><div class="yt"><div class="yl" id="yload"></div><div class="yp" id="yplay"></div><div class="yk" id="yknob"></div></div></div>
     <div class="skipdot" id="skipdot" hidden></div>
+    <div class="skipcoord" id="skipcoord" hidden></div>
   </div>
 </div>
 
@@ -888,6 +890,7 @@ function showModal(){ // open the player modal, take focus, push a history entry
   // Focus stays on our own element, not inside the iframe: remote keys then reach the keydown
   // handler below, which drives the player through the IFrame API.
   playerEl.focus({preventScroll:true});
+  if(SKIP_CAL&&IN_APP&&window.TVApp?.tapVideo) drawSkipDot(true); // TEMP: show the tap dot for calibration
   // History entry for the open player: Back (phone gesture, or the TV remote via the app) closes the video
   if(!histPushed){ try{ history.pushState({player:1},""); histPushed=true; }catch(_){} }
   // Not inside the app: the player is already edge-to-edge there, and the WebView fullscreen
@@ -957,40 +960,51 @@ function seekBy(sec){
   let t=(seekTarget!=null?seekTarget:yt.getCurrentTime())+sec; if(t<0) t=0; if(d&&t>d-1) t=d-1;
   seekTarget=t; drawBar(t); showBar();
 }
-// Where YouTube draws the "Skip ad" button (fraction of the player box): bottom-right, above the control
-// bar. In the app OK taps this spot — a real click reaches inside the iframe and presses Skip. Tune here
-// (push only, no APK rebuild) if the tap misses the button on a device.
-const SKIP_TAP=[0.9,0.86];
+// Where YouTube draws the "Skip ad" button (fraction of the player box). In the app OK taps this spot —
+// a real click reaches inside the iframe and presses Skip. A saved value (D-pad calibration below) wins.
+let SKIP_TAP=[0.74,0.91];
+try{ const s=localStorage.getItem("tv1:skiptap"); const a=s&&JSON.parse(s); if(Array.isArray(a)&&a.length===2) SKIP_TAP=a; }catch(_){}
+// TEMP calibration: while true, the D-pad MOVES the tap dot (instead of seeking) so it can be lined up on
+// the "Skip" button by eye; the coords show on screen and are saved. Set false to restore Left/Right seek.
+const SKIP_CAL=true;
+function tapSkip(){ // fire the tap and pull focus back out of the iframe (kills YouTube's stuck focus ring)
+  try{ TVApp.tapVideo(SKIP_TAP[0],SKIP_TAP[1]); }catch(_){}
+  setTimeout(()=>{ try{ playerEl.focus({preventScroll:true}); }catch(_){} },150);
+}
 function togglePlay(){
   if(!ytReady){ toast("Loading…"); return; }
   if(seekTarget!=null){ flushSeek(); showBar(); return; } // OK with a jump pending confirms it — never play/pause
   // In the app: a real tap on the skip-button spot. With an ad it presses "Skip ad" (the button lives in
   // the cross-origin iframe, unreachable any other way); with no ad the tap lands on the video and toggles
   // play/pause, and being real input it wakes the controls too — so no separate IFrame call is needed.
-  if(IN_APP&&window.TVApp?.tapVideo){
-    try{ TVApp.tapVideo(SKIP_TAP[0],SKIP_TAP[1]); }catch(_){}
-    showSkipDot();
-    // The tap focuses the iframe (YouTube then draws a blue focus ring that won't clear). Pull focus back
-    // to our own element so the ring goes away and the D-pad keeps reaching our key handler.
-    setTimeout(()=>{ try{ playerEl.focus({preventScroll:true}); }catch(_){} },150);
-    return;
-  }
+  if(IN_APP&&window.TVApp?.tapVideo){ tapSkip(); if(SKIP_CAL) drawSkipDot(true); else showSkipDot(); return; }
   if(yt.getPlayerState()===1) yt.pauseVideo(); else yt.playVideo();
   if(IN_APP&&window.TVApp?.wakePlayer) try{ TVApp.wakePlayer(); }catch(_){}
 }
-// DEBUG: flash a dot where OK taps, so the skip-button coordinate (SKIP_TAP) can be tuned by eye.
+// DEBUG dot at the tap point, so SKIP_TAP can be tuned by eye. drawSkipDot(true) keeps it up (calibration);
+// showSkipDot() flashes it for ~1.2 s (normal use).
 let skipDotTimer=0;
-function showSkipDot(){
-  const d=$("#skipdot"); if(!d) return;
-  d.style.left=(SKIP_TAP[0]*100)+"%"; d.style.top=(SKIP_TAP[1]*100)+"%"; d.hidden=false;
-  clearTimeout(skipDotTimer); skipDotTimer=setTimeout(()=>{ d.hidden=true; },1200);
+function drawSkipDot(persistent){
+  const d=$("#skipdot"), r=$("#skipcoord"); if(!d) return;
+  d.style.left=(SKIP_TAP[0]*100).toFixed(1)+"%"; d.style.top=(SKIP_TAP[1]*100).toFixed(1)+"%"; d.hidden=false;
+  if(r){ r.textContent="x "+SKIP_TAP[0].toFixed(2)+"   y "+SKIP_TAP[1].toFixed(2); r.hidden=false; }
+  clearTimeout(skipDotTimer);
+  if(!persistent) skipDotTimer=setTimeout(()=>{ d.hidden=true; if(r) r.hidden=true; },1200);
+}
+function showSkipDot(){ drawSkipDot(false); }
+function nudgeSkip(dx,dy){ // D-pad calibration: move the dot 1% at a time, save, keep it visible
+  SKIP_TAP=[Math.max(0,Math.min(1,+(SKIP_TAP[0]+dx).toFixed(3))),Math.max(0,Math.min(1,+(SKIP_TAP[1]+dy).toFixed(3)))];
+  try{ localStorage.setItem("tv1:skiptap",JSON.stringify(SKIP_TAP)); }catch(_){}
+  drawSkipDot(true);
 }
 const KEYS={
   ArrowLeft:()=>seekBy(-10), ArrowRight:()=>seekBy(10), ArrowUp:()=>{}, ArrowDown:()=>{}, // up/down: swallowed so focus never leaves the player
   Enter:togglePlay, " ":togglePlay, MediaPlayPause:togglePlay, MediaPlay:togglePlay, MediaPause:togglePlay,
   MediaRewind:()=>seekBy(-10), MediaFastForward:()=>seekBy(10), MediaStop:()=>closePlayer(), Escape:()=>closePlayer(),
 };
-function handleKey(k){ const f=KEYS[k]; if(!f||!isOpen()) return false; f(); return true; }
+// TEMP: in calibration the arrows move the tap dot 1% at a time instead of seeking (see SKIP_CAL).
+const CAL_KEYS={ ArrowLeft:()=>nudgeSkip(-0.01,0), ArrowRight:()=>nudgeSkip(0.01,0), ArrowUp:()=>nudgeSkip(0,-0.01), ArrowDown:()=>nudgeSkip(0,0.01) };
+function handleKey(k){ const f=(SKIP_CAL&&IN_APP&&CAL_KEYS[k])||KEYS[k]; if(!f||!isOpen()) return false; f(); return true; }
 // called from the Android app for media buttons the WebView doesn't forward
 window.tvKey=k=>{ if(isOpen()) return handleKey(k); if(ttFeedOpen) return ttKey(k); return false; };
 document.addEventListener("keydown",e=>{
