@@ -954,12 +954,18 @@ function seekBy(sec){
   let t=(seekTarget!=null?seekTarget:yt.getCurrentTime())+sec; if(t<0) t=0; if(d&&t>d-1) t=d-1;
   seekTarget=t; drawBar(t); showBar();
 }
+// Where YouTube draws the "Skip ad" button (fraction of the player box): bottom-right, above the control
+// bar. In the app OK taps this spot — a real click reaches inside the iframe and presses Skip. Tune here
+// (push only, no APK rebuild) if the tap misses the button on a device.
+const SKIP_TAP=[0.9,0.86];
 function togglePlay(){
   if(!ytReady){ toast("Loading…"); return; }
   if(seekTarget!=null){ flushSeek(); showBar(); return; } // OK with a jump pending confirms it — never play/pause
+  // In the app: a real tap on the skip-button spot. With an ad it presses "Skip ad" (the button lives in
+  // the cross-origin iframe, unreachable any other way); with no ad the tap lands on the video and toggles
+  // play/pause, and being real input it wakes the controls too — so no separate IFrame call is needed.
+  if(IN_APP&&window.TVApp?.tapVideo){ try{ TVApp.tapVideo(SKIP_TAP[0],SKIP_TAP[1]); return; }catch(_){} }
   if(yt.getPlayerState()===1) yt.pauseVideo(); else yt.playVideo();
-  // The embed's own controls (bar, time, title) come up only for real input inside its iframe: the app
-  // fakes a mouse hover there. They stay while paused, hide 3 s after play — as with a mouse.
   if(IN_APP&&window.TVApp?.wakePlayer) try{ TVApp.wakePlayer(); }catch(_){}
 }
 const KEYS={

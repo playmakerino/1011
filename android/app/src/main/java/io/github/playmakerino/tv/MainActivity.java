@@ -306,6 +306,11 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void prefetchTikTok(String id, String user) { if (ok(id, user)) ui.post(() -> { if (!ttVisible && !ttPlayPending()) ttLoad(id, user, false); }); }
         @JavascriptInterface public void closeTikTok() { ui.post(MainActivity.this::ttClose); }
         @JavascriptInterface public void wakePlayer() { ui.post(MainActivity.this::wakeWeb); }
+        // A real tap at (xFrac,yFrac) of the player WebView. The YouTube "Skip ad" button lives inside a
+        // cross-origin iframe the D-pad/JS can't reach; a synthetic touch IS real input to Chromium, so it
+        // presses the button. With no ad the same tap hits the video body -> play/pause. Coords come from
+        // tv.html so the skip-button spot can be tuned without rebuilding the app.
+        @JavascriptInterface public void tapVideo(final float xFrac, final float yFrac) { ui.post(() -> tapWeb(xFrac, yFrac)); }
         private boolean ok(String id, String user) { return id != null && user != null && TT_ID.matcher(id).matches() && TT_USER.matcher(user).matches(); }
     }
 
@@ -575,6 +580,21 @@ public class MainActivity extends Activity {
         MotionEvent ev = MotionEvent.obtain(t, t, action, 1, new MotionEvent.PointerProperties[]{ pp }, new MotionEvent.PointerCoords[]{ pc },
                 0, 0, 1f, 1f, 0, 0, InputDevice.SOURCE_MOUSE, 0);
         web.dispatchGenericMotionEvent(ev);
+        ev.recycle();
+    }
+    // A finger tap (down then up) at a fractional point of the player WebView — a genuine click Chromium
+    // delivers into the YouTube iframe (unlike hover, which only wakes the controls).
+    private void tapWeb(float xFrac, float yFrac) {
+        if (web == null || web.getWidth() == 0) return;
+        float x = web.getWidth() * xFrac, y = web.getHeight() * yFrac;
+        long t = SystemClock.uptimeMillis();
+        touch(MotionEvent.ACTION_DOWN, x, y, t, t);
+        touch(MotionEvent.ACTION_UP, x, y, t, t + 40);
+    }
+    private void touch(int action, float x, float y, long down, long when) {
+        MotionEvent ev = MotionEvent.obtain(down, when, action, x, y, 0);
+        ev.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+        web.dispatchTouchEvent(ev);
         ev.recycle();
     }
 
