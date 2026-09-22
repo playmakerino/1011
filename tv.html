@@ -65,6 +65,10 @@
   .modal.open{visibility:visible}
   .player{position:relative; width:100%; height:100%; overflow:hidden; outline:none}
   .player iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
+  /* Drive files play in the page's own <video>; the YouTube iframe stays put underneath (visibility, not display,
+     so it keeps its size for pre-buffering) and is simply covered while the video is on. */
+  .player video{position:absolute; inset:0; width:100%; height:100%; background:#000; object-fit:contain; z-index:1}
+  .player.dv iframe{visibility:hidden}
   .toast{position:absolute; left:50%; bottom:14%; transform:translateX(-50%); z-index:2; background:rgba(0,0,0,.8); color:#fff; font-size:22px; font-weight:500; padding:10px 18px; border-radius:10px; pointer-events:none; white-space:nowrap}
   /* Seek bar, drawn exactly where the embed draws its own (www-player.css, .ytp-embed, not big mode — big
      mode needs the iframe itself fullscreen, which never happens here): controls inset 12px each side;
@@ -137,6 +141,7 @@
 
 <div class="modal" id="modal" aria-hidden="true">
   <div class="player" id="player" tabindex="-1">
+    <video id="dvideo" hidden playsinline preload="auto"></video>
     <div class="toast" id="toast" hidden></div>
     <div class="ybar" id="ybar"><div class="yg"></div><div class="yt"><div class="yl" id="yload"></div><div class="yp" id="yplay"></div><div class="yk" id="yknob"></div></div></div>
   </div>
@@ -162,6 +167,9 @@ const API_KEY = "AIzaSyDGWoJDMbutkYWJZZzullATm1cnttCAQUE"; // restricted: github
 //     | "tiktok" (opens a full-screen vertical TikTok feed; videos come from a JSON file a daily GitHub Action refreshes)
 //     | "video"  (a home tile; videoIds:["a"] plays that one video right away; ["a","b"] opens a small playlist of those
 //                videos, and playing one auto-advances to the next. Give it a fixed title.)
+//     | "drive"  (a public Google Drive folder of MP4s (H.264/AAC, faststart): click -> its files as cards, played by the
+//                page's own <video> straight off Drive's download link; a file ends -> the next one starts. The list is
+//                file:"drive/<name>.json", made by scripts/drive_folder.py <folderId> <file> — rerun it after changing the folder.)
 // subs:false  -> don't force English subtitles on for this source (default: forced on)
 // autonext    -> play as a playlist so the next video starts by itself
 // titleMust    -> a playlist source shows only videos whose title contains this text (case-insensitive)
@@ -187,6 +195,7 @@ const SOURCES = [
   { id:"mv5",        type:"video",        videoIds:["w3mejN9SDzU","LXDmYN6Sixk"], title:"Walt Disney - Cinderella" },
   { id:"mv6",        type:"video",        videoIds:["Krg7Khp6i2Y","09PBfqqT7Lc"], title:"Walt Disney - Alice in Wonderland" },
   { id:"gmd",        type:"playlist",     playlistId:"PLLhOnau-tupRgWFJwN7kn9Ox1sNQSE6Bh", titleMust:"The Great Mouse Detective" },
+  { id:"otgw",       type:"drive",        file:"drive/otgw.json" }, // Over the Garden Wall (2014), folder 1Yyt23fYhQnu3d45EmvsvyWREbjeQ2JpP
 ];
 const PAGE_SIZE = 24;
 const REGION = "VN"; // hide videos that can't play in this region (region-blocked / not embeddable)
@@ -305,6 +314,7 @@ function route(){
   if(h.startsWith("ch/")) return {v:"channel",id:h.slice(3)};
   if(h.startsWith("tt/")) return {v:"tiktok",id:h.slice(3)};
   if(h.startsWith("v/")) return {v:"videolist",id:h.slice(2)};
+  if(h.startsWith("dr/")) return {v:"drive",id:h.slice(3)};
   if(h.startsWith("pl/")) return {v:"playlist",pid:h.slice(3)};
   return {v:"home"};
 }
@@ -317,6 +327,7 @@ function render(){
   else if(r.v==="channel") showChannel(r.id,seq);
   else if(r.v==="tiktok") showTikTok(r.id,seq);
   else if(r.v==="videolist") showVideoList(r.id,seq);
+  else if(r.v==="drive") showDrive(r.id,seq);
   else showVideos(r.pid,seq);
 }
 window.addEventListener("hashchange",render);
@@ -381,6 +392,7 @@ async function fetchHome(){
       }
       // a missing/blocked TikTok file must not blank the whole home — fall back to an empty channel
       else if(s.type==="tiktok") tt[s.id]=await fetchTikTok(s.file).catch(()=>({title:handleOf(s),avatar:"",videos:[]}));
+      else if(s.type==="drive") tt[s.id]=await fetchDrive(s.file).catch(()=>({title:s.id,videos:[]}));
     })
   ]);
   return SOURCES.map(s=>{
@@ -402,6 +414,10 @@ async function fetchHome(){
       return { title:d.title||handleOf(s), thumb:{s:videos[0]?.thumb||av,ss:""}, avatar:av, // newest video's thumbnail for the tile, avatar as fallback
                type:"Channel", tiktok:true, count:d.videos?videos.length:null, videos };
     }
+    if(s.type==="drive"){
+      const d=tt[s.id], videos=d.videos||[]; // tile: the first file's Drive thumbnail
+      return { title:d.title||s.id, thumb:{s:videos[0]?driveThumb(videos[0].id,1280):"",ss:""}, avatar:"", type:"Series", drive:true, count:videos.length||null, videos };
+    }
     const {it,thumb}=ch[s.id]; if(!it) throw new Error("Channel not found: "+s.handle);
     return { title:decode(it.snippet.title), thumb:thumb||thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
              channelId:it.id, playlistId:it.contentDetails.relatedPlaylists.uploads, type:"Channel",
@@ -422,7 +438,7 @@ async function renderHome(seq){
         ? (s.videoIds.length>1
             ? ()=>{ location.hash="v/"+s.id; } // several parts: open them as a small playlist
             : ()=>{ currentTopSource=s.id; currentSubs=s.subs!==false; currentAutoNextList=""; currentAutoNextFilter=false; openVideos(s.videoIds); })
-        : ()=>{ location.hash=(s.type==="channelPlaylists")?("ch/"+s.id):(s.type==="tiktok")?("tt/"+s.id):("pl/"+m.playlistId); };
+        : ()=>{ location.hash=(s.type==="channelPlaylists")?("ch/"+s.id):(s.type==="tiktok")?("tt/"+s.id):(s.type==="drive")?("dr/"+s.id):("pl/"+m.playlistId); };
       const btn=srcButton(m.thumb,m.type,m.title,m.count,go);
       if(m.tiktok) btn.classList.add("tt"); homeEl.appendChild(btn);
     });
@@ -544,14 +560,13 @@ function cardText(v){
   const line2=[fmtViews(v.views), v.pub?ago(v.pub):""].filter(Boolean).join(" · ");
   return '<div class="title">'+esc(v.title)+'</div><div class="byline">'+(v.ch?'<span class="ch">'+esc(v.ch)+'</span>':'')+(line2?'<span>'+esc(line2)+'</span>':'')+'</div>';
 }
-function card(v){
+function card(v,open){ // open: what OK does (default: the YouTube player, pre-buffered while the card is focused)
   const c=document.createElement("div"); c.className="card"; c.tabIndex=0; c.setAttribute("role","button"); c.dataset.vid=v.id;
   c.innerHTML='<div class="thumb">'+imgTag(v.th)+(v.dur?'<span class="dur">'+esc(v.dur)+'</span>':'')+'</div>'+
     '<div class="row"><img class="av" loading="lazy" decoding="async" alt=""'+(currentAvatar?' src="'+esc(currentAvatar)+'"':' hidden')+'>'+
     '<div class="txt">'+cardText(v)+'</div></div>';
-  onActivate(c,()=>openPlayer(v.id));
-  c.onfocus=()=>schedulePrebuffer(v.id);
-  c.onblur=()=>schedulePrebuffer(null);
+  onActivate(c,open||(()=>openPlayer(v.id)));
+  if(!open){ c.onfocus=()=>schedulePrebuffer(v.id); c.onblur=()=>schedulePrebuffer(null); }
   return c;
 }
 function patchCards(items){ // true when the grid holds exactly these videos and was updated in place
@@ -590,6 +605,38 @@ async function showVideoList(id,seq){
   };
   if(!cacheGet("vl:"+id)) gridEl.innerHTML=skeletons(src.videoIds.length);
   try{ await swr("vl:"+id,()=>fetchVideoList(src.videoIds),paint); }
+  catch(e){ if(seq!==navSeq||painted) return; gridEl.innerHTML=""; showState("Couldn't load videos.",e,true); }
+}
+
+// ---------------- DRIVE: a public folder's MP4s, listed in drive/<name>.json (scripts/drive_folder.py) ----------------
+// Drive's public download link streams the file with Range support and no cookie (the file must be H.264/AAC:
+// the TV's WebView has no H.265). Thumbnails come from Drive's public thumbnail endpoint.
+const driveUrl=id=>"https://drive.usercontent.google.com/download?id="+encodeURIComponent(id)+"&export=download&confirm=t";
+const driveThumb=(id,w)=>"https://drive.google.com/thumbnail?id="+encodeURIComponent(id)+"&sz=w"+(w||640);
+async function fetchDrive(file){
+  const j=await fetchJson(file+"?t="+Date.now(),{cache:"no-store"});
+  return { title:decode(j.title||""), videos:(j.videos||[]).map(v=>({ id:String(v.id), title:decode(v.title||""), dur:+v.dur||0 })) };
+}
+const fmtSecs=s=>{ s=Math.max(0,Math.floor(s||0)); const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60,p=n=>String(n).padStart(2,"0"); return h? h+":"+p(m)+":"+p(x):m+":"+p(x); };
+async function showDrive(id,seq){
+  const src=SOURCES.find(s=>s.id===id&&s.type==="drive");
+  if(!src){ location.replace("#home"); return; }
+  cur={kind:"drive",key:id,token:"",done:true,pages:1}; currentTopSource=id; currentAvatar="";
+  navEl.hidden=false; navTitle.textContent=meta[id]?.title||"…"; setView("grid");
+  let painted=false;
+  const paint=d=>{
+    if(seq!==navSeq) return;
+    navTitle.textContent=d.title||id;
+    const fi=[...gridEl.children].indexOf(document.activeElement);
+    gridEl.innerHTML=""; positions={};
+    const list=d.videos.map(v=>({ id:v.id, title:v.title, ch:"", th:{s:driveThumb(v.id),ss:""}, dur:v.dur?fmtSecs(v.dur):"", views:0, pub:"" }));
+    list.forEach((v,i)=>gridEl.appendChild(card(v,()=>openDrive(list,i))));
+    refocus(gridEl,fi); stateEl.hidden=true;
+    if(!list.length) showState("No videos here yet.");
+    painted=true;
+  };
+  if(!cacheGet("dr:"+id)) gridEl.innerHTML=skeletons(8);
+  try{ await swr("dr:"+id,()=>fetchDrive(src.file),paint); }
   catch(e){ if(seq!==navSeq||painted) return; gridEl.innerHTML=""; showState("Couldn't load videos.",e,true); }
 }
 
@@ -892,8 +939,36 @@ function showModal(){ // open the player modal, take focus, push a history entry
   const req=!IN_APP && (playerEl.requestFullscreen||playerEl.webkitRequestFullscreen);
   if(req) try{ Promise.resolve(req.call(playerEl)).catch(()=>{}); }catch(_){}
 }
-function openPlayer(vid){
+// ---- Drive files: the page's own <video> in the same modal, driven by the same keys (dvList!=null = it is in charge) ----
+const dvEl=$("#dvideo");
+let dvList=null, dvIndex=-1; // the cards of the Drive list being watched, and which one plays
+function openDrive(list,i){
   clearTimeout(preTimer);
+  if(prebuf&&ytReady) try{ yt.stopVideo(); }catch(_){}
+  prebuf=null; pending=null; lastPlayed="";
+  recentBump(RECENT_SRC,currentTopSource);
+  showModal();
+  dvPlay(list,i);
+}
+function dvPlay(list,i){
+  dvList=list; dvIndex=i; seekTarget=null; hideBar();
+  const v=list[i];
+  playerEl.classList.add("dv"); dvEl.hidden=false;
+  dvEl.poster=v.th.s; dvEl.src=driveUrl(v.id);
+  toast("Loading…",0);
+  dvEl.play().catch(()=>{}); // sound from the start: this WebView can't unmute a video that began muted
+}
+function dvStop(){
+  if(!dvList) return;
+  dvList=null; dvIndex=-1;
+  try{ dvEl.pause(); dvEl.removeAttribute("src"); dvEl.load(); }catch(_){}
+  dvEl.hidden=true; playerEl.classList.remove("dv");
+}
+dvEl.addEventListener("playing",()=>toast.hide());
+dvEl.addEventListener("error",()=>{ if(dvList) toast("Can't play this file",0); });
+dvEl.addEventListener("ended",()=>{ if(dvList&&dvIndex+1<dvList.length) dvPlay(dvList,dvIndex+1); else showBar(); }); // next file, else stay (OK replays)
+function openPlayer(vid){
+  clearTimeout(preTimer); dvStop();
   recentBump(RECENT_SRC,currentTopSource); recentBump(RECENT_PL,cur.key); // this source/playlist floats to the top of its list
   lastPlayed=vid;
   showModal();
@@ -904,7 +979,7 @@ function openPlayer(vid){
 }
 // A home "video" tile: play its id(s) straight away, no grid. One id = a single video; several = played back-to-back.
 function openVideos(ids){
-  clearTimeout(preTimer);
+  clearTimeout(preTimer); dvStop();
   if(prebuf&&ytReady) try{ yt.stopVideo(); }catch(_){} // a muted pre-buffer must not keep loading underneath
   prebuf=null; pending=null;
   recentBump(RECENT_SRC,currentTopSource);
@@ -920,6 +995,7 @@ function closePlayer(fromHistory){
   const ex=document.fullscreenElement||document.webkitFullscreenElement;
   if(ex){ (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }
   pending=null; prebuf=null; seekTarget=null; hideBar();
+  dvStop();
   if(ytReady) try{ yt.stopVideo(); }catch(_){}
   toast.hide();
   modal.classList.remove("open"); modal.setAttribute("aria-hidden","true"); document.body.style.overflow="";
@@ -936,27 +1012,35 @@ window.addEventListener("popstate",()=>{ closePlayer(true); ttCloseFeed(true); }
 const ybar=$("#ybar"), yLoad=$("#yload"), yPlay=$("#yplay"), yKnob=$("#yknob");
 const BAR_MS=3000;
 let seekTarget=null, barTimer=0, barTick=0;
+// The three player facts the bar/seek code needs, from whichever player is on (Drive <video> or YouTube).
+function pDuration(){ return (dvList?dvEl.duration:yt.getDuration())||0; }
+function pTime(){ return (dvList?dvEl.currentTime:yt.getCurrentTime())||0; }
+function pLoaded(){ if(!dvList) return yt.getVideoLoadedFraction()||0; const d=dvEl.duration||0,r=dvEl.buffered; return d&&r.length?r.end(r.length-1)/d:0; }
 function drawBar(t){
-  const d=yt.getDuration()||0, f=d?Math.max(0,Math.min(1,t/d)):0;
-  let l=0; try{ l=yt.getVideoLoadedFraction()||0; }catch(_){}
+  const d=pDuration(), f=d?Math.max(0,Math.min(1,t/d)):0;
+  let l=0; try{ l=pLoaded(); }catch(_){}
   yPlay.style.width=(f*100)+"%"; yKnob.style.left=(f*100)+"%"; yLoad.style.width=(Math.max(f,l)*100)+"%";
 }
 function showBar(){
   ybar.classList.add("on");
   clearTimeout(barTimer); barTimer=setTimeout(hideBar,BAR_MS);
-  if(!barTick) barTick=setInterval(()=>{ if(seekTarget==null) drawBar(yt.getCurrentTime()); },250); // live position once applied
+  if(!barTick) barTick=setInterval(()=>{ if(seekTarget==null) drawBar(pTime()); },250); // live position once applied
 }
 function hideBar(){ clearTimeout(barTimer); barTimer=0; clearInterval(barTick); barTick=0; ybar.classList.remove("on"); flushSeek(); }
-function flushSeek(){ if(seekTarget==null) return; const t=seekTarget; seekTarget=null; yt.seekTo(t,true); }
+function flushSeek(){ if(seekTarget==null) return; const t=seekTarget; seekTarget=null; if(dvList) dvEl.currentTime=t; else yt.seekTo(t,true); }
 function seekBy(sec){
-  if(!ytReady){ toast("Loading…"); return; }
-  const d=yt.getDuration()||0;
-  let t=(seekTarget!=null?seekTarget:yt.getCurrentTime())+sec; if(t<0) t=0; if(d&&t>d-1) t=d-1;
+  if(!dvList&&!ytReady){ toast("Loading…"); return; }
+  const d=pDuration();
+  let t=(seekTarget!=null?seekTarget:pTime())+sec; if(t<0) t=0; if(d&&t>d-1) t=d-1;
   seekTarget=t; drawBar(t); showBar();
 }
 function togglePlay(){
-  if(!ytReady){ toast("Loading…"); return; }
+  if(!dvList&&!ytReady){ toast("Loading…"); return; }
   if(seekTarget!=null){ flushSeek(); showBar(); return; } // OK with a jump pending confirms it — never play/pause
+  if(dvList){ // a bare <video> has no UI of its own: toast the new state like the TikTok player, keep the bar up while paused
+    if(dvEl.paused){ dvEl.play().catch(()=>{}); toast("❚❚"); } else { dvEl.pause(); toast("▶"); drawBar(dvEl.currentTime); }
+    showBar(); return;
+  }
   if(yt.getPlayerState()===1) yt.pauseVideo(); else yt.playVideo();
   // The embed's own controls (bar, time, title) come up only for real input inside its iframe: the app
   // fakes a mouse hover there. They stay while paused, hide 3 s after play — as with a mouse.
