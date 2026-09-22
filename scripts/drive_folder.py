@@ -7,19 +7,20 @@ The page itself cannot do this (neither endpoint sends CORS headers), so the lis
 
     python scripts/drive_folder.py 1Yyt23fYhQnu3d45EmvsvyWREbjeQ2JpP drive/otgw.json
 
-Output: {"title", "folder", "videos":[{"id","title","dur","sub"?}]}  (dur in seconds, 0 if unknown)
+Output: {"title", "folder", "videos":[{"id","title","dur","subId"?,"subFmt"?}]}  (dur in seconds, 0 if unknown)
 Titles drop the extension and a leading "<folder title> - " so cards read "Chapter 1 - ...".
 Files are sorted naturally (Chapter 2 before Chapter 10). Run again after adding/replacing files.
 
-Subtitles: a caption track attached to the file in Drive ("Manage caption tracks") is downloaded as
-WebVTT into <out dir>/subs/<id>.vtt and referenced as "sub" (path relative to the site root). It has
-to live in the repo: drive.google.com/timedtext serves it without CORS headers, and a cross-origin
-<track> needs them. A file with no track in Drive gets no "sub".
+Subtitles: a .srt or .vtt file in the same folder with the same name as the video (extension aside,
+case-insensitive) is its subtitle; the page fetches it through the Drive API at play time (subId/subFmt).
+Caption tracks attached to the file inside Drive are NOT used: drive.google.com/timedtext serves them
+without CORS headers, so a page outside google.com cannot read them. The file must be UTF-8.
 """
-import html, json, os, re, sys, urllib.parse, urllib.request
+import html, json, re, sys, urllib.parse, urllib.request
 
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
 VIDEO_EXT = re.compile(r"\.(mp4|mkv|m4v|mov|webm|avi)$", re.I)
+SUB_EXT = re.compile(r"\.(srt|vtt)$", re.I)
 
 
 def get(url):
@@ -41,33 +42,16 @@ def length_seconds(file_id):
         return 0
 
 
-def caption_vtt(file_id):
-    """WebVTT text of the file's default (else first) caption track, or None."""
-    try:
-        lst = get("https://drive.google.com/timedtext?id=" + file_id + "&type=list")
-        tracks = re.findall(r"<track ([^>]*)/>", lst)
-        if not tracks:
-            return None
-        attrs = [dict(re.findall(r'(\w+)="([^"]*)"', t)) for t in tracks]
-        t = next((a for a in attrs if a.get("lang_default") == "true"), attrs[0])
-        q = urllib.parse.urlencode({"id": file_id, "type": "track", "lang": t.get("lang_code", "en"),
-                                    "name": html.unescape(t.get("name", "")), "fmt": "vtt"})
-        vtt = get("https://drive.google.com/timedtext?" + q)
-        return vtt if vtt.startswith("WEBVTT") else None
-    except Exception as e:
-        print("  no caption for", file_id, e, file=sys.stderr)
-        return None
-
-
 def main():
     if len(sys.argv) != 3:
         sys.exit(__doc__)
     folder, out = sys.argv[1], sys.argv[2]
-    subs_dir = os.path.join(os.path.dirname(out) or ".", "subs")
     page = get("https://drive.google.com/embeddedfolderview?id=" + folder)
     title = html.unescape(re.search(r"<title>(.*?)</title>", page, re.S).group(1)).strip()
     entries = re.findall(r'id="entry-([\w-]+)".*?<div class="flip-entry-title">(.*?)</div>', page, re.S)
-    files = [(fid, html.unescape(name).strip()) for fid, name in entries if VIDEO_EXT.search(name)]
+    names = [(fid, html.unescape(name).strip()) for fid, name in entries]
+    files = [f for f in names if VIDEO_EXT.search(f[1])]
+    subs = {SUB_EXT.sub("", n).lower(): (fid, SUB_EXT.search(n).group(1).lower()) for fid, n in names if SUB_EXT.search(n)}
     files.sort(key=lambda f: natural_key(f[1]))
     prefix = title + " - "
     videos = []
@@ -76,13 +60,10 @@ def main():
         if t.startswith(prefix):
             t = t[len(prefix):]
         v = {"id": fid, "title": t, "dur": length_seconds(fid)}
-        vtt = caption_vtt(fid)
-        if vtt:
-            os.makedirs(subs_dir, exist_ok=True)
-            with open(os.path.join(subs_dir, fid + ".vtt"), "w", encoding="utf-8", newline="\n") as f:
-                f.write(vtt)
-            v["sub"] = (os.path.dirname(out).replace(os.sep, "/") + "/subs/" + fid + ".vtt").lstrip("./")
-        print(name, "(sub)" if vtt else "")
+        sub = subs.get(VIDEO_EXT.sub("", name).lower())
+        if sub:
+            v["subId"], v["subFmt"] = sub
+        print(name, "(sub: %s)" % sub[1] if sub else "")
         videos.append(v)
     data = {"title": title, "folder": folder, "videos": videos}
     with open(out, "w", encoding="utf-8") as f:
