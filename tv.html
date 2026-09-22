@@ -609,9 +609,11 @@ async function showVideoList(id,seq){
 }
 
 // ---------------- DRIVE: a public folder's MP4s, listed in drive/<name>.json (scripts/drive_folder.py) ----------------
-// Drive's public download link streams the file with Range support and no cookie (the file must be H.264/AAC:
-// the TV's WebView has no H.265). Thumbnails come from Drive's public thumbnail endpoint.
-const driveUrl=id=>"https://drive.usercontent.google.com/download?id="+encodeURIComponent(id)+"&export=download&confirm=t";
+// The file streams through the Drive API (files.get alt=media, our API key, Range-capable). Not the public
+// download link: drive.usercontent.google.com answers 403 to any request whose Sec-Fetch-Site is cross-site,
+// i.e. to every browser page outside google.com. The file must be H.264/AAC (the TV's WebView has no H.265).
+// Thumbnails come from Drive's public thumbnail endpoint (the file's first frame).
+const driveUrl=id=>"https://www.googleapis.com/drive/v3/files/"+encodeURIComponent(id)+"?alt=media&key="+API_KEY;
 const driveThumb=(id,w)=>"https://drive.google.com/thumbnail?id="+encodeURIComponent(id)+"&sz=w"+(w||640);
 async function fetchDrive(file){
   const j=await fetchJson(file+"?t="+Date.now(),{cache:"no-store"});
