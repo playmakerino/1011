@@ -29,6 +29,11 @@ def get(url):
         return r.read().decode("utf-8", "replace")
 
 
+def episode_no(name):
+    nums = [int(n) for n in re.findall(r"\d+", name) if not (len(n) == 4 and 1900 <= int(n) <= 2100)]
+    return nums[0] if nums else None
+
+
 def natural_key(s):
     return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", s)]
 
@@ -52,6 +57,13 @@ def main():
     names = [(fid, html.unescape(name).strip()) for fid, name in entries]
     files = [f for f in names if VIDEO_EXT.search(f[1])]
     subs = {SUB_EXT.sub("", n).lower(): (fid, SUB_EXT.search(n).group(1).lower()) for fid, n in names if SUB_EXT.search(n)}
+    # Fallback pairing by episode number (the first number in the name that is not a 4-digit year), for
+    # subtitle files named differently from the videos, e.g. "01 - Title.en.srt" for "... - Chapter 1 - Title.mkv".
+    by_ep = {}
+    for key, sub in subs.items():
+        ep = episode_no(key)
+        if ep is not None:
+            by_ep.setdefault(ep, []).append(sub)
     files.sort(key=lambda f: natural_key(f[1]))
     prefix = title + " - "
     videos = []
@@ -61,6 +73,9 @@ def main():
             t = t[len(prefix):]
         v = {"id": fid, "title": t, "dur": length_seconds(fid)}
         sub = subs.get(VIDEO_EXT.sub("", name).lower())
+        if not sub:
+            cands = by_ep.get(episode_no(name), [])
+            sub = cands[0] if len(cands) == 1 else None  # ambiguous numbers pair nothing
         if sub:
             v["subId"], v["subFmt"] = sub
         print(name, "(sub: %s)" % sub[1] if sub else "")
