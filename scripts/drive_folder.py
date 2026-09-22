@@ -7,7 +7,7 @@ The page itself cannot do this (neither endpoint sends CORS headers), so the lis
 
     python scripts/drive_folder.py 1Yyt23fYhQnu3d45EmvsvyWREbjeQ2JpP drive/otgw.json
 
-Output: {"title", "folder", "videos":[{"id","title","dur","subId"?,"subFmt"?}]}  (dur in seconds, 0 if unknown)
+Output: {"title", "folder", "videos":[{"id","title","dur","subId"?,"subFmt"?,"thumbId"?}]}  (dur in seconds, 0 if unknown)
 Titles drop the extension and a leading "<folder title> - " so cards read "Chapter 1 - ...".
 Files are sorted naturally (Chapter 2 before Chapter 10). Run again after adding/replacing files.
 
@@ -21,6 +21,7 @@ import html, json, re, sys, urllib.parse, urllib.request
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
 VIDEO_EXT = re.compile(r"\.(mp4|mkv|m4v|mov|webm|avi)$", re.I)
 SUB_EXT = re.compile(r"\.(srt|vtt)$", re.I)
+IMG_EXT = re.compile(r"\.(jpe?g|png|webp)$", re.I)
 
 
 def get(url):
@@ -64,6 +65,14 @@ def main():
         ep = episode_no(key)
         if ep is not None:
             by_ep.setdefault(ep, []).append(sub)
+    # Thumbnails the same way: an image file named like the video (or with its episode number) is the
+    # card picture and poster; without one the page falls back to Drive's own thumbnail (the first frame).
+    imgs = {IMG_EXT.sub("", n).lower(): fid for fid, n in names if IMG_EXT.search(n)}
+    img_by_ep = {}
+    for key, fid in imgs.items():
+        ep = episode_no(key)
+        if ep is not None:
+            img_by_ep.setdefault(ep, []).append(fid)
     files.sort(key=lambda f: natural_key(f[1]))
     prefix = title + " - "
     videos = []
@@ -78,7 +87,14 @@ def main():
             sub = cands[0] if len(cands) == 1 else None  # ambiguous numbers pair nothing
         if sub:
             v["subId"], v["subFmt"] = sub
-        print(name, "(sub: %s)" % sub[1] if sub else "")
+        base = VIDEO_EXT.sub("", name).lower()
+        img = imgs.get(base)
+        if not img:
+            cands = img_by_ep.get(episode_no(name), [])
+            img = cands[0] if len(cands) == 1 else None
+        if img:
+            v["thumbId"] = img
+        print(name, "(sub: %s)" % sub[1] if sub else "", "(thumb)" if img else "")
         videos.append(v)
     data = {"title": title, "folder": folder, "videos": videos}
     with open(out, "w", encoding="utf-8") as f:

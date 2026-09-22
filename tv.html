@@ -417,7 +417,7 @@ async function fetchHome(){
     }
     if(s.type==="drive"){
       const d=tt[s.id], videos=d.videos||[]; // tile: the first file's Drive thumbnail
-      return { title:d.title||s.id, thumb:{s:videos[0]?driveThumb(videos[0].id,1280):"",ss:""}, avatar:"", type:"Series", drive:true, count:videos.length||null, videos };
+      return { title:d.title||s.id, thumb:{s:videos[0]?driveCover(videos[0],1280):"",ss:""}, avatar:"", type:"Series", drive:true, count:videos.length||null, videos };
     }
     const {it,thumb}=ch[s.id]; if(!it) throw new Error("Channel not found: "+s.handle);
     return { title:decode(it.snippet.title), thumb:thumb||thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
@@ -618,8 +618,11 @@ const driveUrl=id=>"https://www.googleapis.com/drive/v3/files/"+encodeURICompone
 const driveThumb=(id,w)=>"https://drive.google.com/thumbnail?id="+encodeURIComponent(id)+"&sz=w"+(w||640);
 async function fetchDrive(file){
   const j=await fetchJson(file+"?t="+Date.now(),{cache:"no-store"});
-  return { title:decode(j.title||""), videos:(j.videos||[]).map(v=>({ id:String(v.id), title:decode(v.title||""), dur:+v.dur||0, subId:v.subId||"", subFmt:v.subFmt||"" })) };
+  return { title:decode(j.title||""), videos:(j.videos||[]).map(v=>({ id:String(v.id), title:decode(v.title||""), dur:+v.dur||0, subId:v.subId||"", subFmt:v.subFmt||"", thumbId:v.thumbId||"" })) };
 }
+// Card picture: an image file paired with the video in the folder (served through the Drive API like the video),
+// else Drive's own thumbnail of the file, which is its first frame (black for most films).
+const driveCover=(v,w)=>v.thumbId?driveUrl(v.thumbId):driveThumb(v.id,w);
 // A .srt/.vtt in the folder named like the video (scripts/drive_folder.py pairs them) is fetched through the
 // Drive API like the video itself and handed to a <track> as a blob: URL (SRT is turned into WebVTT here).
 const srtToVtt=t=>"WEBVTT\n\n"+t.replace(/^﻿/,"").replace(/\r/g,"").replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g,"$1.$2");
@@ -641,7 +644,7 @@ async function showDrive(id,seq){
     navTitle.textContent=d.title||id;
     const fi=[...gridEl.children].indexOf(document.activeElement);
     gridEl.innerHTML=""; positions={};
-    const list=d.videos.map(v=>({ id:v.id, title:v.title, ch:"", th:{s:driveThumb(v.id),ss:""}, dur:v.dur?fmtSecs(v.dur):"", views:0, pub:"", subId:v.subId, subFmt:v.subFmt }));
+    const list=d.videos.map(v=>({ id:v.id, title:v.title, ch:"", th:{s:driveCover(v),ss:""}, dur:v.dur?fmtSecs(v.dur):"", views:0, pub:"", subId:v.subId, subFmt:v.subFmt }));
     list.forEach((v,i)=>gridEl.appendChild(card(v,()=>openDrive(list,i))));
     refocus(gridEl,fi); stateEl.hidden=true;
     if(!list.length) showState("No videos here yet.");
