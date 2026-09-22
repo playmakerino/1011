@@ -69,6 +69,7 @@
      so it keeps its size for pre-buffering) and is simply covered while the video is on. */
   .player video{position:absolute; inset:0; width:100%; height:100%; background:#000; object-fit:contain; z-index:1}
   .player.dv iframe{visibility:hidden}
+  .player video::cue{background:rgba(0,0,0,.6); color:#fff; font-size:4.5vh; line-height:1.3}
   .toast{position:absolute; left:50%; bottom:14%; transform:translateX(-50%); z-index:2; background:rgba(0,0,0,.8); color:#fff; font-size:22px; font-weight:500; padding:10px 18px; border-radius:10px; pointer-events:none; white-space:nowrap}
   /* Seek bar, drawn exactly where the embed draws its own (www-player.css, .ytp-embed, not big mode — big
      mode needs the iframe itself fullscreen, which never happens here): controls inset 12px each side;
@@ -617,13 +618,14 @@ const driveUrl=id=>"https://www.googleapis.com/drive/v3/files/"+encodeURICompone
 const driveThumb=(id,w)=>"https://drive.google.com/thumbnail?id="+encodeURIComponent(id)+"&sz=w"+(w||640);
 async function fetchDrive(file){
   const j=await fetchJson(file+"?t="+Date.now(),{cache:"no-store"});
-  return { title:decode(j.title||""), videos:(j.videos||[]).map(v=>({ id:String(v.id), title:decode(v.title||""), dur:+v.dur||0 })) };
+  return { title:decode(j.title||""), videos:(j.videos||[]).map(v=>({ id:String(v.id), title:decode(v.title||""), dur:+v.dur||0, sub:v.sub||"" })) };
 }
 const fmtSecs=s=>{ s=Math.max(0,Math.floor(s||0)); const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60,p=n=>String(n).padStart(2,"0"); return h? h+":"+p(m)+":"+p(x):m+":"+p(x); };
 async function showDrive(id,seq){
   const src=SOURCES.find(s=>s.id===id&&s.type==="drive");
   if(!src){ location.replace("#home"); return; }
   cur={kind:"drive",key:id,token:"",done:true,pages:1}; currentTopSource=id; currentAvatar="";
+  currentSubs=src.subs!==false; // the file's caption track (drive/subs/<id>.vtt) is shown unless the source says subs:false
   navEl.hidden=false; navTitle.textContent=meta[id]?.title||"…"; setView("grid");
   let painted=false;
   const paint=d=>{
@@ -631,7 +633,7 @@ async function showDrive(id,seq){
     navTitle.textContent=d.title||id;
     const fi=[...gridEl.children].indexOf(document.activeElement);
     gridEl.innerHTML=""; positions={};
-    const list=d.videos.map(v=>({ id:v.id, title:v.title, ch:"", th:{s:driveThumb(v.id),ss:""}, dur:v.dur?fmtSecs(v.dur):"", views:0, pub:"" }));
+    const list=d.videos.map(v=>({ id:v.id, title:v.title, ch:"", th:{s:driveThumb(v.id),ss:""}, dur:v.dur?fmtSecs(v.dur):"", views:0, pub:"", sub:v.sub }));
     list.forEach((v,i)=>gridEl.appendChild(card(v,()=>openDrive(list,i))));
     refocus(gridEl,fi); stateEl.hidden=true;
     if(!list.length) showState("No videos here yet.");
@@ -957,13 +959,18 @@ function dvPlay(list,i){
   const v=list[i];
   playerEl.classList.add("dv"); dvEl.hidden=false;
   dvEl.poster=v.th.s; dvEl.src=driveUrl(v.id);
+  dvEl.querySelectorAll("track").forEach(t=>t.remove());
+  if(v.sub&&currentSubs){ // subtitles: the file's WebVTT copy in the repo (same origin, so no CORS needed)
+    const t=document.createElement("track"); t.kind="subtitles"; t.src=v.sub; t.default=true; dvEl.appendChild(t);
+    try{ t.track.mode="showing"; }catch(_){}
+  }
   toast("Loading…",0);
   dvEl.play().catch(()=>{}); // sound from the start: this WebView can't unmute a video that began muted
 }
 function dvStop(){
   if(!dvList) return;
   dvList=null; dvIndex=-1;
-  try{ dvEl.pause(); dvEl.removeAttribute("src"); dvEl.load(); }catch(_){}
+  try{ dvEl.pause(); dvEl.removeAttribute("src"); dvEl.querySelectorAll("track").forEach(t=>t.remove()); dvEl.load(); }catch(_){}
   dvEl.hidden=true; playerEl.classList.remove("dv");
 }
 dvEl.addEventListener("playing",()=>toast.hide());
