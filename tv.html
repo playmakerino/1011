@@ -418,7 +418,7 @@ async function fetchHome(){
     }
     if(s.type==="drive"){
       const d=tt[s.id], videos=d.videos||[]; // tile: the first file's Drive thumbnail
-      return { title:d.title||s.id, thumb:{s:videos[0]?driveCover(videos[0],1280):"",ss:""}, avatar:"", type:"Series", drive:true, count:videos.length||null, videos };
+      return { title:d.title||s.id, thumb:{s:videos[0]?driveCover(videos[0],1280):"",ss:""}, avatar:"", type:videos.length===1?"Video":"Series", drive:true, count:videos.length>1?videos.length:null, videos };
     }
     const {it,thumb}=ch[s.id]; if(!it) throw new Error("Channel not found: "+s.handle);
     return { title:decode(it.snippet.title), thumb:thumb||thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
@@ -436,7 +436,9 @@ async function renderHome(seq){
     const fi=[...homeEl.children].indexOf(document.activeElement);
     homeEl.innerHTML="";
     byRecent(RECENT_SRC,SOURCES.map((s,i)=>({s,m:metas[i]})),p=>p.s.id).forEach(({s,m})=>{
-      const go=(s.type==="video")
+      const go=(s.type==="drive"&&m.videos?.length===1)
+        ? ()=>{ currentTopSource=s.id; currentSubs=s.subs!==false; openDrive(m.videos.map(driveItem),0); } // a single film: play it straight away
+        : (s.type==="video")
         ? (s.videoIds.length>1
             ? ()=>{ location.hash="v/"+s.id; } // several parts: open them as a small playlist
             : ()=>{ currentTopSource=s.id; currentSubs=s.subs!==false; currentAutoNextList=""; currentAutoNextFilter=false; openVideos(s.videoIds); })
@@ -633,6 +635,7 @@ async function fetchSub(id,fmt){
   return URL.createObjectURL(new Blob([t],{type:"text/vtt"}));
 }
 const fmtSecs=s=>{ s=Math.max(0,Math.floor(s||0)); const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60,p=n=>String(n).padStart(2,"0"); return h? h+":"+p(m)+":"+p(x):m+":"+p(x); };
+const driveItem=v=>({ id:v.id, title:v.title, ch:"", th:{s:driveCover(v),ss:""}, dur:v.dur?fmtSecs(v.dur):"", views:0, pub:"", subId:v.subId, subFmt:v.subFmt });
 async function showDrive(id,seq){
   const src=SOURCES.find(s=>s.id===id&&s.type==="drive");
   if(!src){ location.replace("#home"); return; }
@@ -645,7 +648,7 @@ async function showDrive(id,seq){
     navTitle.textContent=d.title||id;
     const fi=[...gridEl.children].indexOf(document.activeElement);
     gridEl.innerHTML=""; positions={};
-    const list=d.videos.map(v=>({ id:v.id, title:v.title, ch:"", th:{s:driveCover(v),ss:""}, dur:v.dur?fmtSecs(v.dur):"", views:0, pub:"", subId:v.subId, subFmt:v.subFmt }));
+    const list=d.videos.map(driveItem);
     list.forEach((v,i)=>gridEl.appendChild(card(v,()=>openDrive(list,i))));
     refocus(gridEl,fi); stateEl.hidden=true;
     if(!list.length) showState("No videos here yet.");
