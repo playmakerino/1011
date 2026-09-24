@@ -406,7 +406,7 @@ async function fetchHome(){
     if(s.type==="video"){
       const it=byVid[s.videoIds[0]]; // a single request covered every "video" tile's first id (its cover)
       return { title:s.title||(it?decode(it.snippet.title):"Video"), thumb:it?thumbs(it.snippet.thumbnails):{s:"",ss:""},
-               avatar:"", type:"Video", video:true, videoIds:s.videoIds, count:s.videoIds.length>1?s.videoIds.length:null };
+               avatar:"", type:"Movie", video:true, videoIds:s.videoIds, count:s.videoIds.length>1?s.videoIds.length:null };
     }
     if(s.type==="tiktok"){
       const d=tt[s.id], videos=d.videos||[];
@@ -418,7 +418,7 @@ async function fetchHome(){
     }
     if(s.type==="drive"){
       const d=tt[s.id], videos=d.videos||[]; // tile: the first file's Drive thumbnail
-      return { title:d.title||s.id, thumb:{s:videos[0]?driveCover(videos[0],1280):"",ss:""}, avatar:"", type:videos.length===1?"Video":"Series", drive:true, count:videos.length>1?videos.length:null, videos };
+      return { title:d.title||s.id, thumb:{s:videos[0]?driveCover(videos[0],1280):"",ss:""}, avatar:"", type:videos.length===1?"Movie":"Series", drive:true, count:videos.length>1?videos.length:null, videos };
     }
     const {it,thumb}=ch[s.id]; if(!it) throw new Error("Channel not found: "+s.handle);
     return { title:decode(it.snippet.title), thumb:thumb||thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
