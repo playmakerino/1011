@@ -52,7 +52,7 @@ def beats(path):
                 if 'empty="true"' in attr: continue
                 for s, tie, f, _, kids in re.findall(r'<note string="(\d)"( tiedNote="true")? value="(\d+)" velocity="\d+"(/>|>(.*?)</note>)', body):
                     out.append(dict(m=mi+1, t=t, v=vi, s=int(s), f=int(f), tie=bool(tie),
-                                    dead='deadNote' in (kids or ''), hammer='hammer' in (kids or '')))
+                                    dead='deadNote' in (kids or ''), hammer='hammer' in (kids or ''), slide='slide' in (kids or '')))
     return out
 
 notes = beats(TG)
@@ -81,14 +81,19 @@ def bar_svg(m):
     o.append('<line class="tbar" x1="373.25" y1="48" x2="373.25" y2="138"/>')
     for p, name, root, deg in CHORDS.get(m, []):
         o.append(f'<text class="tch" x="{X0 + DX*p - 6}" y="30">{html.escape(name)}<tspan class="tdeg"> {deg}</tspan></text>')
-    # hammer-on / pull-off arcs between consecutive melody notes
+    # arcs between consecutive melody notes: h (hammer-on), p (pull-off), s (slide)
     mels = sorted([n for n in ns if n['role'] == 'mel'], key=lambda n: n['t'])
+    def arc(x1, x2, y, lab):
+        o.append(f'<path class="tslur" d="M{x1},{y} Q{(x1+x2)/2},{y-9} {x2},{y}"/>')
+        o.append(f'<text class="tslt" x="{(x1+x2)/2}" y="{y-6}" text-anchor="middle">{lab}</text>')
     for a, b in zip(mels, mels[1:]):
-        if False and a['hammer']:  # hammer/pull-off stay in the .tg; no h/p arcs on the page
-            x1, x2, y = X0 + DX*a['t'], X0 + DX*b['t'], min(sy(a['s']), sy(b['s'])) - 8
+        if a['hammer'] or a['slide']:
             up = T[b['s']-1] + b['f'] > T[a['s']-1] + a['f']
-            o.append(f'<path class="tslur" d="M{x1},{y} Q{(x1+x2)/2},{y-9} {x2},{y}"/>')
-            o.append(f'<text class="tslt" x="{(x1+x2)/2}" y="{y-6}" text-anchor="middle">{"h" if up else "p"}</text>')
+            arc(X0 + DX*a['t'], X0 + DX*b['t'], min(sy(a['s']), sy(b['s'])) - 8, 's' if a['slide'] else ('h' if up else 'p'))
+    # slide across the bar line: arc from the left edge of this bar to its first melody note
+    prev = sorted([n for n in notes if n['m'] == m - 1 and n['role'] == 'mel'], key=lambda n: n['t'])
+    if prev and prev[-1]['slide'] and mels:
+        arc(4, X0 + DX*mels[0]['t'], sy(mels[0]['s']) - 8, 's')
     for n in ns:
         x, y = X0 + DX*n['t'], sy(n['s'])
         txt = 'x' if n['dead'] else (f"({n['f']})" if n['tie'] else str(n['f']))
