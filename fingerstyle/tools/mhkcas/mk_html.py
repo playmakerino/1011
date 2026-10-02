@@ -126,7 +126,7 @@ for m in range(1, 25):
     body.append(f'<div class="bar"><div class="tgs"><span class="tk">{html.escape(LABEL[m])}</span>{extra}</div>{bar_svg(m)}</div>')
 body.append('</div>')
 page = ('<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">\n'
-        '<title>mhkcas – tab fingerstyle</title>\n' + css + '</style></head>\n<body>\n<div class="page">\n<div class="capo">Capo 6</div>\n'
+        '<title>Mùa hạ không còn ánh sáng – tab fingerstyle</title>\n' + css + '</style></head>\n<body>\n<div class="page">\n<div class="capo">Capo 6</div>\n'
         + ''.join(body) + '</div></body></html>')
 open(OUT, 'w', encoding='utf8', newline='\n').write(page)
 print('notes', len(notes), 'mel', sum(n['role'] == 'mel' for n in notes), 'slap', sum(n['role'] == 'slap' for n in notes))

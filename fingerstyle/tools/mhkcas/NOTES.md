@@ -1,4 +1,4 @@
-# mhkcas — ghi chú bản phối
+# Mùa hạ không còn ánh sáng (mhkcas) — ghi chú bản phối
 
 Phong cách dưới đây là của **riêng bài này** (đã chốt qua nhiều lần nghe thử), không áp cho bài khác.
 
