@@ -19,7 +19,7 @@ C · G/B · Am7 | Fmaj7 · G · C · A7 | Dm7 · G · G7 · Em7 · Am7 · G#7 | 
 - Ô giai điệu nghỉ (5, 9, 13, 17) có câu nối. Ô 17: câu nối đi xuống D–B–A, bass B nối sang C.
 - **Slap đúng 1 cái ở phách 3, mỗi ô 2–24.** Ô đổi hợp âm ở phách 3 (8, 12) → bass mới ở phách 4; ô 21 E7 ở phách 4 cũng có bass E.
 - "let ring" ghi một lần ở ô 2, không gắn từng nốt. Không vibrato.
-- Luyến: 6 hammer/pull-off có sẵn từ file gốc; slide ở ô 7 (A→F#), ô 23 (A→C) và ô 23→24 (B→A). Trang HTML không vẽ chú thích luyến.
+- Luyến: 6 hammer/pull-off có sẵn từ file gốc; slide ở ô 7 (A→F#), ô 23 (A→C) và ô 23→24 (B→A). Trang HTML vẽ cung h / p / s, nhưng nhãn ô không nhắc tới luyến.
 
 ## Chạy lại
 ```
