@@ -8,6 +8,7 @@ Ghi chú cho lần sau khi làm trang tab có chú thích (ví dụ `fingerstyle
 - Không có dark mode (chỉ nền sáng).
 - Có 2 phiên bản (capo / không capo) thì xếp trên – dưới, capo ở trên. Tab của bản nào nằm ngay trong khung bản đó.
 - Tab cả bài: chỉ làm bản capo nếu không được yêu cầu khác.
+- Các mục dưới về màu, cách vẽ, nhãn là quy ước trang tab (dùng cho mọi bài). Phong cách đệm thì riêng từng bài (xem "Quy trình bài mới").
 - Không commit/push git trừ khi được yêu cầu. Push phải thẳng lên `main` (xem CLAUDE.md).
 
 ## Màu
@@ -47,3 +48,24 @@ Ghi chú cho lần sau khi làm trang tab có chú thích (ví dụ `fingerstyle
 
 ## Giao file
 - Ghi đè `D:\1011\fingerstyle\guide.html` (tab cả bài tách riêng ở `fingerstyle\laviem.html`, bài mới thêm vào `fingerstyle\tabs.html`) (dùng CRLF) và bản trên Desktop `fingerstyle_khong_can_tab.html` nếu có.
+
+## Quy trình bài mới (rút ra từ bài mhkcas)
+- Phong cách đệm (mật độ, slap, bass, độ dồn) là **riêng từng bài**, không phải gu chung. Mỗi bài ghi phong cách đã chốt vào `tools/<bài>/NOTES.md`. Bài mới: hỏi người dùng muốn vibe gì, đừng bê phong cách bài cũ.
+- Xin **vòng hợp âm gốc** ngay từ đầu. Hợp âm đoán từ giai điệu sai nhiều chỗ.
+- Làm file **.tg** cho người dùng nghe duyệt trước, xong mới làm HTML.
+- **Viết tay từng ô** (dữ liệu từng ô trong script), không sinh đệm bằng một quy tắc lặp cả bài: nghe máy móc, không có chỗ thưa/dày, câu nối, độ dồn.
+- Phân vân giữa vài hợp âm cho 1 ô → làm vài file chỉ khác đúng ô đó để người dùng nghe chọn, rồi xóa file thử.
+- Sao lưu file trước mỗi lần ghi đè. Sửa script bằng file .py (Write), không dùng `sed`/`python -c` với đường dẫn Windows (dấu `\` làm hỏng lệnh).
+- Sau khi xong: rà toàn bộ bằng `audit.py` (nốt ngoài hợp âm, chồng dây, độ dãn tay trái).
+
+## File .tg (TuxGuitar 2.0)
+- Zip gồm `version.txt` + `content.xml`. Capo = `<offset>` của track (đọc trước khi đoán giọng).
+- Tick: phách đen = 2882880, ô 1 bắt đầu ở 2882880. Mỗi `<TGBeat>` có 2 `<voice>`; `empty="true"` = bè không bắt đầu ở phách này; `empty="false"` không có nốt = dấu lặng. Mỗi bè phải đủ phách.
+- Hiệu ứng là thẻ con của `<note>`: `<hammer/>` (nốt đầu của hammer/pull), `<deadNote/>` (slap), `<letRing/>`, `<vibrato/>`. Nối: thuộc tính `tiedNote="true"`. Chữ cho phách: `<text>…</text>` ngay sau `<preciseStart>`.
+- `<letRing/>` gắn từng nốt sẽ hiện "lr" khắp tab → ghi chữ "let ring" một lần ở đầu bài.
+- Bè 0 = giai điệu + nốt hòa âm đánh cùng (cùng trường độ) + câu nối trong chỗ giai điệu nghỉ; bè 1 = bass ngân dài + slap. Bass để chung bè với nốt đệm thì bị cắt khi phát lại.
+- Không kiểm tra được bằng TuxGuitar trên máy (Java đi kèm thiếu trình biên dịch); tên thẻ lấy từ `tuxguitar-lib.jar` (`app/tuxguitar/io/tg/TGStream.class`).
+
+## Công cụ
+- `tools/<bài>/`: `melody.tg` (giai điệu người dùng duyệt), `mk_tg.py` (bản phối viết tay từng ô → .tg), `audit.py`, `mk_html.py` (vẽ trang tab theo bố cục `laviem.html`, lấy CSS từ `laviem.html`). Bài mới: copy thư mục `tools/mhkcas` rồi sửa dữ liệu.
+- Skill `fingerstyle-tab-sungha-style` không dùng (xuất .gp5 bằng pyguitarpro, máy không có; mặc định khác cách làm ở đây).
