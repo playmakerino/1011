@@ -165,14 +165,14 @@ table.map tbody tr:nth-child(even),table.deg tbody tr:nth-child(even){background
 .tdeg{font-weight:400;font-size:11px;fill:#666}.tnum{font:10px Arial,sans-serif;fill:#c0392b}
 .tiv{font:600 10.5px Arial,sans-serif}
 
-/* calmer palette: neutrals + note colors + 2 muted capo colors */
-:root{--c5:#4a7c74;--nc:#8b6f9e;--accent:#f0f2f5}
-.col.capo5,.col.nocapo{background:var(--bg)}
-.callout{background:var(--bg)}
-table.deg tr.borrow,table.prg tr.hl,table.cmp tr.hl{background:#e9ebee}
-.b0{background:#8a8d91}.b1{background:#65676b}.b2{background:#4b4f56}.b3{background:#3a3b3c}.b4{background:#65676b}.b5{background:#4b4f56}
-.tg.key{background:#e4e6eb;color:var(--fg);font-weight:700}
-.tnum{fill:#8a8d91}
+/* palette: note colors + their light tints */
+:root{--c5:#4a7c74;--nc:#8b6f9e;--accent:#fbefe9}
+.col.capo5{background:#eaf3f1}.col.nocapo{background:#f3eef7}
+.callout{background:var(--accent)}
+table.deg tr.borrow,table.prg tr.hl,table.cmp tr.hl{background:var(--accent)}
+.b0{background:var(--slap)}.b1{background:var(--mel)}.b2{background:var(--bass)}.b3{background:var(--walk)}.b4{background:var(--mid)}.b5{background:var(--c5)}
+.tg.key{background:var(--accent);color:var(--mel);font-weight:700}
+.tnum{fill:var(--mel)}
 </style></head><body>
 <svg width="0" height="0" style="position:absolute"><defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" opacity=".5"/></marker></defs></svg>
 <main>
