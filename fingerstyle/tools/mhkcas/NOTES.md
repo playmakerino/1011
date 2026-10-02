@@ -18,7 +18,7 @@ C · G/B · Am7 | Fmaj7 · G · C · A7 | Dm7 · G · G7 · Em7 · Am7 · G#7 | 
 - Câu 1 (ô 2–9) rất thưa, bass ngân cả ô; dày dần qua câu 2 (10–13), câu 3 (14–17); ô 18–24 dẫn vào cao trào nhưng **không dồn dập**.
 - Ô giai điệu nghỉ (5, 9, 13, 17) có câu nối. Ô 17: câu nối đi xuống D–B–A, bass B nối sang C.
 - **Slap đúng 1 cái ở phách 3, mỗi ô 2–24.** Ô đổi hợp âm ở phách 3 (8, 12) → bass mới ở phách 4; ô 21 E7 ở phách 4 cũng có bass E.
-- "let ring" ghi một lần ở ô 2, không gắn từng nốt. Không vibrato. Không hammer-on, pull-off.
+- "let ring" ghi một lần ở ô 2, không gắn từng nốt. Không vibrato.
 
 ## Chạy lại
 ```

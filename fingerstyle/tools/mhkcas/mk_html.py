@@ -84,7 +84,7 @@ def bar_svg(m):
     # hammer-on / pull-off arcs between consecutive melody notes
     mels = sorted([n for n in ns if n['role'] == 'mel'], key=lambda n: n['t'])
     for a, b in zip(mels, mels[1:]):
-        if a['hammer']:
+        if False and a['hammer']:  # hammer/pull-off stay in the .tg; no h/p arcs on the page
             x1, x2, y = X0 + DX*a['t'], X0 + DX*b['t'], min(sy(a['s']), sy(b['s'])) - 8
             up = T[b['s']-1] + b['f'] > T[a['s']-1] + a['f']
             o.append(f'<path class="tslur" d="M{x1},{y} Q{(x1+x2)/2},{y-9} {x2},{y}"/>')
