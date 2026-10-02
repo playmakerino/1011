@@ -45,15 +45,19 @@ svg.fb{display:block;max-width:100%;height:auto}
 .arrow{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:3 3}.ahead{fill:var(--muted)}
 
 .tw{overflow-x:auto;margin:10px 0}
-table.map,table.deg{border-collapse:collapse;width:100%;font-size:14px}
+table.map,table.deg{border-collapse:separate;border-spacing:0;width:100%;font-size:14px;line-height:1.4}
 table.deg{min-width:640px}
-table.map{display:block;overflow-x:auto}
-table.map th,table.map td,table.deg th,table.deg td{padding:6px 8px;text-align:center;vertical-align:middle}
-table.map th,table.deg th{color:var(--muted);font-weight:600;font-size:13px}
+table.map{display:block;overflow-x:auto;border-spacing:0 4px}
+table.map th,table.map td,table.deg th,table.deg td{padding:9px 12px;text-align:left;vertical-align:middle}
+table.map th,table.deg th{background:var(--bg);color:var(--muted);font-weight:600;font-size:12.5px}
+table.map th:first-child,table.deg th:first-child{border-radius:8px 0 0 8px}
+table.map th:last-child,table.deg th:last-child{border-radius:0 8px 8px 0}
+table.deg tbody tr:nth-child(even) td{background:#f7f8fa}
+table.map tbody td{background:#f7f8fa}table.map td[rowspan]{background:#eceef1;font-weight:600}
 td.l{text-align:left!important}
 table.deg td small{display:block;color:var(--muted);font-size:12px;line-height:1.3}
 td.c5c b{color:var(--c5);font-size:16px}td.ncc b{color:var(--nc);font-size:16px}
-tr.no{opacity:.45}tr.borrow,tr.hl{background:var(--hl)}
+tr.no{opacity:.45}tr.borrow td,tr.hl td{background:var(--hl)!important}
 .bp{display:block;font-size:12px;line-height:1.35}.bp i{font-style:normal;color:var(--muted)}
 table.cmp td:nth-child(3){min-width:250px}
 
