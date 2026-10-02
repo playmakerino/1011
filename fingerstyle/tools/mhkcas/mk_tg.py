@@ -82,10 +82,14 @@ VEL = {}  # (melody, harmony/fill, bass, slap) per bar
 for m in range(1, 25):
     VEL[m] = (95, 63, 63, 79) if m <= 9 else (95, 79, 79, 79) if m <= 13 else (111, 79, 79, 95) if m <= 17 else (111, 79, 79, 79)
 
-def note_xml(s, f, vel, tied=False, hammer=False):
+# melody notes that slide into the next melody note on the same string: (bar, pos)
+SLIDES = {(7, 0), (23, 2), (23, 5)}   # A->F# (5->2), A->C (5->8), B->A into bar 24 (7->5)
+
+def note_xml(s, f, vel, tied=False, hammer=False, slide=False):
     if f == X: return f'<note string="{s}" value="0" velocity="{vel}"><deadNote/></note>'
     a = f'<note string="{s}"' + (' tiedNote="true"' if tied else '') + f' value="{f}" velocity="{vel}"'
-    return a + ('><hammer/></note>' if hammer else '/>')
+    kids = ('<hammer/>' if hammer else '') + ('<slide/>' if slide else '')
+    return a + (f'>{kids}</note>' if kids else '/>')
 
 def dur_xml(ln):
     v, d = DUR[ln]
@@ -120,7 +124,7 @@ for mi in range(24):
             if s == e['s']: problems.append(f'M{m} harmony same string as melody at {e["pos"]}')
             frets = [x for x in [f, e['f']] if x > 0]
             if frets and max(frets) - min(frets) > 4: problems.append(f'M{m} stretch at {e["pos"]}')
-        nx = note_xml(e['s'], e['f'], vm, e['tied'], e['hammer']) + ''.join(note_xml(s, f, vh) for s, f in hs)
+        nx = note_xml(e['s'], e['f'], vm, e['tied'], e['hammer'], (m, e['pos']) in SLIDES) + ''.join(note_xml(s, f, vh) for s, f in hs)
         ev0.append((e['pos'], e['len'], nx))
         sounding0 += [(e['pos'], e['pos'] + e['len'], s) for s in [e['s']] + [s for s, _ in hs]]
     for p, ln, ns in a['f']:
