@@ -28,10 +28,8 @@ for mi, m in enumerate(measures):
         d = re.search(r'<duration( dotted="dotted")? value="(\d+)"', v0)
         s = int(re.search(r'string="(\d)"', n.group(1)).group(1)); f = int(re.search(r'value="(\d+)"', n.group(1)).group(1))
         ev.append(dict(pos=(st - Q - mi*MLEN)//E8, len=INV[(int(d.group(2)), 1 if d.group(1) else 0)],
-                       s=s, f=f, hammer='<hammer/>' in (n.group(3) or ''), tied='tiedNote' in n.group(1)))
+                       s=s, f=f, hammer=False, tied='tiedNote' in n.group(1)))
     mel.append(ev)
-for e in mel[11]:
-    if e['pos'] == 2: e['s'], e['f'] = 2, 5   # E4 on s2f5 so E->D pull-off stays on one string
 
 # h: harmony notes added to the melody note starting at pos
 # f: fills (pos, len, notes) inside melody rests (voice 0)
