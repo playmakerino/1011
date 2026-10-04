@@ -78,6 +78,13 @@ A = {
  24: dict(h={0:[(2,3),(3,2)]}, f=[(4,1,[(3,2)]),(5,1,[(2,3)]),(6,2,[(1,2)])],         # D, rising fill D-F#
           b=[(0,4,[(4,0)]),(4,4,[(6,X)])]),
 }
+# slap goes on the string of the next bass note (same bar, else next bar's first bass; last bar keeps its string)
+for m in A:
+    for i, (p, ln, ns) in enumerate(A[m]['b']):
+        if ns[0][1] != X: continue
+        nxt = [n for q, _, n in A[m]['b'] if q > p and n[0][1] != X] or [n for _, _, n in A.get(m + 1, {}).get('b', []) if n[0][1] != X]
+        if nxt: A[m]['b'][i] = (p, ln, [(nxt[0][0][0], X)])
+
 VEL = {}  # (melody, harmony/fill, bass, slap) per bar
 for m in range(1, 25):
     VEL[m] = (95, 63, 63, 79) if m <= 9 else (95, 79, 79, 79) if m <= 13 else (111, 79, 79, 95) if m <= 17 else (111, 79, 79, 79)
