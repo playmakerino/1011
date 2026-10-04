@@ -3,12 +3,12 @@ import zipfile, re, os
 HERE = os.path.dirname(os.path.abspath(__file__))
 T=[64,59,55,50,45,40]; Q=2882880; M=4*Q; E8=Q//2
 NM='C C# D D# E F F# G G# A A# B'.split()
-x=zipfile.ZipFile(os.path.join(HERE, 'mhkcas_capo6.tg')).read('content.xml').decode()
-CH={'G':'G B D','D/F#':'D F# A','Em7':'E G B D','Cmaj7':'C E G B','D':'D F# A','G/E7':None,'E7':'E G# B D',
-    'Am7':'A C E G','D7':'D F# A C','Bm7':'B D F# A','D#7':'D# G A# C#','Cm':'C D# G','B7':'B D# F# A'}
-PLAN={2:[(0,'G')],3:[(0,'D/F#')],4:[(0,'Em7')],5:[(0,'Em7')],6:[(0,'Cmaj7')],7:[(0,'D')],8:[(0,'G'),(4,'E7')],9:[(0,'Am7')],
- 10:[(0,'D')],11:[(0,'D7')],12:[(0,'Bm7'),(4,'Em7')],13:[(0,'E7')],14:[(0,'Am7')],15:[(0,'Am7')],16:[(0,'D')],17:[(0,'D')],
- 18:[(0,'Cmaj7'),(4,'Cm')],19:[(0,'Cm')],20:[(0,'Bm7')],21:[(0,'Em7'),(6,'E7')],22:[(0,'Am7')],23:[(0,'Am7')],24:[(0,'D')]}
+x=zipfile.ZipFile(os.path.join(HERE, 'mhkcas_capo1.tg')).read('content.xml').decode()
+CH={'C':'C E G','G/B':'G B D','Am7':'A C E G','Fmaj7':'F A C E','G':'G B D','A7':'A C# E G',
+    'Dm7':'D F A C','G7':'G B D F','Em7':'E G B D','Fm':'F G# C'}
+PLAN={2:[(0,'C')],3:[(0,'G/B')],4:[(0,'Am7')],5:[(0,'Am7')],6:[(0,'Fmaj7')],7:[(0,'G')],8:[(0,'C'),(4,'A7')],9:[(0,'Dm7')],
+ 10:[(0,'G')],11:[(0,'G7')],12:[(0,'Em7'),(4,'Am7')],13:[(0,'A7')],14:[(0,'Dm7')],15:[(0,'Dm7')],16:[(0,'G')],17:[(0,'G')],
+ 18:[(0,'Fmaj7'),(4,'Fm')],19:[(0,'Fm')],20:[(0,'Em7')],21:[(0,'Am7'),(6,'A7')],22:[(0,'Dm7')],23:[(0,'Dm7')],24:[(0,'G')]}
 def chord_at(m,t):
     c=None
     for p,n in PLAN.get(m,[]):

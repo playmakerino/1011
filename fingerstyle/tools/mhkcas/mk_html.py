@@ -2,7 +2,7 @@
 import re, zipfile, html
 import os
 HERE = os.path.dirname(os.path.abspath(__file__))
-TG = os.path.join(HERE, "mhkcas_capo6.tg")
+TG = os.path.join(HERE, "mhkcas_capo1.tg")
 MEL = os.path.join(HERE, "melody.tg")
 OUT = os.path.join(HERE, "..", "..", "mhkcas.html")
 LAV = os.path.join(HERE, "..", "..", "laviem.html")
@@ -11,25 +11,25 @@ DV = {'1': 8, '2': 4, '4': 2, '8': 1}
 PC = {n: i for i, n in enumerate('C C# D D# E F F# G G# A A# B'.split())}
 
 CHORDS = {  # bar -> [(pos, name, root, degree)]
- 2:[(0,'G','G','I')], 3:[(0,'D/F#','D','V')], 4:[(0,'Em7','E','vi')], 5:[(0,'Em7','E','vi')],
- 6:[(0,'Cmaj7','C','IV')], 7:[(0,'D','D','V')], 8:[(0,'G','G','I'),(4,'E7','E','V/ii')], 9:[(0,'Am7','A','ii')],
- 10:[(0,'D','D','V')], 11:[(0,'D7','D','V')], 12:[(0,'Bm7','B','iii'),(4,'Em7','E','vi')], 13:[(0,'E7','E','V/ii')],
- 14:[(0,'Am7','A','ii')], 15:[(0,'Am7','A','ii')], 16:[(0,'D','D','V')], 17:[(0,'D','D','V')],
- 18:[(0,'Cmaj7','C','IV'),(4,'Cm','C','iv')], 19:[(0,'Cm','C','iv')], 20:[(0,'Bm7','B','iii')],
- 21:[(0,'Em7','E','vi'),(6,'E7','E','V/ii')], 22:[(0,'Am7','A','ii')], 23:[(0,'Am7','A','ii')], 24:[(0,'D','D','V')],
+ 2:[(0,'C','C','I')], 3:[(0,'G/B','G','V')], 4:[(0,'Am7','A','vi')], 5:[(0,'Am7','A','vi')],
+ 6:[(0,'Fmaj7','F','IV')], 7:[(0,'G','G','V')], 8:[(0,'C','C','I'),(4,'A7','A','V/ii')], 9:[(0,'Dm7','D','ii')],
+ 10:[(0,'G','G','V')], 11:[(0,'G7','G','V')], 12:[(0,'Em7','E','iii'),(4,'Am7','A','vi')], 13:[(0,'A7','A','V/ii')],
+ 14:[(0,'Dm7','D','ii')], 15:[(0,'Dm7','D','ii')], 16:[(0,'G','G','V')], 17:[(0,'G','G','V')],
+ 18:[(0,'Fmaj7','F','IV'),(4,'Fm','F','iv')], 19:[(0,'Fm','F','iv')], 20:[(0,'Em7','E','iii')],
+ 21:[(0,'Am7','A','vi'),(6,'A7','A','V/ii')], 22:[(0,'Dm7','D','ii')], 23:[(0,'Dm7','D','ii')], 24:[(0,'G','G','V')],
 }
-TONES = {'G':'G B D','D/F#':'D F# A','Em7':'E G B D','Cmaj7':'C E G B','D':'D F# A','E7':'E G# B D','Am7':'A C E G',
-         'D7':'D F# A C','Bm7':'B D F# A','Cm':'C D# G'}
+TONES = {'C':'C E G','G/B':'G B D','Am7':'A C E G','Fmaj7':'F A C E','G':'G B D','A7':'A C# E G','Dm7':'D F A C',
+         'G7':'G B D F','Em7':'E G B D','Fm':'F G# C'}
 LABEL = {
  1:'lấy đà, chưa có hợp âm',
- 2:'mở câu: bass G ngân cả ô', 3:'bass F#: hợp âm đảo', 4:'Em7: giai điệu đi xuống',
- 5:'giai điệu nghỉ: câu nối nhắc lại D–B', 6:'Cmaj7: B dưới E tạo màu maj7', 7:'D: 3 nốt cùng lúc ở phách 1',
- 8:'E7 ở phách 3: G# dẫn về Am7', 9:'giai điệu nghỉ: rải Am7 đi lên',
- 10:'D: E ở trên tạo màu 9th', 11:'D7: quãng C–F# tạo độ căng', 12:'Bm7 rồi Em7 ở phách 3',
- 13:'E7: rải E–G#–B–D, dẫn về Am7',
- 14:'Am7: hòa âm dày hơn', 15:'câu nối C–B', 16:'D: giai điệu B là 6th', 17:'câu nối đi xuống D–B–A, bass B nối sang C',
- 18:'Cmaj7 rồi Cm (hợp âm mượn): Eb trong câu nối', 19:'Cm: A là 6th', 20:'Bm7: rải đi lên tới F#',
- 21:'Em7 rồi E7 ở phách 4', 22:'Am7: câu nối G–C', 23:'lên phím 8, bass dây buông', 24:'dừng ở D (bậc V), chờ cao trào',
+ 2:'mở câu: bass C ngân cả ô', 3:'bass B: hợp âm đảo, bấm ở phím 7', 4:'Am7: giai điệu đi xuống',
+ 5:'giai điệu nghỉ: câu nối nhắc lại G–E', 6:'Fmaj7: E dưới A tạo màu maj7', 7:'G: chặn phím 10, 4 nốt cùng lúc',
+ 8:'A7 ở phách 3: C# dẫn về Dm7', 9:'giai điệu nghỉ: rải Dm7 đi lên',
+ 10:'G: A ở trên tạo màu 9th', 11:'G7: quãng F–B tạo độ căng', 12:'Em7 rồi Am7 ở phách 3',
+ 13:'A7: rải A–C#–E–G, dẫn về Dm7',
+ 14:'Dm7: hòa âm dày hơn', 15:'câu nối F–E', 16:'G: giai điệu E là 6th', 17:'câu nối đi xuống G–E–D, bass E nối sang F',
+ 18:'Fmaj7 rồi Fm (hợp âm mượn): Ab trong câu nối', 19:'Fm: D là 6th', 20:'Em7: rải đi lên tới B',
+ 21:'Am7 rồi A7 ở phách 4', 22:'Dm7: câu nối C–F', 23:'lên phím 13, bass dây buông', 24:'dừng ở G (bậc V), chờ cao trào',
 }
 SECTIONS = {1:'Lấy đà', 2:'Câu 1 (ô 2–9)', 10:'Câu 2 (ô 10–13)', 14:'Câu 3 (ô 14–17)', 18:'Dẫn vào cao trào (ô 18–24)'}
 
@@ -56,10 +56,10 @@ def beats(path):
     return out
 
 notes = beats(TG)
-melset = {(n['m'], n['t'], n['s'], n['f']) for n in beats(MEL) if n['v'] == 0}
+melset = {(n['m'], n['t'], T[n['s']-1] + n['f'] + 5) for n in beats(MEL) if n['v'] == 0}  # melody.tg is G shapes capo 6
 mel_first = set()
 for n in notes:   # melody = first note of the v0 beat that matches the user's melody
-    if n['v'] == 0 and (n['m'], n['t'], n['s'], n['f']) in melset and (n['m'], n['t']) not in mel_first:
+    if n['v'] == 0 and (n['m'], n['t'], T[n['s']-1] + n['f']) in melset and (n['m'], n['t']) not in mel_first:
         n['role'] = 'mel'; mel_first.add((n['m'], n['t']))
 for n in notes:
     if 'role' in n: continue
@@ -131,7 +131,7 @@ for m in range(1, 25):
     body.append(f'<div class="bar"><div class="tgs"><span class="tk">{html.escape(LABEL[m])}</span>{extra}</div>{bar_svg(m)}</div>')
 body.append('</div>')
 page = ('<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">\n'
-        '<title>Mùa hạ không còn ánh sáng – tab fingerstyle</title>\n' + css + '</style></head>\n<body>\n<div class="page">\n<div class="capo">Capo 6</div>\n'
+        '<title>Mùa hạ không còn ánh sáng – tab fingerstyle</title>\n' + css + '</style></head>\n<body>\n<div class="page">\n<div class="capo">Capo 1</div>\n'
         + ''.join(body) + '</div></body></html>')
 open(OUT, 'w', encoding='utf8', newline='\n').write(page)
 print('notes', len(notes), 'mel', sum(n['role'] == 'mel' for n in notes), 'slap', sum(n['role'] == 'slap' for n in notes))
