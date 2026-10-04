@@ -36,6 +36,9 @@ Ghi chú cho lần sau khi làm trang tab có chú thích (ví dụ `fingerstyle
 - Các nhãn thường tự sinh: "đổi hợp âm ở phách 3", "walk bass", "bass là 3rd (hợp âm đảo)", "đệm tạo màu maj7", "slap phách 2 & 4", "hammer-on", "pull-off", "slide".
 - Đầu mục có 1 ô chú giải các từ (root, 5th, 3rd, walk, maj7, bậc) và 1 ô "Cách đọc tab". Không lặp lại giải thích ở từng ô.
 
+- Nốt màu: ghi ngay trong dòng chú thích dưới ô, dạng `màu A7: C# (3rd, ngoài giọng Đô, kéo lên D, dây 2 phím 2)`. Không làm bảng hay đoạn văn giải thích riêng. laviem/mhkcas: chạy `python tools/color_tags.py` sau khi sinh lại trang; ttlt tự sinh trong `mk_html.py`.
+- Đầu trang: chỉ ghi capo nếu có capo. Không đoạn giới thiệu, không ghi "let ring".
+
 - Slap: chỉ 1 dây, là dây của nốt bass kế tiếp (áp dụng mọi bài).
 
 ## Cấu trúc mục tab cả bài

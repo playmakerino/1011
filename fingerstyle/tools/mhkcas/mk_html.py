@@ -127,7 +127,7 @@ for m in range(1, 25):
     if m in SECTIONS:
         if body: body.append('</div>')
         body.append(f'<h3 class="sub">{SECTIONS[m]}</h3><div class="sys">')
-    extra = '<span class="tn">let ring cả bài</span>' if m == 2 else ''
+    extra = ''
     body.append(f'<div class="bar"><div class="tgs"><span class="tk">{html.escape(LABEL[m])}</span>{extra}</div>{bar_svg(m)}</div>')
 body.append('</div>')
 page = ('<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">\n'
