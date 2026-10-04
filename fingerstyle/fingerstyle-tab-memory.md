@@ -36,6 +36,8 @@ Ghi chú cho lần sau khi làm trang tab có chú thích (ví dụ `fingerstyle
 - Các nhãn thường tự sinh: "đổi hợp âm ở phách 3", "walk bass", "bass là 3rd (hợp âm đảo)", "đệm tạo màu maj7", "slap phách 2 & 4", "hammer-on", "pull-off", "slide".
 - Đầu mục có 1 ô chú giải các từ (root, 5th, 3rd, walk, maj7, bậc) và 1 ô "Cách đọc tab". Không lặp lại giải thích ở từng ô.
 
+- Slap: chỉ 1 dây, là dây của nốt bass kế tiếp (áp dụng mọi bài).
+
 ## Cấu trúc mục tab cả bài
 - Chia theo đoạn: lấy đà, lời 1, điệp khúc 1, điệp khúc 2 và kết.
 - Đoạn lặp giống hệt (ví dụ lời 2 chỉ thêm slap phách 4) thì **không ghi lại**, chỉ nói một câu ở phần giới thiệu.
