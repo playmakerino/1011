@@ -4,6 +4,7 @@
 # Units: 16th notes (16 per bar). Bars keyed by sheet number; PLAY gives the order with the repeat unrolled.
 import os
 from tablib import SONGS, PAGES, TUNE, Q, X, pitch
+import accomp as A
 
 TITLE = 'Tâm trí lang thang'; TG_NAME = 'Tam tri lang thang'
 CAPO = 0; TEMPO = 116; STEP = Q // 4; BAR = 16
@@ -74,98 +75,44 @@ BASS = {'Fmaj7': {'R': (6, 1), '5': (5, 3), '3': (5, 0)}, 'Fm6': {'R': (6, 1), '
         'Em7': {'R': (6, 0), '5': (5, 2), '3': (6, 3)}, 'A7': {'R': (5, 0), '5': (6, 0), '3': (5, 4)},
         'Dm7': {'R': (4, 0), '5': (5, 0), '3': (6, 1)}, 'G': {'R': (6, 3), '5': (4, 0), '3': (5, 2)},
         'Cmaj7': {'R': (5, 3), '5': (6, 3), '3': (6, 0)}}
-# harmony candidates (auto 'H'): highest one below the melody, other string, string not used by bass
-HC = {'Fmaj7': [(2, 1), (3, 2), (4, 3), (4, 2)], 'Fm6': [(2, 3), (2, 1), (3, 1), (4, 3), (4, 0)],
-      'Em7': [(2, 3), (2, 0), (3, 0), (4, 2), (4, 0)], 'A7': [(2, 2), (3, 0), (4, 2), (3, 2)],
-      'Dm7': [(2, 1), (2, 3), (3, 2), (4, 3)], 'G': [(2, 3), (2, 0), (3, 0), (4, 0)],
-      'Cmaj7': [(2, 0), (2, 1), (3, 0), (4, 2)]}
-
-# ---- arrangement, one line per bar ----
-# b: bass tokens 'R:4 x:4 5:4 x:4' (x = slap, r = rest, s.f = explicit)
-# h: melody positions that get one auto chord tone, or {pos: [(s,f),..]} explicit (allowed on a tied note)
-# f: fills in melody rests (pos, len, [(s,f)..])
+# ---- bass line, one entry per bar: 'R:4 x:4 5:4 x:4' (R/5/3 of the chord or s.f explicit, x = slap, r = rest) ----
 G4 = 'R:4 x:4 5:4 x:4'            # the groove: bass on 1 & 3, slap on 2 & 4
 TO_C = 'R:4 x:4 5:4 x:2 3:2'       # G: B on the last eighth leads to C
 TO_F = 'R:4 x:4 5:4 x:2 6.0:2'     # C -> F: E on the last eighth
 TO_A = 'R:4 x:4 5:4 x:2 6.4:2'     # Em7 -> A7: G# on the last eighth
-A = {
- # --- intro, first pass: light, bass rings 3 beats, one slap on 4 ---
- 1:  dict(b='r:16'),
- 2:  dict(b='R:12 x:4', h=[0, 8]),                      # Fmaj7
- 3:  dict(b='R:12 x:4', h=[0, 8]),                      # Fm6: Ab under D, F under the low G
- 4:  dict(b='R:12 x:4', h=[0, 8]),                      # Em7
- 5:  dict(b='R:12 x:4', h=[0, 8]),                      # A7
- 6:  dict(b='R:12 x:4', h=[0, 8]),                      # Dm7
- 7:  dict(b='5:12 x:4', h=[0, 8]),                      # Dm7 (no symbol on the sheet), bass A frees string 4
- 8:  dict(b='R:12 x:4', h=[0, {8: [(2, 0)]}]),          # Cmaj7, B under E = maj7
- 9:  dict(b=G4, h=[0, 8]),                              # groove starts
- # --- intro, second pass ---
- 10: dict(b=G4, h=[8]),
- 11: dict(b=G4, h=[0, 12]),
- 12: dict(b=TO_A, h=[8]),
- 13: dict(b=G4, h=[0, 8]),
- 14: dict(b=G4, h=[0, 8]),
- 15: dict(b=TO_C, h=[0, 8]),
- 16: dict(b=G4, h=[2, {12: [(2, 0)]}]),
- 17: dict(b=TO_F, f=[(0, 4, [(4, 2), (3, 0), (2, 0)])]),   # Cmaj7 strum in the rest, E -> F
- # --- verse (bars 17-32 are played twice) ---
- 18: dict(b=G4, h=[0, 8]),
- 19: dict(b=G4, h=[0, 12]),
- 20: dict(b=TO_A, h=[0, 8]),
- 21: dict(b=G4, h=[0, 8]),
- 22: dict(b=G4, h=[0, 8]),
- 23: dict(b=TO_C, h=[2, 8]),
- 24: dict(b=G4, h=[2, 8]),
- 25: dict(b=TO_F, h=[8]),
- 26: dict(b=G4, h=[0, 4, 8, 12]),
- 27: dict(b=G4, h=[0, 8]),
- 28: dict(b=TO_A, h=[0, 8]),
- 29: dict(b=G4, h=[0, 12]),
- 30: dict(b=G4, h=[0, 8]),
- 31: dict(b=TO_C, h=[4, 8]),
- 32: dict(b=G4, h=[2, 8]),
- # --- volta 1, part B ---
- 33: dict(b=TO_F, f=[(8, 2, [(2, 0)])]),                # B under the held E
- 34: dict(b=G4, h=[{0: [(3, 2)]}, 4, 10]),
- 35: dict(b=G4, h=[{0: [(3, 1)]}, 8, 12]),
- 36: dict(b=TO_A, h=[{0: [(3, 0)]}, {4: [(2, 0)]}, 10]),
- 37: dict(b=G4, h=[{0: [(2, 2), (3, 0)]}, {4: [(2, 2)]}, 12]),   # Bb over A7 = b9
- 38: dict(b=G4, h=[{0: [(2, 1), (3, 2)]}, 10]),
- 39: dict(b=TO_C, h=[{0: [(2, 0), (3, 0)]}, 8]),
- 40: dict(b=G4, h=[0, {2: [(3, 0), (4, 2)]}]),
- 41: dict(b=TO_F, f=[(0, 4, [(1, 0)]), (4, 2, [(2, 3)]), (6, 2, [(2, 1)]), (8, 4, [(2, 0)]), (12, 4, [(3, 0)])]),  # falling line E D C B G
- # --- volta 1, part C ---
- 42: dict(b=G4, f=[(0, 6, [(4, 3), (3, 2), (2, 1), (1, 0)])]),   # Fmaj7 strum in the rest
- 43: dict(b=G4, h=[0, {8: [(4, 3)]}]),
- 44: dict(b=TO_A, h=[{0: [(2, 0), (4, 2)]}, 8]),       # B and E under the held G
- 45: dict(b=G4, h=[0, 8]),
- 46: dict(b=G4, h=[{0: [(3, 2)]}]),
- 47: dict(b=TO_C, h=[0, 8]),
- 48: dict(b=G4, h=[0, 8]),
- 49: dict(b=TO_F, h=[{0: [(3, 0), (4, 2)]}]),
- 50: dict(b=G4, h=[4, 10]),
- 51: dict(b=G4, h=[4, 10]),
- 52: dict(b=G4, h=[0, 8]),
- 53: dict(b=G4, h=[2, 8]),
- 54: dict(b=G4, h=[0, 8]),
- 55: dict(b=TO_C, h=[0, 8]),
- 56: dict(b='3:4 x:4 R:4 x:4', h=[{0: [(2, 8)]}, {12: [(2, 8)]}]),   # high C at fret 8: open E bass first, C bass under the G
- 57: dict(b='3:4 x:4 3:4 x:4', h=[{0: [(2, 8), (3, 9)]}]),
- # --- volta 2, part D: half-time bass, then back to the groove ---
- 58: dict(b='R:8 x:8', f=[(0, 2, [(3, 2), (2, 1)])]),
- 59: dict(b='R:8 x:8', h=[2, 8]),
- 60: dict(b='R:8 x:8', h=[2, 10]),
- 61: dict(b='R:8 x:8', h=[2, 12]),
- 62: dict(b=G4, h=[{0: [(2, 1), (3, 2)]}, 8]),
- 63: dict(b=TO_C, h=[{0: [(2, 0), (3, 0)]}, 8]),
- 64: dict(b=G4, h=[{8: [(2, 0), (3, 0)]}]),
- 65: dict(b=TO_F, h=[{4: [(2, 0), (3, 0), (4, 2)]}]),
- # --- verse again (66-80 = 18-32, fuller: chord tone on beats 2 and 4 too) ---
- 81: dict(b=G4, f=[(0, 4, [(4, 3), (3, 2), (2, 1)])], h=[4]),
- 88: dict(b='R:4 x:4 5:4 R:4', f=[(0, 6, [(4, 2), (3, 0), (2, 0)])], h=[{12: [(3, 0), (4, 2)]}]),
+# intro first pass (2-9): bass rings 3 beats, slap on 4; part D (58-61): half time; 56-57: open E bass under the high C
+BL = {
+ 1: 'r:16', 2: 'R:12 x:4', 3: 'R:12 x:4', 4: 'R:12 x:4', 5: 'R:12 x:4', 6: 'R:12 x:4',
+ 7: '5:12 x:4', 8: 'R:12 x:4', 9: G4, 10: G4, 11: G4, 12: TO_A,
+ 13: G4, 14: G4, 15: TO_C, 16: G4, 17: TO_F, 18: G4,
+ 19: G4, 20: TO_A, 21: G4, 22: G4, 23: TO_C, 24: G4,
+ 25: TO_F, 26: G4, 27: G4, 28: TO_A, 29: G4, 30: G4,
+ 31: TO_C, 32: G4, 33: TO_F, 34: G4, 35: G4, 36: TO_A,
+ 37: G4, 38: G4, 39: TO_C, 40: G4, 41: TO_F, 42: G4,
+ 43: G4, 44: TO_A, 45: G4, 46: G4, 47: TO_C, 48: G4,
+ 49: TO_F, 50: G4, 51: G4, 52: G4, 53: G4, 54: G4,
+ 55: TO_C, 56: '3:4 x:4 R:4 x:4', 57: '3:4 x:4 3:4 x:4', 58: 'R:8 x:8', 59: 'R:8 x:8', 60: 'R:8 x:8',
+ 61: 'R:8 x:8', 62: G4, 63: TO_C, 64: G4, 65: TO_F, 66: G4,
+ 67: G4, 68: TO_A, 69: G4, 70: G4, 71: TO_C, 72: G4,
+ 73: TO_F, 74: G4, 75: G4, 76: TO_A, 77: G4, 78: G4,
+ 79: TO_C, 80: G4, 81: G4, 82: G4, 83: TO_A, 84: G4,
+ 85: G4, 86: TO_C, 87: G4, 88: 'R:4 x:4 5:4 R:4',
 }
-for a, b in zip(range(82, 88), range(35, 41)):
-    A[a] = A[b]
+
+# ---- accompaniment (bdmt-C principles): written "left hand" in open voicing, placed with accomp.place() ----
+VO = {'Fmaj7': 'C3 G3 A3 E4', 'Fm6': 'C3 G3 Ab3 D4', 'Em7': 'B2 Gb3 G3 D4', 'A7': 'E3 B3 Db4 G4',
+      'Dm7': 'A3 E4 F4 C5', 'G': 'D3 A3 B3 D4', 'Cmaj7': 'G3 D4 E4 B4'}   # 5th, 9th, 3rd (+ colour) above the root
+INTRO1 = [(2, 0), (4, 1), (6, 2)]                  # bars 2-9: three notes rising then held
+GROOVE = [(2, 0), (6, 2), (10, 1)]                 # bass 1 & 3, slap 2 & 4: 5th, 3rd, then 9th held
+FULL = [(2, 0), (6, 1), (10, 2), (14, 3)]          # parts B and C: one more note, up to the colour tone
+HALF = [(2, 0), (4, 1), (6, 2), (10, 3)]           # part D: half-time bass, rising run then held
+END_OF_CYCLE = [(2, 0), (4, 1), (6, 2)]            # 2nd Cmaj7 bar of each 8-bar cycle: held, breathe
+LH = {1: []}
+for m in range(2, 89):
+    LH[m] = INTRO1 if m <= 9 else HALF if 58 <= m <= 65 else FULL if 33 <= m <= 57 else GROOVE
+    if m in (17, 25, 33, 49, 57, 65, 81): LH[m] = END_OF_CYCLE
+LH[41] = [(2, 0), (4, 1), (6, 2), (8, 3)]           # melody rests the whole bar: rising Cmaj7 to B
+LH[88] = [(2, 0), (4, 1), (6, 2)]                   # last bar
 
 PLAY = list(range(1, 58)) + list(range(17, 33)) + list(range(58, 89))
 
@@ -183,7 +130,7 @@ def parse_mel(m):
 
 def parse_bass(m):
     ch = CHORD[m]; ev, t = [], 0
-    for tok in A[m]['b'].split():
+    for tok in BL[m].split():
         k, ln = tok.split(':'); ln = int(ln)
         if k == 'x': ev.append((t, ln, (None, X)))   # string set later: string of the next bass note
         elif k != 'r':
@@ -193,13 +140,16 @@ def parse_bass(m):
     assert t == 16, (m, t)
     return ev
 
-for a, b in zip(range(66, 81), range(18, 33)):
-    starts = {e['pos'] for e in parse_mel(b) if not e['tie_in'] and e['f'] <= 5}
-    A[a] = dict(A[b], h=list(A[b].get('h', [])) + [p for p in (4, 12) if p in starts and p not in A[b].get('h', [])])
+def lh(m):
+    ch = CHORD[m]
+    if not ch: return []
+    vo = [A.note_midi(n) for n in VO[ch].split()]
+    return [(t, vo[i]) for t, i in LH[m] if i < len(vo)]
 
+DROPPED = []
 
-def _bars(with_arr):
-    bars = [dict(m=m, mel=parse_mel(m), bass=parse_bass(m) if with_arr else []) for m in PLAY]
+def melody_bars():
+    bars = [dict(m=m, mel=parse_mel(m), h={}, f=[], b=[], vel=(95, 63, 70, 79) if m <= 9 else (95, 72, 79, 85)) for m in PLAY]
     # ties: continuation = next melody note (or first note of the next played bar at pos 0), same pitch
     for i, a in enumerate(bars):
         mel = a['mel']
@@ -208,35 +158,19 @@ def _bars(with_arr):
             nb = bars[i + 1]['mel'] if i + 1 < len(bars) else []
             nxt = mel[j + 1] if j + 1 < len(mel) else (nb[0] if nb and nb[0]['pos'] == 0 else None)
             if nxt and nxt['p'] == e['p']: nxt['tied'] = True
-    out = []
-    for a in bars:
-        m = a['m']; arr = A[m] if with_arr else {}
-        ch = CHORD[m]
-        bsound = [(p, p + ln, sf[0]) for p, ln, sf in a['bass'] if sf[1] != X]
-        hmap = {}
-        for h in arr.get('h', []):
-            if isinstance(h, dict): hmap.update(h)
-            else: hmap[h] = 'auto'
-        harm = {}
-        for e in a['mel']:
-            if e['pos'] not in hmap: continue
-            hs = hmap[e['pos']]
-            if hs == 'auto':          # highest candidate below the melody, other string, string not used by the bass
-                assert not e['tied'], ('auto harmony on tied note', m, e['pos'])
-                busy = {s for a0, b0, s in bsound if a0 < e['pos'] + e['len'] and e['pos'] < b0}
-                c = [(s, f) for s, f in HC[ch] if pitch(s, f) < e['p'] and s != e['s'] and s not in busy]
-                assert c, ('no auto harmony', m, e['pos'])
-                hs = [max(c, key=lambda sf: pitch(*sf))]
-            harm[e['pos']] = hs
-        for k in hmap:
-            if k not in harm: harm[k] = hmap[k]       # reported by the checks (no melody note there)
-        out.append(dict(m=m, mel=a['mel'], h=harm, f=arr.get('f', []),
-                        b=[(p, ln, [(sf[0] if sf[0] else 6, sf[1])]) for p, ln, sf in a['bass']],
-                        vel=(95, 63, 70, 79) if m <= 9 else (95, 72, 79, 85)))
-    return out
+    return bars
 
-def bars(): return _bars(True)
-def melody_bars(): return _bars(False)
+def bars():
+    out = []
+    for a in melody_bars():
+        m = a['m']; bass, slaps = [], []
+        for t, ln, sf in parse_bass(m):
+            if sf[1] == X: slaps.append(t)
+            else: bass.append((t, sf))
+        acc = A.place(m, a['mel'], bass, lh(m), DROPPED)
+        bar, d = A.assemble(m, a['mel'], bass, acc, slaps=slaps, vel=(95, 66, 79, 85) if m > 9 else (95, 60, 70, 79))
+        DROPPED.extend(d); out.append(bar)
+    return out
 
 # ---- page ----
 DEG = {'Fmaj7': 'IV', 'Fm6': 'iv', 'Em7': 'iii', 'A7': 'V/ii', 'Dm7': 'ii', 'G': 'V', 'Cmaj7': 'I'}
@@ -246,36 +180,34 @@ SKIP = set(range(82, 88))   # = bars 35-40, not drawn again
 TAGS = {81: ['ô 82–87 giống hệt ô 35–40']}
 LABEL = {
  1: 'lấy đà, chưa có hợp âm',
- 2: 'Fmaj7: bass ngân 3 phách, slap phách 4', 3: 'Fm6 (hợp âm mượn): Ab dưới D', 4: 'Em7: D dưới G',
- 5: 'A7: giai điệu đi xuống tới A', 6: 'Dm7: A dưới C, D dưới E', 7: 'sheet không ghi hợp âm: giữ Dm7, bass A',
- 8: 'Cmaj7: B dưới E tạo màu maj7', 9: 'groove bắt đầu: bass phách 1 & 3, slap phách 2 & 4',
- 10: 'Fmaj7: nốt móc kép, chỉ thêm hòa âm phách 3', 11: 'Fm6: Ab dưới D cuối ô', 12: 'Em7: G# cuối ô dẫn về A7',
- 13: 'A7: giai điệu C nghịch với C# của hợp âm', 14: 'Dm7: hai câu ngắn A–E–D', 15: 'G: B cuối ô dẫn về C',
- 16: 'Cmaj7: kết intro', 17: 'giai điệu nghỉ: quạt Cmaj7, bass E dẫn về F',
- 18: 'vào lời: hòa âm phách 1 & 3', 19: 'Fm6: A trong giai điệu, Ab ở dưới', 20: 'Em7: G# dẫn về A7',
- 21: 'A7: C# dưới G (quãng 3 cung)', 22: 'Dm7: giai điệu đi xuống F–E–D–C', 23: 'G: F trong giai điệu là 7th',
- 24: 'Cmaj7: A trên C là 6th', 25: 'nốt E ngân, bass E dẫn về F', 26: 'Fmaj7: hòa âm cả 4 phách',
- 27: 'Fm6: D dưới G, màu m6', 28: 'Em7: câu lặp lần 2', 29: 'A7: giai điệu lên C cao (phím 8)',
- 30: 'Dm7: D dưới A, C dưới E', 31: 'G: D dưới F, B dẫn về C', 32: 'Cmaj7: E nối sang ô sau',
- 33: 'nốt E ngân, thêm B tạo màu maj7', 34: 'Fmaj7: A dưới nốt C đang ngân', 35: 'Fm6: Ab dưới nốt E ngân',
- 36: 'Em7: G, B dưới giai điệu', 37: 'A7: Bb trên cùng là b9', 38: 'Dm7: chặn C và A dưới F',
- 39: 'G: B và G dưới nốt E (màu 6th)', 40: 'Cmaj7: quạt C–G–E, ngân hết ô',
- 41: 'giai điệu nghỉ cả ô: câu nối E–D–C–B–G',
- 42: 'quạt Fmaj7 4 nốt trong chỗ nghỉ', 43: 'Fm6: F dưới C, giai điệu có A', 44: 'Em7: B và E dưới nốt G ngân',
- 45: 'A7: C# dưới G', 46: 'Dm7: giai điệu xuống A (dây 3)', 47: 'G: giai điệu xuống G buông, B dẫn về C',
- 48: 'Cmaj7: giai điệu nhảy A–E–G–D', 49: 'Cmaj7: G, E dưới C, bass E dẫn về F', 50: 'Fmaj7: G buông ngân từ ô trước',
- 51: 'Fm6: kết câu bằng G buông', 52: 'Em7: Bb trong giai điệu (b5)', 53: 'A7: C# dưới E',
- 54: 'Dm7: móc kép nhanh, đệm thưa', 55: 'G: C lặp liên tục, B dẫn về C',
- 56: 'C cao phím 8: bass E buông, C ở phách 3', 57: 'ngân C cao, chặn G và E (phím 8–9)',
- 58: 'đoạn mới: bass nửa nhịp, slap phách 3', 59: 'Fm6: Ab dưới D', 60: 'Em7: C trong giai điệu (b6)',
- 61: 'A7: A dưới D, bass ngân', 62: 'Dm7: nhịp chấm dôi, groove trở lại', 63: 'G: B, G dưới F (màu G7)',
- 64: 'Cmaj7: B, G dưới E', 65: 'G ngân: Cmaj7 4 nốt, bass E dẫn về F',
- 66: 'lời lần cuối: hòa âm cả 4 phách', 67: 'Fm6: D dưới E ở phách 2', 68: 'Em7: D dưới E, G# dẫn về A7',
- 69: 'A7: A dưới D ở phách 4', 70: 'Dm7: A dưới D ở phách 2', 71: 'G: G dưới D và C',
- 72: 'Cmaj7: C dưới E ở phách 2', 73: 'nốt E ngân, G dưới D', 74: 'Fmaj7: C dưới G và E',
- 75: 'Fm6: D dưới G, Ab cuối ô', 76: 'Em7: G# dẫn về A7', 77: 'A7: lên C cao lần cuối',
- 78: 'Dm7: A dưới D cuối ô', 79: 'G: G dưới C, B dẫn về C', 80: 'Cmaj7: không nối, giai điệu nghỉ sau ô',
- 81: 'đoạn kết: quạt Fmaj7 trong chỗ nghỉ', 88: 'kết bài: quạt Cmaj7, dừng ở C',
+ 2: 'Fmaj7: bass ngân 3 phách, rải C–G–A đi lên', 3: 'Fm6 (hợp âm mượn): Ab trong phần rải', 4: 'Em7: rải B–F#–G (9th là F#)',
+ 5: 'A7: giai điệu đi xuống tới A', 6: 'Dm7: rải A–E–F', 7: 'sheet không ghi hợp âm: giữ Dm7, bass A',
+ 8: 'Cmaj7: rải G–D–E, ngân', 9: 'groove bắt đầu: bass phách 1 & 3, slap phách 2 & 4',
+ 10: 'Fmaj7: 5th, 3rd rồi 9th ngân', 11: 'Fm6: Ab ở phách 2', 12: 'Em7: G# cuối ô dẫn về A7',
+ 13: 'A7: giai điệu C nghịch với C# trong phần rải', 14: 'Dm7: hai câu ngắn A–E–D', 15: 'G: B cuối ô dẫn về C',
+ 16: 'Cmaj7: kết intro', 17: 'giai điệu nghỉ: rải Cmaj7 rồi ngân, bass E dẫn về F',
+ 18: 'vào lời: rải 5th, 3rd, 9th', 19: 'Fm6: A trong giai điệu, Ab trong phần rải', 20: 'Em7: G# dẫn về A7',
+ 21: 'A7: C# ở phách 2', 22: 'Dm7: giai điệu đi xuống F–E–D–C', 23: 'G: F trong giai điệu là 7th',
+ 24: 'Cmaj7: A trên C là 6th', 25: 'nốt E ngân, bass E dẫn về F', 26: 'Fmaj7: câu lặp, A ở phách 2',
+ 27: 'Fm6: Ab dưới giai điệu G', 28: 'Em7: câu lặp lần 2', 29: 'A7: giai điệu lên C cao (phím 8)',
+ 30: 'Dm7: F ở phách 2', 31: 'G: B dẫn về C', 32: 'Cmaj7: E nối sang ô sau',
+ 33: 'nốt E ngân, rải Cmaj7 rồi thở', 34: 'đoạn B: rải 4 nốt lên tới E (maj7)', 35: 'Fm6: D (6th) trên đỉnh phần rải',
+ 36: 'Em7: D (7th) trên đỉnh', 37: 'A7: Bb trong giai điệu là b9', 38: 'Dm7: C (7th) trên đỉnh',
+ 39: 'G: giai điệu E là 6th, B dẫn về C', 40: 'Cmaj7: B (maj7) trên đỉnh', 41: 'giai điệu nghỉ cả ô: rải Cmaj7 lên tới B',
+ 42: 'đoạn C: Fmaj7 rải trong chỗ nghỉ', 43: 'Fm6: giai điệu có A, Ab trong phần rải', 44: 'Em7: rải dưới nốt G ngân',
+ 45: 'A7: G (7th) trên đỉnh', 46: 'Dm7: giai điệu xuống A (dây 3)', 47: 'G: giai điệu xuống G buông, B dẫn về C',
+ 48: 'Cmaj7: giai điệu nhảy A–E–G–D', 49: 'Cmaj7: rải rồi thở, bass E dẫn về F', 50: 'Fmaj7: G buông ngân từ ô trước',
+ 51: 'Fm6: kết câu bằng G buông', 52: 'Em7: Bb trong giai điệu (b5)', 53: 'A7: C# trong phần rải',
+ 54: 'Dm7: móc kép nhanh, đệm 3 nốt', 55: 'G: C lặp liên tục, B dẫn về C',
+ 56: 'C cao phím 8: bass E buông, C ở phách 3', 57: 'ngân C cao, rải G–D–E',
+ 58: 'đoạn mới: bass nửa nhịp, slap phách 3', 59: 'Fm6: rải chạy lên tới D', 60: 'Em7: C trong giai điệu (b6)',
+ 61: 'A7: rải lên tới G, bass ngân', 62: 'Dm7: nhịp chấm dôi, groove trở lại', 63: 'G: F trong giai điệu (màu G7)',
+ 64: 'Cmaj7: B (maj7) trên đỉnh', 65: 'G ngân: rải Cmaj7, bass E dẫn về F',
+ 66: 'lời lần cuối', 67: 'Fm6: Ab ở phách 2', 68: 'Em7: G# dẫn về A7', 69: 'A7: C# trong phần rải',
+ 70: 'Dm7: giai điệu đi xuống', 71: 'G: B dẫn về C', 72: 'Cmaj7: E nối sang ô sau', 73: 'nốt E ngân, bass E dẫn về F',
+ 74: 'Fmaj7: câu lặp', 75: 'Fm6: Ab dưới giai điệu G', 76: 'Em7: G# dẫn về A7', 77: 'A7: lên C cao lần cuối',
+ 78: 'Dm7: F ở phách 2', 79: 'G: B dẫn về C', 80: 'Cmaj7: không nối, giai điệu nghỉ sau ô',
+ 81: 'đoạn kết: rải Fmaj7 trong chỗ nghỉ', 88: 'kết bài: rải Cmaj7, dừng ở C',
 }
 SECTIONS = {1: 'Lấy đà', 2: 'Intro lần 1 (ô 2–9)', 10: 'Intro lần 2 (ô 10–17)', 18: 'Lời (ô 18–32, đánh 2 lần)',
             33: 'Đoạn B (ô 33–41)', 42: 'Đoạn C (ô 42–57)', 58: 'Volta 2: đoạn D (ô 58–65)',
