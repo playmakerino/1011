@@ -1,27 +1,12 @@
-# Label color tones inside the tab of laviem.html / mhkcas.html, next to the note (like "root", "5th").
+# Label color tones inside the tab of laviem.html (hand-made page, no song module), next to the note.
+# Pages built by song.py get these labels themselves.
 # Chord names on these pages are shape names (capo not counted), so pitches are taken without capo.
 # Run again after regenerating a page; it is idempotent.
 import re, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 TUNE = [64, 59, 55, 50, 45, 40]
 NM = 'C C# D D# E F F# G G# A A# B'.split()
-# chord -> {note: (label, any)}: any=True also labels melody notes (tone is in the chord symbol),
-# any=False only accompaniment notes (an added color the chord symbol does not have)
-COLOR = {
- 'C': {'B': ('maj7', False), 'D': ('9th', False), 'A': ('6th', False)},
- 'F': {'E': ('maj7', False), 'G': ('9th', False)},
- 'Fmaj7': {'E': ('maj7', True), 'G': ('9th', False)},
- 'Fm': {'G#': ('b3 mượn', True), 'D': ('6th', False)},
- 'G': {'F': ('7th', False), 'A': ('9th', False), 'E': ('6th', False)},
- 'G7': {'F': ('7th', True)},
- 'Am': {'G': ('7th', False), 'B': ('9th', False)},
- 'Am7': {'G': ('7th', True), 'B': ('9th', False)},
- 'Em': {'D': ('7th', False)}, 'Em7': {'D': ('7th', True)},
- 'Dm7': {'C': ('7th', True), 'E': ('9th', False)},
- 'A7': {'C#': ('3rd → D', True), 'G': ('7th', True)},
- 'D/F#': {'F#': ('3rd → G', True), 'C': ('7th', False)},
-}
-COLOR['G/B'] = COLOR['G']; COLOR['Em/G'] = COLOR['Em']
+from tablib import COLOR   # same labels as the generated pages
 NOTE = re.compile(r'(<text class="tnt (\w+)" x="([\d.]+)" y="([\d.]+)"[^>]*>([^<]*)</text>)(<text class="tiv [^"]*" x="[\d.]+" y="[\d.]+">[^<]*</text>)?')
 
 def fix_svg(svg):
@@ -35,8 +20,7 @@ def fix_svg(svg):
         if not cur or cur[-1] not in COLOR: return m.group(0)
         nm = NM[(TUNE[s - 1] + f) % 12]
         if nm not in COLOR[cur[-1]]: return m.group(0)
-        text, anyrole = COLOR[cur[-1]][nm]
-        if role != 'mid' and not anyrole: return m.group(0)
+        text = COLOR[cur[-1]][nm]
         if role == 'mel':
             if nm in mel_done: return m.group(0)
             mel_done.add(nm)
@@ -54,5 +38,5 @@ def run(path):
     open(path, 'w', encoding='utf8', newline='').write(s)
     print(path, len(re.findall(r'class="tiv \w+ cl"', s)), 'new labels')
 
-for f in sys.argv[1:] or ['laviem.html', 'mhkcas.html']:
+for f in sys.argv[1:] or ['laviem.html']:
     run(os.path.join(HERE, '..', f))

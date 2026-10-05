@@ -36,7 +36,7 @@ Ghi chú cho lần sau khi làm trang tab có chú thích (ví dụ `fingerstyle
 - Các nhãn thường tự sinh: "đổi hợp âm ở phách 3", "walk bass", "bass là 3rd (hợp âm đảo)", "đệm tạo màu maj7", "slap phách 2 & 4", "hammer-on", "pull-off", "slide".
 - Đầu mục có 1 ô chú giải các từ (root, 5th, 3rd, walk, maj7, bậc) và 1 ô "Cách đọc tab". Không lặp lại giải thích ở từng ô.
 
-- Nốt màu: ghi ngay trong dòng chú thích dưới ô, dạng `màu A7: C# (3rd, ngoài giọng Đô, kéo lên D, dây 2 phím 2)`. Không làm bảng hay đoạn văn giải thích riêng. laviem/mhkcas: chạy `python tools/color_tags.py` sau khi sinh lại trang; ttlt tự sinh trong `mk_html.py`.
+- Nốt màu: ghi ngay trong tab, chữ nhỏ cạnh nốt giống `root`, `5th` (ví dụ `maj7`, `b3 mượn`, `3rd → D`), giai điệu mỗi ô ghi 1 lần. Không ghi dây/phím, không làm bảng hay đoạn văn riêng. Bảng nhãn: `COLOR` trong `tools/tablib.py`. laviem (trang làm tay): chạy `python tools/color_tags.py`.
 - Đầu trang: chỉ ghi capo nếu có capo. Không đoạn giới thiệu, không ghi "let ring".
 
 - Slap: chỉ 1 dây, là dây của nốt bass kế tiếp (áp dụng mọi bài).
@@ -55,13 +55,13 @@ Ghi chú cho lần sau khi làm trang tab có chú thích (ví dụ `fingerstyle
 - Ghi đè `D:\1011\fingerstyle\guide.html` (tab cả bài tách riêng ở `fingerstyle\laviem.html`, bài mới thêm vào `fingerstyle\tabs.html`) (dùng CRLF) và bản trên Desktop `fingerstyle_khong_can_tab.html` nếu có.
 
 ## Quy trình bài mới (rút ra từ bài mhkcas)
-- Phong cách đệm (mật độ, slap, bass, độ dồn) là **riêng từng bài**, không phải gu chung. Mỗi bài ghi phong cách đã chốt vào `tools/<bài>/NOTES.md`. Bài mới: hỏi người dùng muốn vibe gì, đừng bê phong cách bài cũ.
+- Phong cách đệm (mật độ, slap, bass, độ dồn) là **riêng từng bài**, không phải gu chung. Mỗi bài ghi phong cách đã chốt vào `tools/songs/<bài>.md`. Bài mới: hỏi người dùng muốn vibe gì, đừng bê phong cách bài cũ.
 - Xin **vòng hợp âm gốc** ngay từ đầu. Hợp âm đoán từ giai điệu sai nhiều chỗ.
 - Làm file **.tg** cho người dùng nghe duyệt trước, xong mới làm HTML.
 - **Viết tay từng ô** (dữ liệu từng ô trong script), không sinh đệm bằng một quy tắc lặp cả bài: nghe máy móc, không có chỗ thưa/dày, câu nối, độ dồn.
 - Phân vân giữa vài hợp âm cho 1 ô → làm vài file chỉ khác đúng ô đó để người dùng nghe chọn, rồi xóa file thử.
 - Sao lưu file trước mỗi lần ghi đè. Sửa script bằng file .py (Write), không dùng `sed`/`python -c` với đường dẫn Windows (dấu `\` làm hỏng lệnh).
-- Sau khi xong: rà toàn bộ bằng `audit.py` (nốt ngoài hợp âm, chồng dây, độ dãn tay trái).
+- Sau khi xong: `python tools/song.py <bài>` báo chồng dây, dãn tay; `python tools/song.py <bài> audit` in nốt ngoài hợp âm.
 
 ## File .tg (TuxGuitar 2.0)
 - Zip gồm `version.txt` + `content.xml`. Capo = `<offset>` của track (đọc trước khi đoán giọng).
@@ -72,5 +72,7 @@ Ghi chú cho lần sau khi làm trang tab có chú thích (ví dụ `fingerstyle
 - Không kiểm tra được bằng TuxGuitar trên máy (Java đi kèm thiếu trình biên dịch); tên thẻ lấy từ `tuxguitar-lib.jar` (`app/tuxguitar/io/tg/TGStream.class`).
 
 ## Công cụ
-- `tools/<bài>/`: `melody.tg` (giai điệu người dùng duyệt), `mk_tg.py` (bản phối viết tay từng ô → .tg), `audit.py`, `mk_html.py` (vẽ trang tab theo bố cục `laviem.html`, lấy CSS từ `laviem.html`). Bài mới: copy thư mục `tools/mhkcas` rồi sửa dữ liệu.
+- `tools/tablib.py`: phần chung (ghi .tg, kiểm tra chồng dây/dãn tay, vẽ trang tab theo bố cục và CSS của `laviem.html`, audit).
+- `tools/songs/<bài>.py`: chỉ dữ liệu của bài (giai điệu, bản phối viết tay từng ô, nhãn, hợp âm); `<bài>.md`: phong cách; `<bài>.tg`: file xuất. Danh sách trường cần có ở đầu `tools/song.py`. Bài mới: copy `songs/ttlt.py` (giai điệu gõ bằng chữ, lưới móc kép) hoặc `songs/mhkcas.py` (giai điệu đọc từ .tg của người dùng, lưới móc đơn) rồi sửa dữ liệu.
+- Chạy: `python tools/song.py <bài>` (thêm `audit` để in nốt ngoài hợp âm).
 - Skill `fingerstyle-tab-sungha-style` không dùng (xuất .gp5 bằng pyguitarpro, máy không có; mặc định khác cách làm ở đây).

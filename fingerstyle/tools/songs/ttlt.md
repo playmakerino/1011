@@ -18,5 +18,6 @@
 
 ## Chạy lại
 ```
-python mk_tg.py   # -> melody.tg (chỉ giai điệu) và ttlt.tg (bản phối)
+python tools/song.py ttlt         # -> tools/songs/ttlt.tg, ttlt_melody.tg (chỉ giai điệu) + ttlt.html, in lỗi chồng dây / dãn tay
+python tools/song.py ttlt audit   # in từng nốt, '!' = nốt ngoài hợp âm
 ```

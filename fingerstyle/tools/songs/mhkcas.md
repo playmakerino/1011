@@ -25,7 +25,6 @@ C · G/B · Am7 | Fmaj7 · G · C · A7 | Dm7 · G · G7 · Em7 · Am7 · **A7**
 
 ## Chạy lại
 ```
-python mk_tg.py     # -> mhkcas_capo1.tg (copy ra Desktop nếu cần)
-python audit.py     # in từng nốt, '!' = nốt ngoài hợp âm
-python mk_html.py   # -> ../../mhkcas.html
+python tools/song.py mhkcas         # -> tools/songs/mhkcas.tg + mhkcas.html, in lỗi chồng dây / dãn tay
+python tools/song.py mhkcas audit   # in từng nốt, '!' = nốt ngoài hợp âm
 ```

@@ -1,19 +1,21 @@
-# Tâm trí lang thang — hand-written arrangement, no capo, C shapes, tempo 116.
+# Tâm trí lang thang (ttlt): hand-written arrangement, no capo, C shapes, tempo 116. Notes: ttlt.md
 # Melody from the sheet (Desktop\ttlt), played one octave below written pitch (guitar convention).
 # voice 0 = melody (+ harmony struck with it) + fills in melody rests; voice 1 = bass + slaps.
 # Units: 16th notes (16 per bar). Bars keyed by sheet number; PLAY gives the order with the repeat unrolled.
-import os, zipfile
-HERE = os.path.dirname(os.path.abspath(__file__))
-TUNE = [64, 59, 55, 50, 45, 40]
-Q = 2882880; S16 = Q // 4; MLEN = 16
-X = 'x'
+import os
+from tablib import SONGS, PAGES, TUNE, Q, X, pitch
+
+TITLE = 'Tâm trí lang thang'; TG_NAME = 'Tam tri lang thang'
+CAPO = 0; TEMPO = 116; STEP = Q // 4; BAR = 16
+TG = os.path.join(SONGS, 'ttlt.tg'); MELODY_TG = os.path.join(SONGS, 'ttlt_melody.tg')
+HTML = os.path.join(PAGES, 'ttlt.html')
+
 NAMES = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11}
 def midi(n):  # 'Bb5' -> written midi, sounding = -12
     acc = -1 if n[1:2] == 'b' else 0
     return 12 * (int(n[-1]) + 1) + NAMES[n[0]] + acc - 12
 POS = {55: (3, 0), 57: (3, 2), 59: (2, 0), 60: (2, 1), 62: (2, 3), 64: (1, 0), 65: (1, 1),
        67: (1, 3), 69: (1, 5), 70: (1, 6), 71: (1, 7), 72: (1, 8)}
-pitch = lambda s, f: TUNE[s-1] + f
 
 # ---- melody, written pitch: NOTE/len16, '~' = tied into next note, r/len = rest ----
 MEL = {
@@ -183,7 +185,7 @@ def parse_bass(m):
     ch = CHORD[m]; ev, t = [], 0
     for tok in A[m]['b'].split():
         k, ln = tok.split(':'); ln = int(ln)
-        if k == 'x': ev.append((t, ln, X))
+        if k == 'x': ev.append((t, ln, (None, X)))   # string set later: string of the next bass note
         elif k != 'r':
             sf = tuple(map(int, k.split('.'))) if '.' in k else BASS[ch][k]
             ev.append((t, ln, sf))
@@ -195,115 +197,86 @@ for a, b in zip(range(66, 81), range(18, 33)):
     starts = {e['pos'] for e in parse_mel(b) if not e['tie_in'] and e['f'] <= 5}
     A[a] = dict(A[b], h=list(A[b].get('h', [])) + [p for p in (4, 12) if p in starts and p not in A[b].get('h', [])])
 
-DUR = {1: (16, 0), 2: (8, 0), 3: (8, 1), 4: (4, 0), 6: (4, 1), 8: (2, 0), 12: (2, 1), 16: (1, 0)}
 
-def note_xml(s, f, vel, tied=False):
-    if f == X: return f'<note string="{s}" value="0" velocity="{vel}"><deadNote/></note>'
-    return f'<note string="{s}"' + (' tiedNote="true"' if tied else '') + f' value="{f}" velocity="{vel}"/>'
-
-def dur_xml(ln):
-    v, d = DUR[ln]
-    return f'<duration{" dotted=\"dotted\"" if d else ""} value="{v}"><divisionType enters="1" times="1"/></duration>'
-
-def split_rest(a, b):
-    res = []; t = a
-    while t < b:
-        for k in (16, 8, 4, 2, 1):
-            if t % k == 0 and t + k <= b: res.append((t, k)); t += k; break
-    return res
-
-def fill_voice(events):
-    out = {}; t = 0
-    for p, ln, nx in sorted(events, key=lambda e: e[0]):
-        assert p >= t, ('overlap', p, t)
-        for rt, rk in split_rest(t, p): out[rt] = (rk, '')
-        out[p] = (ln, nx); t = p + ln
-    for rt, rk in split_rest(t, 16): out[rt] = (rk, '')
-    return out
-
-EMPTY = '<voice empty="true"><duration value="4"><divisionType enters="1" times="1"/></duration></voice>'
-
-def build(with_arr):
-    bars = [(m, parse_mel(m), parse_bass(m)) for m in PLAY]
-    # ties: continuation = first note of next played bar at pos 0, same pitch
-    for i, (m, mel, _) in enumerate(bars):
+def _bars(with_arr):
+    bars = [dict(m=m, mel=parse_mel(m), bass=parse_bass(m) if with_arr else []) for m in PLAY]
+    # ties: continuation = next melody note (or first note of the next played bar at pos 0), same pitch
+    for i, a in enumerate(bars):
+        mel = a['mel']
         for j, e in enumerate(mel):
             if not e['tie_out']: continue
-            nxt = mel[j + 1] if j + 1 < len(mel) else (bars[i + 1][1][0] if i + 1 < len(bars) and bars[i + 1][1] and bars[i + 1][1][0]['pos'] == 0 else None)
+            nb = bars[i + 1]['mel'] if i + 1 < len(bars) else []
+            nxt = mel[j + 1] if j + 1 < len(mel) else (nb[0] if nb and nb[0]['pos'] == 0 else None)
             if nxt and nxt['p'] == e['p']: nxt['tied'] = True
-    # slap string = string of the next bass note (same bar, else next played bar)
-    flat = [(i, k) for i, (_, _, b) in enumerate(bars) for k in range(len(b))]
-    for n, (i, k) in enumerate(flat):
-        p, ln, sf = bars[i][2][k]
-        if sf != X: continue
-        nxt = next((bars[i2][2][k2][2] for i2, k2 in flat[n + 1:] if bars[i2][2][k2][2] != X), (6, 0))
-        bars[i][2][k] = (p, ln, (nxt[0], X))
-    problems = []; out = []
-    for bi, (m, mel, bass) in enumerate(bars):
-        a = A[m] if with_arr else dict(b='r:16')
+    out = []
+    for a in bars:
+        m = a['m']; arr = A[m] if with_arr else {}
         ch = CHORD[m]
-        vm, vh, vb, vs = (95, 63, 70, 79) if m <= 9 else (95, 72, 79, 85)
-        if not with_arr: bass = []
-        bsound = [(p, p + ln, sf[0]) for p, ln, sf in bass if sf[1] != X]
-        ev0 = []; s0 = []
+        bsound = [(p, p + ln, sf[0]) for p, ln, sf in a['bass'] if sf[1] != X]
         hmap = {}
-        for h in a.get('h', []):
+        for h in arr.get('h', []):
             if isinstance(h, dict): hmap.update(h)
             else: hmap[h] = 'auto'
-        bypos = {e['pos']: e for e in mel}
+        harm = {}
+        for e in a['mel']:
+            if e['pos'] not in hmap: continue
+            hs = hmap[e['pos']]
+            if hs == 'auto':          # highest candidate below the melody, other string, string not used by the bass
+                assert not e['tied'], ('auto harmony on tied note', m, e['pos'])
+                busy = {s for a0, b0, s in bsound if a0 < e['pos'] + e['len'] and e['pos'] < b0}
+                c = [(s, f) for s, f in HC[ch] if pitch(s, f) < e['p'] and s != e['s'] and s not in busy]
+                assert c, ('no auto harmony', m, e['pos'])
+                hs = [max(c, key=lambda sf: pitch(*sf))]
+            harm[e['pos']] = hs
         for k in hmap:
-            if k not in bypos: problems.append(f'M{m} harmony at {k}: no melody note')
-        for e in mel:
-            hs = hmap.get(e['pos'], [])
-            if hs == 'auto':
-                if e['tied']: problems.append(f'M{m} auto harmony on tied note {e["pos"]}'); hs = []
-                else:
-                    busy = {s for a0, b0, s in bsound if a0 < e['pos'] + e['len'] and e['pos'] < b0}
-                    c = [(s, f) for s, f in HC[ch] if pitch(s, f) < e['p'] and s != e['s'] and s not in busy]
-                    if not c: problems.append(f'M{m} no auto harmony at {e["pos"]}'); hs = []
-                    else: hs = [max(c, key=lambda sf: pitch(*sf))]
-            for s, f in hs:
-                if pitch(s, f) >= e['p']: problems.append(f'M{m} harmony above melody at {e["pos"]}')
-                if s == e['s']: problems.append(f'M{m} harmony same string as melody at {e["pos"]}')
-            fr = [x for x in [e['f']] + [f for _, f in hs] if x > 0]
-            if fr and max(fr) - min(fr) > 4: problems.append(f'M{m} stretch at {e["pos"]}')
-            nx = note_xml(e['s'], e['f'], vm, e['tied']) + ''.join(note_xml(s, f, vh) for s, f in hs)
-            ev0.append((e['pos'], e['len'], nx))
-            s0 += [(e['pos'], e['pos'] + e['len'], s) for s in [e['s']] + [s for s, _ in hs]]
-        for p, ln, ns in a.get('f', []):
-            ev0.append((p, ln, ''.join(note_xml(s, f, vh) for s, f in ns)))
-            s0 += [(p, p + ln, s) for s, _ in ns]
-        v0 = fill_voice(ev0)
-        v1 = fill_voice([(p, ln, note_xml(sf[0], sf[1], vs if sf[1] == X else vb)) for p, ln, sf in bass])
-        for a0, b0, x0 in s0:
-            for a1, b1, x1 in bsound:
-                if x0 == x1 and a0 < b1 and a1 < b0: problems.append(f'M{m} string {x0} clash')
-        rows = []
-        for t in sorted(set(v0) | set(v1)):
-            st = Q + bi * MLEN * S16 + t * S16
-            def vx(d):
-                if t not in d: return EMPTY
-                ln, nx = d[t]
-                return f'<voice{"" if nx else " empty=\"false\""}>{dur_xml(ln)}{nx}</voice>'
-            txt = ''
-            rows.append(f'<TGBeat><preciseStart>{st}</preciseStart>{txt}{vx(v0)}{vx(v1)}</TGBeat>')
-        head = '<clef>treble</clef><keySignature>0</keySignature>' if bi == 0 else ''
-        out.append('<TGMeasure>' + head + ''.join(rows) + '</TGMeasure>')
-    return out, problems
+            if k not in harm: harm[k] = hmap[k]       # reported by the checks (no melody note there)
+        out.append(dict(m=m, mel=a['mel'], h=harm, f=arr.get('f', []),
+                        b=[(p, ln, [(sf[0] if sf[0] else 6, sf[1])]) for p, ln, sf in a['bass']],
+                        vel=(95, 63, 70, 79) if m <= 9 else (95, 72, 79, 85)))
+    return out
 
-def write(path, measures):
-    ch = ('<TGChannel><id>1</id><bank>128</bank><program>0</program><volume>127</volume><balance>64</balance><chorus>0</chorus><reverb>0</reverb><phaser>0</phaser><tremolo>0</tremolo><name>DrumKit</name></TGChannel>'
-          '<TGChannel><id>2</id><bank>0</bank><program>25</program><volume>127</volume><balance>64</balance><chorus>0</chorus><reverb>0</reverb><phaser>0</phaser><tremolo>0</tremolo><name>Steel String Acoustic Guitar 1</name></TGChannel>')
-    hdr = '<TGMeasureHeader><timeSignature denominator="4" numerator="4"/><tempo>116</tempo></TGMeasureHeader>' * len(measures)
-    trk = ('<TGTrack maxFret="29"><name>Track 1</name><channelId>2</channelId><offset>0</offset><color B="0" G="0" R="255"/>'
-           + ''.join(f'<TGString>{p}</TGString>' for p in TUNE) + '<TGLyric from="1"/>' + ''.join(measures) + '</TGTrack>')
-    xml = ('<?xml version="1.0" encoding="UTF-8" standalone="no"?><TuxGuitarFile><TGVersion major="2" minor="0" revision="1"/><TGSong>'
-           '<name>Tam tri lang thang</name><artist/><album/><author/><date/><copyright/><writer/><transcriber/><comments/>'
-           + ch + hdr + trk + '</TGSong></TuxGuitarFile>')
-    with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as z:
-        z.writestr('version.txt', 'TuxGuitar_file_format 2.0'); z.writestr('content.xml', xml.encode('utf8'))
+def bars(): return _bars(True)
+def melody_bars(): return _bars(False)
 
-if __name__ == '__main__':
-    mm, _ = build(False); write(os.path.join(HERE, 'melody.tg'), mm)
-    ma, problems = build(True); write(os.path.join(HERE, 'ttlt.tg'), ma)
-    print('\n'.join(problems) or 'no problems', '| played bars:', len(PLAY))
+# ---- page ----
+DEG = {'Fmaj7': 'IV', 'Fm6': 'iv', 'Em7': 'iii', 'A7': 'V/ii', 'Dm7': 'ii', 'G': 'V', 'Cmaj7': 'I'}
+SHOWN = {m: [(0, CHORD[m], DEG[CHORD[m]])] for m in range(2, 89) if CHORD[m] and (m == 2 or CHORD[m - 1] != CHORD[m] or m in SHEET_CH)}
+def chord_at(m, t): return CHORD[m]
+SKIP = set(range(82, 88))   # = bars 35-40, not drawn again
+TAGS = {81: ['ô 82–87 giống hệt ô 35–40']}
+LABEL = {
+ 1: 'lấy đà, chưa có hợp âm',
+ 2: 'Fmaj7: bass ngân 3 phách, slap phách 4', 3: 'Fm6 (hợp âm mượn): Ab dưới D', 4: 'Em7: D dưới G',
+ 5: 'A7: giai điệu đi xuống tới A', 6: 'Dm7: A dưới C, D dưới E', 7: 'sheet không ghi hợp âm: giữ Dm7, bass A',
+ 8: 'Cmaj7: B dưới E tạo màu maj7', 9: 'groove bắt đầu: bass phách 1 & 3, slap phách 2 & 4',
+ 10: 'Fmaj7: nốt móc kép, chỉ thêm hòa âm phách 3', 11: 'Fm6: Ab dưới D cuối ô', 12: 'Em7: G# cuối ô dẫn về A7',
+ 13: 'A7: giai điệu C nghịch với C# của hợp âm', 14: 'Dm7: hai câu ngắn A–E–D', 15: 'G: B cuối ô dẫn về C',
+ 16: 'Cmaj7: kết intro', 17: 'giai điệu nghỉ: quạt Cmaj7, bass E dẫn về F',
+ 18: 'vào lời: hòa âm phách 1 & 3', 19: 'Fm6: A trong giai điệu, Ab ở dưới', 20: 'Em7: G# dẫn về A7',
+ 21: 'A7: C# dưới G (quãng 3 cung)', 22: 'Dm7: giai điệu đi xuống F–E–D–C', 23: 'G: F trong giai điệu là 7th',
+ 24: 'Cmaj7: A trên C là 6th', 25: 'nốt E ngân, bass E dẫn về F', 26: 'Fmaj7: hòa âm cả 4 phách',
+ 27: 'Fm6: D dưới G, màu m6', 28: 'Em7: câu lặp lần 2', 29: 'A7: giai điệu lên C cao (phím 8)',
+ 30: 'Dm7: D dưới A, C dưới E', 31: 'G: D dưới F, B dẫn về C', 32: 'Cmaj7: E nối sang ô sau',
+ 33: 'nốt E ngân, thêm B tạo màu maj7', 34: 'Fmaj7: A dưới nốt C đang ngân', 35: 'Fm6: Ab dưới nốt E ngân',
+ 36: 'Em7: G, B dưới giai điệu', 37: 'A7: Bb trên cùng là b9', 38: 'Dm7: chặn C và A dưới F',
+ 39: 'G: B và G dưới nốt E (màu 6th)', 40: 'Cmaj7: quạt C–G–E, ngân hết ô',
+ 41: 'giai điệu nghỉ cả ô: câu nối E–D–C–B–G',
+ 42: 'quạt Fmaj7 4 nốt trong chỗ nghỉ', 43: 'Fm6: F dưới C, giai điệu có A', 44: 'Em7: B và E dưới nốt G ngân',
+ 45: 'A7: C# dưới G', 46: 'Dm7: giai điệu xuống A (dây 3)', 47: 'G: giai điệu xuống G buông, B dẫn về C',
+ 48: 'Cmaj7: giai điệu nhảy A–E–G–D', 49: 'Cmaj7: G, E dưới C, bass E dẫn về F', 50: 'Fmaj7: G buông ngân từ ô trước',
+ 51: 'Fm6: kết câu bằng G buông', 52: 'Em7: Bb trong giai điệu (b5)', 53: 'A7: C# dưới E',
+ 54: 'Dm7: móc kép nhanh, đệm thưa', 55: 'G: C lặp liên tục, B dẫn về C',
+ 56: 'C cao phím 8: bass E buông, C ở phách 3', 57: 'ngân C cao, chặn G và E (phím 8–9)',
+ 58: 'đoạn mới: bass nửa nhịp, slap phách 3', 59: 'Fm6: Ab dưới D', 60: 'Em7: C trong giai điệu (b6)',
+ 61: 'A7: A dưới D, bass ngân', 62: 'Dm7: nhịp chấm dôi, groove trở lại', 63: 'G: B, G dưới F (màu G7)',
+ 64: 'Cmaj7: B, G dưới E', 65: 'G ngân: Cmaj7 4 nốt, bass E dẫn về F',
+ 66: 'lời lần cuối: hòa âm cả 4 phách', 67: 'Fm6: D dưới E ở phách 2', 68: 'Em7: D dưới E, G# dẫn về A7',
+ 69: 'A7: A dưới D ở phách 4', 70: 'Dm7: A dưới D ở phách 2', 71: 'G: G dưới D và C',
+ 72: 'Cmaj7: C dưới E ở phách 2', 73: 'nốt E ngân, G dưới D', 74: 'Fmaj7: C dưới G và E',
+ 75: 'Fm6: D dưới G, Ab cuối ô', 76: 'Em7: G# dẫn về A7', 77: 'A7: lên C cao lần cuối',
+ 78: 'Dm7: A dưới D cuối ô', 79: 'G: G dưới C, B dẫn về C', 80: 'Cmaj7: không nối, giai điệu nghỉ sau ô',
+ 81: 'đoạn kết: quạt Fmaj7 trong chỗ nghỉ', 88: 'kết bài: quạt Cmaj7, dừng ở C',
+}
+SECTIONS = {1: 'Lấy đà', 2: 'Intro lần 1 (ô 2–9)', 10: 'Intro lần 2 (ô 10–17)', 18: 'Lời (ô 18–32, đánh 2 lần)',
+            33: 'Đoạn B (ô 33–41)', 42: 'Đoạn C (ô 42–57)', 58: 'Volta 2: đoạn D (ô 58–65)',
+            66: 'Lời lần cuối (ô 66–80)', 81: 'Kết (ô 81–88)'}
