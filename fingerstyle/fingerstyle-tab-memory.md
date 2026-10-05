@@ -72,7 +72,21 @@ Ghi chú cho lần sau khi làm trang tab có chú thích (ví dụ `fingerstyle
 - Không kiểm tra được bằng TuxGuitar trên máy (Java đi kèm thiếu trình biên dịch); tên thẻ lấy từ `tuxguitar-lib.jar` (`app/tuxguitar/io/tg/TGStream.class`).
 
 ## Công cụ
-- `tools/tablib.py`: phần chung (ghi .tg, kiểm tra chồng dây/dãn tay, vẽ trang tab theo bố cục và CSS của `laviem.html`, audit).
+- `tools/tablib.py`: phần chung (ghi .tg, kiểm tra chồng dây/dãn tay, vẽ trang tab theo bố cục và CSS của `laviem.html`, audit). `tools/accomp.py`: phần đệm theo nguyên lý bản C.
 - `tools/songs/<bài>.py`: chỉ dữ liệu của bài (giai điệu, bản phối viết tay từng ô, nhãn, hợp âm); `<bài>.md`: phong cách; `<bài>.tg`: file xuất. Danh sách trường cần có ở đầu `tools/song.py`. Bài mới: copy `songs/ttlt.py` (giai điệu gõ bằng chữ, lưới móc kép) hoặc `songs/mhkcas.py` (giai điệu đọc từ .tg của người dùng, lưới móc đơn) rồi sửa dữ liệu.
 - Chạy: `python tools/song.py <bài>` (thêm `audit` để in nốt ngoài hợp âm).
 - Skill `fingerstyle-tab-sungha-style` không dùng (xuất .gp5 bằng pyguitarpro, máy không có; mặc định khác cách làm ở đây).
+
+## Nguyên lý soạn phần đệm (rút ra từ bài bdmt bản C, người dùng thấy "hay hơn hẳn") — áp dụng cho MỌI bài
+Không chỉ là cách chuyển từ sheet piano: soạn phần đệm bài nào cũng theo các nguyên lý này. Có sheet piano thì chép tay trái làm nguồn; không có thì tự viết "tay trái" theo đúng các nguyên lý rồi đặt lên guitar bằng cùng công cụ.
+1. Bass ở bè 1 một mình, ngân tới nốt bass sau (hoặc tới slap nếu bài có slap — slap vẫn giữ được). Nốt đệm nằm ở bè 0: đánh cùng nốt giai điệu (tách nốt giai điệu + nối khi nốt đệm rơi giữa nốt ngân; trang tab chỉ vẽ nốt giai điệu 1 lần) hoặc chen vào chỗ giai điệu nghỉ.
+2. Thế mở: trên bass là quãng 5, rồi 9th, rồi bậc 3 ở quãng tám trên (C3–G3–D4–E4, F2–C3–G3–A3, A2–E3–B3–C4). Tránh thế đóng (bậc 3 sát bass ở âm vực thấp, nghe đục).
+3. Đường rải một chiều đi lên rồi ngân nốt cuối. Tránh lên–xuống lặp (C–E–G–E).
+4. Nhịp đệm đổi theo câu: giai điệu ngân thì đệm chạy, giai điệu nhiều nốt thì đệm thưa/ngân. Tránh rải móc đơn đều cả bài.
+5. Nốt riêng từng ô: bass đi (G–G#–A, D–E–F–G), nốt mượn, nốt ngân giữ nguyên.
+6. Đặt lên guitar: nốt đệm phải thấp hơn giai điệu (không thì hạ 1 quãng tám), không trùng dây giai điệu, không trùng bass đang ngân; bass bấm phím thấp mà giai điệu lên cao thì cắt bass sớm.
+- Số đo trên bdmt: bản C giữ 73% nốt tay trái đúng cao độ (95% đúng tên nốt); bản tự chế mẫu rải chỉ 41% và nghe kém hơn.
+- Công cụ: `tools/accomp.py` (`parse_lh`, `place()` đặt nốt đệm lên dây/phím, `assemble()` ghép bass + nốt đệm + giai điệu, `legato()` luyến). Ví dụ: `songs/bdmt.py` (tay trái chép từ sheet piano), `songs/mhkcas.py` (tay trái tự viết, giữ slap phách 3).
+- Luyến (h/p/s): chỉ từng cặp 2 nốt liền nhau, không chuỗi 3 nốt trở lên (người dùng, bdmt).
+- Nốt phím 15 dây 1 nghe chói: dùng harmonic tự nhiên cùng cao độ (G5 = dây 3 phím 5). Thẻ .tg: `<harmonic type="N.H" data="0"/>` trong `<note>`; trang tab ghi `<5>`.
+- Ô trong TuxGuitar đánh số từ ô đầu file: nếu bài bắt đầu từ ô 2 của sheet thì ô TuxGuitar n = ô sheet n+1.

@@ -10,6 +10,7 @@ Q = 2882880                                          # ticks per quarter note
 X = 'x'                                              # slap (dead note)
 NM = 'C C# D D# E F F# G G# A A# B'.split()
 PC = {n: i for i, n in enumerate(NM)}
+PC.update({'Db': 1, 'Eb': 3, 'Gb': 6, 'Ab': 8, 'Bb': 10})
 pitch = lambda s, f: TUNE[s - 1] + f
 
 # color tones labelled next to the note in the tab (any role; melody once per bar). Other notes get their interval.
@@ -18,7 +19,7 @@ COLOR = {'Fmaj7': {'E': 'maj7'}, 'Fm': {'G#': 'b3 mượn'}, 'Fm6': {'G#': 'b3 m
          'A7': {'C#': '3rd → D', 'G': '7th', 'A#': 'b9'}, 'D/F#': {'F#': '3rd → G'}}
 
 def root(name):
-    return name[:2] if name[1:2] == '#' else name[0]
+    return name[:2] if name[1:2] in ('#', 'b') else name[0]
 
 def interval(pc, rt):
     return {0: 'root', 1: 'b9', 2: '9th', 3: '3rd', 4: '3rd', 5: '4th', 6: 'b5', 7: '5th', 8: 'b6', 9: '6th',
@@ -27,16 +28,16 @@ def interval(pc, rt):
 def chord_tones(name):
     q = name.split('/')[0][len(root(name)):]
     iv = {'': (0, 4, 7), 'm': (0, 3, 7), '7': (0, 4, 7, 10), 'maj7': (0, 4, 7, 11), 'm7': (0, 3, 7, 10),
-          'm6': (0, 3, 7, 9), '6': (0, 4, 7, 9)}[q]
+          'm6': (0, 3, 7, 9), '6': (0, 4, 7, 9), 'm7b5': (0, 3, 6, 10), 'sus4': (0, 5, 7)}[q]
     tones = {(PC[root(name)] + i) % 12 for i in iv}
     if '/' in name: tones.add(PC[name.split('/')[1]])
     return tones
 
 # ---------------- .tg ----------------
-def note_xml(s, f, vel, tied=False, hammer=False, slide=False):
+def note_xml(s, f, vel, tied=False, hammer=False, slide=False, harmonic=False):
     if f == X: return f'<note string="{s}" value="0" velocity="{vel}"><deadNote/></note>'
     a = f'<note string="{s}"' + (' tiedNote="true"' if tied else '') + f' value="{f}" velocity="{vel}"'
-    kids = ('<hammer/>' if hammer else '') + ('<slide/>' if slide else '')
+    kids = ('<hammer/>' if hammer else '') + ('<slide/>' if slide else '') + ('<harmonic type="N.H" data="0"/>' if harmonic else '')
     return a + (f'>{kids}</note>' if kids else '/>')
 
 def dur_xml(ticks):
@@ -75,7 +76,7 @@ def build_measures(song, bars):
     # slap goes on the string of the next bass note (same bar, else a later bar); none left -> keep its string
     flat = [(i, k) for i, b in enumerate(bars) for k in range(len(b['b']))]
     for n, (i, k) in enumerate(flat):
-        p, ln, ns = bars[i]['b'][k]
+        p, ln, ns = bars[i]['b'][k][:3]
         if ns[0][1] != X: continue
         nxt = next((bars[i2]['b'][k2][2] for i2, k2 in flat[n + 1:] if bars[i2]['b'][k2][2][0][1] != X), None)
         if nxt: bars[i]['b'][k] = (p, ln, [(nxt[0][0], X)])
@@ -86,11 +87,11 @@ def build_measures(song, bars):
         for e in a['mel']:
             hs = a['h'].get(e['pos'], [])
             for s, f in hs:
-                if pitch(s, f) >= pitch(e['s'], e['f']): problems.append(f'M{m} harmony above melody at {e["pos"]}')
+                if pitch(s, f) >= e.get('p', pitch(e['s'], e['f'])): problems.append(f'M{m} harmony above melody at {e["pos"]}')
                 if s == e['s']: problems.append(f'M{m} harmony same string as melody at {e["pos"]}')
             fr = [x for x in [e['f']] + [f for _, f in hs] if x > 0]
             if fr and max(fr) - min(fr) > 4: problems.append(f'M{m} stretch at {e["pos"]}')
-            nx = note_xml(e['s'], e['f'], vm, e.get('tied'), e.get('hammer'), e.get('slide')) + ''.join(note_xml(s, f, vh) for s, f in hs)
+            nx = note_xml(e['s'], e['f'], vm, e.get('tied'), e.get('hammer'), e.get('slide'), e.get('harm')) + ''.join(note_xml(s, f, vh) for s, f in hs)
             ev0.append((e['pos'], e['len'], nx))
             s0 += [(e['pos'], e['pos'] + e['len'], s) for s in [e['s']] + [s for s, _ in hs]]
         for k in a['h']:
@@ -99,8 +100,9 @@ def build_measures(song, bars):
             ev0.append((p, ln, ''.join(note_xml(s, f, vh) for s, f in ns)))
             s0 += [(p, p + ln, s) for s, _ in ns]
         ev1 = []
+        mid1 = a.get('mid1', set())       # voice-1 notes that are accompaniment (arpeggio), not bass
         for p, ln, ns in a['b']:
-            ev1.append((p, ln, ''.join(note_xml(s, f, vs if f == X else vb) for s, f in ns)))
+            ev1.append((p, ln, ''.join(note_xml(s, f, vs if f == X else (vh if (p, s, f) in mid1 else vb)) for s, f in ns)))
             s1 += [(p, p + ln, s) for s, f in ns if f != X]
         for a0, b0, x0 in s0:              # same string sounding in both voices at once
             for a1, b1, x1 in s1:
@@ -145,7 +147,7 @@ def read_tg(path, step, bar):
                 for s, tie, f, _, kids in re.findall(r'<note string="(\d)"( tiedNote="true")? value="(\d+)" velocity="\d+"(/>|>(.*?)</note>)', body):
                     kids = kids or ''
                     ns.append(dict(t=t, len=ln, v=vi, s=int(s), f=int(f), tie=bool(tie), dead='deadNote' in kids,
-                                   hammer='hammer' in kids, slide='slide' in kids))
+                                   hammer='hammer' in kids, slide='slide' in kids, harm='<harmonic' in kids))
         res.append(ns)
     return res
 
@@ -173,11 +175,13 @@ def tab_notes(song, bars):
             if n['v'] == 0 and (n['t'], n['s'], n['f']) in mel and n['t'] not in done:
                 n['role'] = 'mel'; done.add(n['t'])
             else:
-                n['role'] = 'slap' if n['dead'] else ('bass' if n['v'] == 1 else 'mid')
+                n['role'] = 'slap' if n['dead'] else ('mid' if n['v'] == 0 or (n['t'], n['s'], n['f']) in a.get('mid1', ()) else 'bass')
         assert len(done) == len(mel), ('melody not found', a['m'])
     notes, prev = {}, {}
     for i, a in enumerate(bars):
         if a['m'] not in notes:
+            for n in played[i]:
+                if n['role'] == 'mel' and (n['t'], n['s'], n['f']) in a.get('hide', ()): n['hidden'] = True
             notes[a['m']] = played[i]; prev[a['m']] = played[i - 1] if i else []
     return notes, prev
 
@@ -195,7 +199,11 @@ def bar_svg(song, m, ns, prev):
     for p, name, deg in song.SHOWN.get(m, []):
         o.append(f'<text class="tch" x="{X0 + DX * p - 6:g}" y="30">{html.escape(name)}<tspan class="tdeg"> {deg}</tspan></text>')
     # arcs between consecutive melody notes: h (hammer-on), p (pull-off), s (slide)
-    mels = sorted([n for n in ns if n['role'] == 'mel'], key=lambda n: n['t'])
+    mels = []                             # visible melody notes; a hidden split piece passes its h/p/s to the drawn note
+    for n in sorted([n for n in ns if n['role'] == 'mel'], key=lambda n: n['t']):
+        if n.get('hidden') and mels:
+            mels[-1] = dict(mels[-1], hammer=n['hammer'], slide=n['slide'])
+        elif not n.get('hidden'): mels.append(n)
     def arc(x1, x2, y, lab):
         o.append(f'<path class="tslur" d="M{x1:g},{y} Q{(x1 + x2) / 2:g},{y - 9} {x2:g},{y}"/>')
         o.append(f'<text class="tslt" x="{(x1 + x2) / 2:g}" y="{y - 6}" text-anchor="middle">{lab}</text>')
@@ -204,12 +212,14 @@ def bar_svg(song, m, ns, prev):
             up = pitch(b['s'], b['f']) > pitch(a['s'], a['f'])
             arc(X0 + DX * a['t'], X0 + DX * b['t'], min(sy(a['s']), sy(b['s'])) - 8, 's' if a['slide'] else ('h' if up else 'p'))
     pm = sorted([n for n in prev if n['role'] == 'mel'], key=lambda n: n['t'])
-    if pm and pm[-1]['slide'] and mels:   # slide across the bar line
-        arc(4, X0 + DX * mels[0]['t'], sy(mels[0]['s']) - 8, 's')
+    if pm and (pm[-1]['slide'] or pm[-1]['hammer']) and mels and mels[0]['t'] == 0:   # h/p/s across the bar line
+        up = pitch(mels[0]['s'], mels[0]['f']) > pitch(pm[-1]['s'], pm[-1]['f'])
+        arc(4, X0 + DX * mels[0]['t'], sy(mels[0]['s']) - 8, 's' if pm[-1]['slide'] else ('h' if up else 'p'))
     mel_done = set()                      # melody color tone labelled once per bar
     for n in ns:
         x, y = X0 + DX * n['t'], sy(n['s'])
-        txt = 'x' if n['dead'] else (f"({n['f']})" if n['tie'] else str(n['f']))
+        if n.get('hidden'): continue      # melody piece split only to strike an accompaniment note: drawn once
+        txt = 'x' if n['dead'] else (f"({n['f']})" if n['tie'] else f"<{n['f']}>" if n.get('harm') else str(n['f']))
         w = 7 * len(txt) + 4
         cls = n['role']; label = ''
         ch = song.chord_at(m, n['t'])
@@ -224,7 +234,7 @@ def bar_svg(song, m, ns, prev):
             label = COLOR[ch][nm]
             if cls == 'mel': mel_done.add(nm)
         o.append(f'<rect class="tmask" x="{x - w / 2:.1f}" y="{y - 6.5}" width="{w}" height="13"/>')
-        o.append(f'<text class="tnt {cls}" x="{x:g}" y="{y + 4.5}" text-anchor="middle">{txt}</text>')
+        o.append(f'<text class="tnt {cls}" x="{x:g}" y="{y + 4.5}" text-anchor="middle">{html.escape(txt)}</text>')
         if label:
             o.append(f'<text class="tiv {cls}" x="{x + w / 2 + 1:.1f}" y="{y + 3.5}">{label}</text>')
     return f'<svg class="tabsvg" viewBox="0 15 374 157" role="img" aria-label="tab ô {m}">' + ''.join(o) + '</svg>'

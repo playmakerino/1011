@@ -14,11 +14,12 @@ C · G/B · Am7 | Fmaj7 · G · C · A7 | Dm7 · G · G7 · Em7 · Am7 · **A7**
 
 ## Phong cách đã chốt
 - Pop ballad, sâu lắng, da diết. Không đổi bass root ↔ 5th, không đánh nghịch phách (nghe ra bossa nova).
-- Câu 1 (ô 2–9) rất thưa, bass ngân cả ô; dày dần qua câu 2 (10–13), câu 3 (14–17); ô 18–24 dẫn vào cao trào nhưng **không dồn dập**.
-- Ô giai điệu nghỉ (5, 9, 13, 17) có câu nối. Ô 17: câu nối đi xuống G–E–D, bass E nối sang F.
-- **Slap đúng 1 cái ở phách 3, mỗi ô 2–24**, trên dây của nốt bass kế tiếp (ô 24 không có ô sau, giữ dây 6). Ô đổi hợp âm ở phách 3 (8, 12) → bass mới ở phách 4; ô 21 E7 ở phách 4 cũng có bass E.
-- "let ring" ghi một lần ở ô 2, không gắn từng nốt. Không vibrato.
-- Luyến: 6 hammer/pull-off có sẵn từ file gốc; slide ở ô 7 (D→B), ô 23 (D→F) và ô 23→24 (E→D). Trang HTML vẽ cung h / p / s, nhưng nhãn ô không nhắc tới luyến.
+- **Phần đệm theo nguyên lý bản C (2026-10-06, người dùng chọn):** "tay trái" tự viết từng ô (`LH` trong `mhkcas.py`): thế mở 1–5–9–3 đi lên rồi ngân (Fmaj7 = F2–C3–G3–A3 + E, Am7 = A2–E3–B3–C4), đặt bằng `accomp.place()`. Bè 1 chỉ có bass, ngân tới slap.
+- Câu 1 (ô 2–9) thưa; ô giai điệu nghỉ (5, 9, 13) rải tiếp đi lên; dày dần ở câu 3; ô 18–24 không dồn dập.
+- **Slap đúng 1 cái ở phách 3, mỗi ô 2–24**, trên dây của nốt bass kế tiếp. Ô đổi hợp âm (8, 12, 17, 21) có bass mới ở phách 4.
+- Hợp âm và vị trí bass giữ như bản trước; nốt đệm thêm 9th (D trong C, A trong G, B trong Am7, G trong Fmaj7, F# trong Em7, E trong Dm7).
+- Luyến: 6 hammer/pull-off có sẵn từ file gốc; slide ở ô 7 (D→B), ô 23 (D→F) và ô 23→24 (E→D).
+- Bản trước (nốt hòa âm + câu nối viết tay, bass + slap chung bè) đã thay bằng bản này.
 
 ## Thế bấm capo 1
 - Giai điệu lên tới D5–F5 (phím 10–13 dây 1). Ô có G ở phím 10 (7, 11, 24) dùng bass G dây 5 phím 10 (thế chặn); ô 3 G/B bass B dây 6 phím 7. Bass dây buông khi được (Am, Dm, Em) để tay rảnh lên cao.
