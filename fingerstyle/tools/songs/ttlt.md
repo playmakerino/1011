@@ -14,8 +14,7 @@
 - Đi bass vào hợp âm sau ở móc cuối ô: G → B → C, Cmaj7 → E → F, Em7 → G# → A7.
 - Volta 2 ô 58–61: bass nửa nhịp (phách 1, slap phách 3) để tạo tương phản, rồi về groove.
 - Ô 56–57 (nốt C cao phím 8): bass E buông thay cho C để không phải dãn tay.
-- Phần đệm: "tay trái" thế mở 1–5–9–3 trên root (`VO` trong `ttlt.py`), đặt bằng `accomp.place()`. Nhịp theo đoạn (`LH`): intro lần 1 ba nốt đi lên rồi ngân; lời: 5th, 3rd rồi 9th ngân; đoạn B, C: bốn nốt lên tới nốt màu; đoạn D: chạy lên rồi ngân; ô Cmaj7 thứ hai của mỗi vòng 8 ô thì thưa lại; ô 41 rải Cmaj7 lên tới B.
-- Lưu ý: nhịp đệm đang viết theo mẫu từng đoạn (+ vài ô sửa tay), chưa viết tay đủ từng ô.
+- Phần đệm: "tay trái" viết tay từng ô (`LH` trong `ttlt.py`, người dùng yêu cầu 2026-10-06): thế mở (5th, 9th, 3rd, nốt màu) đi lên rồi ngân; giai điệu dày thì 2–3 nốt, giai điệu ngân thì nhiều hơn; không để nốt đệm trùng nốt giai điệu sắp tới; lời lần cuối (66–80) có móc kép ở phách 1 và nốt đỉnh khác lời lần 1; ô 43 bỏ Ab vì giai điệu có A. Ô 82–87 = 35–40.
 
 ## Chạy lại
 ```
