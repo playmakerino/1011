@@ -1,0 +1,4 @@
+# only the HTML pages are published; tools, notes and .tg files stay local
+*
+!*.html
+!.gitignore
