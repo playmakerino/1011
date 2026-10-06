@@ -15,6 +15,7 @@
 - Volta 2 ô 58–61: bass nửa nhịp (phách 1, slap phách 3) để tạo tương phản, rồi về groove.
 - Ô 56–57 (nốt C cao phím 8): bass E buông thay cho C để không phải dãn tay.
 - Phần đệm: "tay trái" viết tay từng ô (`LH` trong `ttlt.py`, người dùng yêu cầu 2026-10-06): thế mở (5th, 9th, 3rd, nốt màu) đi lên rồi ngân; giai điệu dày thì 2–3 nốt, giai điệu ngân thì nhiều hơn; không để nốt đệm trùng nốt giai điệu sắp tới; lời lần cuối (66–80) có móc kép ở phách 1 và nốt đỉnh khác lời lần 1; ô 43 bỏ Ab vì giai điệu có A. Ô 82–87 = 35–40.
+- Tay phải (2026-10-06, người dùng yêu cầu): `RH` trong `ttlt.py`, viết tay từng ô — 1–2 nốt đánh cùng nốt giai điệu ở phách chính, dưới giai điệu một quãng 3–6, nốt trong hợp âm; lời lần cuối thêm 1 nốt; ô 82–87 = 35–40; đặt trước tay trái. 195/200 nốt đặt được; ô 46, 55 dùng A, G thay F để không chiếm dây bass D.
 
 ## Chạy lại
 ```

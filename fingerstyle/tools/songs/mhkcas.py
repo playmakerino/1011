@@ -91,6 +91,15 @@ LH = {
  24: '2:D4 4:A4 6:B4',           # G, wait for the chorus
 }
 
+# written "right hand": notes struck with the melody, a 3rd-6th below it (chord tones, held common tones),
+# placed before the left hand so they get their strings first
+RH = {
+ 2: '0:G3 6:C4', 3: '0:G4 6:G4', 4: '0:C4 6:C4', 6: '6:E4 12:G4', 7: '0:B4 8:G4', 8: '0:E4 8:Db4',
+ 9: '12:A3', 10: '0:D4 12:G4', 11: '0:B4 6:F4', 12: '2:B4 6:E4', 13: '14:Db4', 14: '0:F4 6:D4 12:C4',
+ 15: '2:A3', 16: '0:B3 8:B3', 17: '0:B3', 18: '0:E4 14:F4', 19: '0:F4 8:Ab4', 20: '0:D4 14:G4',
+ 21: '0:G4 12:Db4', 22: '0:D4 12:F4', 23: '0:A4 10:C5', 24: '0:B4',
+}
+
 def lh(m): return [(int(t), A.note_midi(n)) for t, n in (x.split(':') for x in LH.get(m, '').split())]
 
 def melody():
@@ -110,7 +119,7 @@ def bars():
     mel = melody(); out = []
     for m in range(1, 25):
         bass = BASS.get(m, [])
-        acc = A.place(m, mel[m], bass, lh(m), DROPPED)
+        acc = A.place(m, mel[m], bass, A.parse_lh(RH.get(m, '')) + lh(m), DROPPED)
         bar, d = A.assemble(m, mel[m], bass, acc, slaps=(SLAP,) if m >= 2 else (), vel=VEL[m])
         DROPPED.extend(d); out.append(bar)
     return out
@@ -133,13 +142,14 @@ def chord_at8(m, t):
 def chord_at(m, t): return chord_at8(m, t // 2)
 LABEL = {
  1: 'lấy đà, chưa có hợp âm',
- 2: 'C: bass ngân, rải G–D–E (5th, 9th, 3rd)', 3: 'G/B: bass B (hợp âm đảo), đệm thưa', 4: 'Am7: rải E–B–C dưới giai điệu',
- 5: 'giai điệu nghỉ: rải Am7 đi lên tới E', 6: 'Fmaj7: bass F dây 6, E trên đỉnh là maj7', 7: 'G: chặn phím 10, rải D–A',
- 8: 'C rồi A7: C# cuối ô dẫn về Dm7', 9: 'giai điệu nghỉ: rải Dm7 D–A–E–F',
- 10: 'G: rải G–D–A–B, A là 9th', 11: 'G7: F là 7th', 12: 'Em7 rồi Am7: rải E–B–F#–G', 13: 'giai điệu nghỉ: rải A7 lên tới E',
- 14: 'Dm7: câu 3 dày hơn, C (7th) cuối ô', 15: 'Dm7: rải F–A–C', 16: 'G: rải G–D–A–B, G cuối ô', 17: 'G: bass E cuối ô dẫn sang F',
- 18: 'Fmaj7 rồi Fm: Ab ở phách 3', 19: 'Fm: rải F–C–Ab–C', 20: 'Em7: rải E–B–F#–D', 21: 'Am7 rồi A7: C# cuối ô',
- 22: 'Dm7: rải A–C–E dưới nốt F ngân', 23: 'lên phím 13, rải A–E–F', 24: 'dừng ở G (bậc V), chờ cao trào',
+ 2: 'C: G tay phải dưới E, rải G–D, C dưới G', 3: 'G/B: bass B (hợp âm đảo), G tay phải ngân', 4: 'Am7: C tay phải giữ dưới giai điệu, rải E–B',
+ 5: 'giai điệu nghỉ: rải Am7 đi lên tới E', 6: 'Fmaj7: bass F dây 6, E tay phải là maj7', 7: 'G: chặn phím 10, B rồi G tay phải',
+ 8: 'C rồi A7: C# tay phải dẫn về Dm7', 9: 'giai điệu nghỉ: rải Dm7 D–A–E–F, A dưới C',
+ 10: 'G: D tay phải dưới A, rải G–D–A–B', 11: 'G7: B–F tay phải (quãng 3 cung)', 12: 'Em7 rồi Am7: B, E tay phải',
+ 13: 'giai điệu nghỉ: rải A7, C# dưới G cuối ô', 14: 'Dm7: câu 3 dày hơn, F–D–C tay phải đi xuống', 15: 'Dm7: A tay phải dưới D ngân, rải F–A–C',
+ 16: 'G: B tay phải lặp ở phách 1 & 3', 17: 'G: bass E cuối ô dẫn sang F', 18: 'Fmaj7 rồi Fm: E tay phải là maj7, Ab ở phách 3',
+ 19: 'Fm: rải F–C–Ab–C dưới giai điệu cao', 20: 'Em7: D (7th) tay phải, G dưới B cuối ô', 21: 'Am7 rồi A7: G tay phải, C# cuối ô',
+ 22: 'Dm7: D, F tay phải dưới giai điệu', 23: 'lên phím 13: A tay phải, rải A–E–F', 24: 'dừng ở G (bậc V), B tay phải, chờ cao trào',
 }
 SECTIONS = {1:'Lấy đà', 2:'Câu 1 (ô 2–9)', 10:'Câu 2 (ô 10–13)', 14:'Câu 3 (ô 14–17)', 18:'Dẫn vào cao trào (ô 18–24)'}
 SKIP = set(); TAGS = {}

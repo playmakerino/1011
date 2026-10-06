@@ -23,6 +23,7 @@ C · G/B · Am7 | Fmaj7 · G · C · A7 | Dm7 · G · G7 · Em7 · Am7 · **A7**
 
 ## Thế bấm capo 1
 - Giai điệu lên tới D5–F5 (phím 10–13 dây 1). Ô có G ở phím 10 (7, 11, 24) dùng bass G dây 5 phím 10 (thế chặn); ô 3 G/B bass B dây 6 phím 7. Bass dây buông khi được (Am, Dm, Em) để tay rảnh lên cao.
+- Tay phải (2026-10-06, người dùng yêu cầu): `RH` trong `mhkcas.py`, viết tay từng ô — 1–2 nốt đánh cùng nốt giai điệu, dưới giai điệu một quãng 3–6, nốt trong hợp âm, giữ nốt chung; đặt trước tay trái. 34/40 nốt đặt được (6 nốt bỏ vì dãn tay: giai điệu phím cao + bass F phím 1).
 
 ## Chạy lại
 ```

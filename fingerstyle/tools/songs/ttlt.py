@@ -196,6 +196,31 @@ LH = {
 for a, b in zip(range(82, 88), range(35, 41)):   # 82-87 = 35-40 (not drawn again)
     LH[a] = LH[b]
 
+# ---- written "right hand": notes struck with the melody, a 3rd-6th below it (chord tones, held common tones),
+# one line per bar; placed before the left hand so they get their strings first ----
+RH = {
+ 2: '0:C4 8:F3', 3: '0:Ab3 12:C4', 4: '0:B3 8:G3', 5: '0:G3', 6: '0:A3 8:C4', 7: '6:F3', 8: '0:G3 8:B3',
+ 9: '0:C4 8:B3', 10: '0:A3 8:C4', 11: '0:C4 8:Ab3', 12: '0:B3 8:D4', 13: '0:E4 8:G3', 14: '0:F4 8:C4',
+ 15: '0:D4 8:B3', 16: '2:E4 12:C4', 17: '8:G3',
+ 18: '0:C4 8:A3', 19: '0:C4 6:F4', 20: '0:B3 8:D4', 21: '0:Db4 6:E4', 22: '0:A3 8:C4', 23: '0:G3 8:B3',
+ 24: '2:C4 8:E4', 25: '0:G3 8:B3', 26: '0:A3 8:C4', 27: '0:Ab3 6:D4', 28: '0:D4 8:B3', 29: '0:Db4 6:G4',
+ 30: '0:F4 8:C4', 31: '0:B3 8:D4', 32: '2:E4 8:C4',
+ 33: '0:C4 10:G3', 34: '0:A3 8:C4', 35: '0:C4 8:Ab3', 36: '0:B3 8:D4', 37: '0:E4 8:Db4', 38: '0:D4 8:C4',
+ 39: '0:G3 8:B3', 40: '2:G3 8:E3',
+ 42: '8:A3', 43: '12:F4', 44: '0:B3 8:D4', 45: '0:Db4 8:A3', 46: '0:A3', 47: '0:G3 8:B3', 48: '0:E4 8:G3',
+ 49: '0:G3 8:E3', 50: '4:C4 10:A3', 51: '0:C4 8:D4', 52: '0:D4 8:E4', 53: '0:E4 8:Db4', 54: '0:A3 8:C4',
+ 55: '0:B3 8:G3', 56: '0:E4 12:G4', 57: '0:G4',
+ 58: '6:C4 14:E4', 59: '0:C4 8:Ab3', 60: '0:G3 8:B3 14:E4', 61: '0:Db4 8:A3', 62: '0:A3 8:F3', 63: '0:B3 8:G3',
+ 64: '0:C4 8:B3', 65: '4:E4',
+ # last verse: one more note than the first time
+ 66: '0:C4 4:A3 8:C4', 67: '0:C4 6:F4 8:C4', 68: '0:B3 4:B3 8:D4', 69: '0:E4 6:Db4', 70: '0:A3 8:E4',
+ 71: '0:B3 8:D4', 72: '2:E4 8:C4', 73: '0:C4 8:B3', 74: '0:C4 8:C4', 75: '0:Ab3 6:F4', 76: '0:D4 8:D4',
+ 77: '0:Db4 4:E4 6:G4', 78: '0:F4 8:C4', 79: '0:B3 8:B3', 80: '2:C4 8:E4',
+ 81: '4:C4 10:C4', 88: '8:B3 12:E3',
+}
+for a, b in zip(range(82, 88), range(35, 41)):   # 82-87 = 35-40
+    RH[a] = RH[b]
+
 PLAY = list(range(1, 58)) + list(range(17, 33)) + list(range(58, 89))
 
 def parse_mel(m):
@@ -245,7 +270,7 @@ def bars():
         for t, ln, sf in parse_bass(m):
             if sf[1] == X: slaps.append(t)
             else: bass.append((t, sf))
-        acc = A.place(m, a['mel'], bass, lh(m), DROPPED)
+        acc = A.place(m, a['mel'], bass, A.parse_lh(RH.get(m, '')) + lh(m), DROPPED)
         bar, d = A.assemble(m, a['mel'], bass, acc, slaps=slaps, vel=(95, 66, 79, 85) if m > 9 else (95, 60, 70, 79))
         DROPPED.extend(d); out.append(bar)
     return out
@@ -258,33 +283,34 @@ SKIP = set(range(82, 88))   # = bars 35-40, not drawn again
 TAGS = {81: ['ô 82–87 giống hệt ô 35–40']}
 LABEL = {
  1: 'lấy đà, chưa có hợp âm',
- 2: 'Fmaj7: bass ngân 3 phách, rải C–G–A đi lên', 3: 'Fm6 (hợp âm mượn): Ab trong phần rải', 4: 'Em7: rải B–F#–D, D (7th) ngân',
- 5: 'A7: giai điệu đi xuống tới A', 6: 'Dm7: rải F–A–C dưới nốt E ngân', 7: 'sheet không ghi hợp âm: giữ Dm7, bass A',
- 8: 'Cmaj7: rải G–B–D, B là maj7', 9: 'groove bắt đầu: bass phách 1 & 3, slap phách 2 & 4',
- 10: 'Fmaj7: rải A–C–G (3rd, 5th, 9th)', 11: 'Fm6: Ab (b3 mượn) trong phần rải', 12: 'Em7: G# cuối ô dẫn về A7',
- 13: 'A7: giai điệu C nghịch với C# trong phần rải', 14: 'Dm7: hai câu ngắn A–E–D', 15: 'G: B cuối ô dẫn về C',
- 16: 'Cmaj7: kết intro', 17: 'giai điệu nghỉ: rải nhanh E–G–B, bass E dẫn về F',
- 18: 'vào lời: rải A–C–G', 19: 'Fm6: A trong giai điệu, Ab trong phần rải', 20: 'Em7: G# dẫn về A7',
- 21: 'A7: C# ở phách 2', 22: 'Dm7: giai điệu đi xuống F–E–D–C', 23: 'G: F trong giai điệu là 7th',
- 24: 'Cmaj7: A trên C là 6th', 25: 'nốt E ngân, bass E dẫn về F', 26: 'Fmaj7: vòng 2, rải G (9th) trước',
- 27: 'Fm6: Ab dưới giai điệu G', 28: 'Em7: câu lặp lần 2', 29: 'A7: giai điệu lên C cao (phím 8)',
- 30: 'Dm7: rải F–C–A', 31: 'G: F (7th) rồi bass B dẫn về C', 32: 'Cmaj7: E nối sang ô sau',
+ 2: 'Fmaj7: C tay phải dưới G, rải C–G–A', 3: 'Fm6 (hợp âm mượn): Ab tay phải dưới D', 4: 'Em7: B rồi G tay phải, rải B–F#–D',
+ 5: 'A7: G (7th) tay phải, giai điệu xuống tới A', 6: 'Dm7: A rồi C tay phải, rải F–A–C', 7: 'sheet không ghi hợp âm: giữ Dm7, bass A',
+ 8: 'Cmaj7: G rồi B tay phải dưới E ngân', 9: 'groove bắt đầu: bass phách 1 & 3, slap phách 2 & 4',
+ 10: 'Fmaj7: A rồi C tay phải, rải A–C–G', 11: 'Fm6: C rồi Ab tay phải', 12: 'Em7: B rồi D tay phải, G# cuối ô dẫn về A7',
+ 13: 'A7: E rồi G tay phải, giai điệu C nghịch với C#', 14: 'Dm7: F rồi C tay phải dưới hai câu A–E–D', 15: 'G: D rồi B tay phải, B cuối ô dẫn về C',
+ 16: 'Cmaj7: E rồi C tay phải, kết intro', 17: 'giai điệu nghỉ: rải nhanh E–G–B, bass E dẫn về F',
+ 18: 'vào lời: C rồi A tay phải, rải A–C–G', 19: 'Fm6: A trong giai điệu, Ab trong phần rải', 20: 'Em7: B rồi D tay phải, G# dẫn về A7',
+ 21: 'A7: C# rồi E tay phải', 22: 'Dm7: A rồi C tay phải, giai điệu xuống F–E–D–C', 23: 'G: G rồi B tay phải, F trong giai điệu là 7th',
+ 24: 'Cmaj7: C rồi E tay phải, A trên C là 6th', 25: 'nốt E ngân, G rồi B tay phải, bass E dẫn về F', 26: 'Fmaj7: vòng 2, rải G (9th) trước',
+ 27: 'Fm6: Ab rồi D (6th) tay phải', 28: 'Em7: D rồi B tay phải', 29: 'A7: C# rồi G tay phải, giai điệu lên C cao',
+ 30: 'Dm7: F rồi C tay phải, rải F–C–A', 31: 'G: B rồi D tay phải, bass B dẫn về C', 32: 'Cmaj7: E tay phải, E nối sang ô sau',
  33: 'nốt E ngân, rải G–B–D đi lên', 34: 'đoạn B: rải 4 nốt A–C–G–A', 35: 'Fm6: Ab hai lần trong phần rải',
- 36: 'Em7: D (7th) trên đỉnh', 37: 'A7: Bb trong giai điệu là b9', 38: 'Dm7: rải F–A–C–D',
- 39: 'G: giai điệu E là 6th, B dẫn về C', 40: 'Cmaj7: B (maj7) trên đỉnh', 41: 'giai điệu nghỉ cả ô: rải Cmaj7 lên tới E',
- 42: 'đoạn C: Fmaj7 rải trong chỗ nghỉ', 43: 'Fm6: giai điệu có A nên phần rải bỏ Ab', 44: 'Em7: rải dưới nốt G ngân',
- 45: 'A7: giai điệu dày, rải 3 nốt', 46: 'Dm7: giai điệu xuống A (dây 3)', 47: 'G: giai điệu xuống G buông, B dẫn về C',
- 48: 'Cmaj7: giai điệu nhảy A–E–G–D', 49: 'Cmaj7: rải rồi thở, bass E dẫn về F', 50: 'Fmaj7: G buông ngân từ ô trước',
- 51: 'Fm6: kết câu bằng G buông', 52: 'Em7: Bb trong giai điệu (b5)', 53: 'A7: C# trong phần rải',
- 54: 'Dm7: móc kép nhanh, đệm 3 nốt', 55: 'G: C lặp liên tục, B dẫn về C',
+ 36: 'Em7: D (7th) trên đỉnh', 37: 'A7: Bb trong giai điệu là b9, C# tay phải', 38: 'Dm7: rải F–A–C–D',
+ 39: 'G: giai điệu E là 6th, B dẫn về C', 40: 'Cmaj7: G rồi E tay phải dưới C ngân', 41: 'giai điệu nghỉ cả ô: rải Cmaj7 lên tới E',
+ 42: 'đoạn C: Fmaj7 rải trong chỗ nghỉ', 43: 'Fm6: giai điệu có A nên phần rải bỏ Ab', 44: 'Em7: rải dưới nốt G ngân, D tay phải',
+ 45: 'A7: giai điệu dày, C# tay phải', 46: 'Dm7: giai điệu xuống A (dây 3), A tay phải', 47: 'G: giai điệu xuống G buông, B dẫn về C',
+ 48: 'Cmaj7: giai điệu nhảy A–E–G–D, E tay phải', 49: 'Cmaj7: rải rồi thở, bass E dẫn về F', 50: 'Fmaj7: G buông ngân từ ô trước, C tay phải',
+ 51: 'Fm6: kết câu bằng G buông, D (6th) tay phải', 52: 'Em7: Bb trong giai điệu (b5)', 53: 'A7: E rồi C# tay phải',
+ 54: 'Dm7: móc kép nhanh, A rồi C tay phải', 55: 'G: C lặp liên tục, B dẫn về C',
  56: 'C cao phím 8: bass E buông, C ở phách 3', 57: 'ngân C cao, rải G–B–D–E',
  58: 'đoạn mới: bass nửa nhịp, slap phách 3', 59: 'Fm6: rải C–G–Ab', 60: 'Em7: C trong giai điệu (b6)',
  61: 'A7: rải E–G–B, bass ngân', 62: 'Dm7: nhịp chấm dôi, groove trở lại', 63: 'G: F trong giai điệu (màu G7)',
- 64: 'Cmaj7: B (maj7) trên đỉnh', 65: 'G ngân: rải Cmaj7, bass E dẫn về F',
- 66: 'lời lần cuối: phần rải có móc kép ở phách 1', 67: 'Fm6: Ab ở phách 2', 68: 'Em7: G# dẫn về A7', 69: 'A7: C# trong phần rải',
- 70: 'Dm7: giai điệu đi xuống', 71: 'G: B dẫn về C', 72: 'Cmaj7: E nối sang ô sau', 73: 'nốt E ngân, bass E dẫn về F',
- 74: 'Fmaj7: câu lặp', 75: 'Fm6: Ab dưới giai điệu G', 76: 'Em7: G# dẫn về A7', 77: 'A7: lên C cao lần cuối',
- 78: 'Dm7: F trên đỉnh phần rải', 79: 'G: B dẫn về C', 80: 'Cmaj7: không nối, giai điệu nghỉ sau ô',
+ 64: 'Cmaj7: B (maj7) tay phải', 65: 'G ngân: E tay phải, bass E dẫn về F',
+ 66: 'lời lần cuối: thêm 1 nốt tay phải, móc kép ở phách 1', 67: 'Fm6: C tay phải 2 lần', 68: 'Em7: B hai lần rồi D tay phải, G# dẫn về A7',
+ 69: 'A7: C# tay phải ở phách 2', 70: 'Dm7: E (9th) tay phải dưới G', 71: 'G: B rồi D tay phải', 72: 'Cmaj7: E nối sang ô sau',
+ 73: 'nốt E ngân, bass E dẫn về F', 74: 'Fmaj7: câu lặp, C tay phải 2 lần', 75: 'Fm6: Ab dưới giai điệu G', 76: 'Em7: G# dẫn về A7',
+ 77: 'A7: lên C cao lần cuối, C#–E–G tay phải đi lên', 78: 'Dm7: F trên đỉnh phần rải', 79: 'G: B dẫn về C',
+ 80: 'Cmaj7: không nối, giai điệu nghỉ sau ô',
  81: 'đoạn kết: rải Fmaj7 trong chỗ nghỉ', 88: 'kết bài: rải Cmaj7, dừng ở C',
 }
 SECTIONS = {1: 'Lấy đà', 2: 'Intro lần 1 (ô 2–9)', 10: 'Intro lần 2 (ô 10–17)', 18: 'Lời (ô 18–32, đánh 2 lần)',

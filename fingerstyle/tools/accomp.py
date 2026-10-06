@@ -11,7 +11,8 @@ def note_midi(n):                      # 'C3', 'Bb3', 'F#3'
 def parse_lh(txt):
     return [(int(t), note_midi(n)) for t, n in (tok.split(':') for tok in txt.split())]
 
-PIECES = (16, 12, 8, 6, 4, 3, 2, 1)
+BAR = 16                              # grid steps per bar; a song on a 32nd grid sets accomp.BAR = 32
+PIECES = (32, 24, 16, 12, 8, 6, 4, 3, 2, 1)
 def pieces(n):                        # a length as tied notes TuxGuitar can write
     out = []
     while n:
@@ -25,7 +26,7 @@ def assemble(m, mel, bass, acc, slaps=(), vel=(100, 62, 80, 80), h0=None):
     dropped = []
     bass = sorted(bass)            # (pos, (s,f)) or (pos, (s,f), end): rings until the next bass note / slap / end
     stops = sorted([x[0] for x in bass] + list(slaps))
-    def nxt_stop(p): return min([q for q in stops if q > p] + [16])
+    def nxt_stop(p): return min([q for q in stops if q > p] + [BAR])
     bl = [(x[0], (min(x[2], nxt_stop(x[0])) if len(x) > 2 else nxt_stop(x[0])) - x[0], x[1]) for x in bass]
     cuts = set(p for p, _ in acc) | {e['pos'] for e in mel}
     # split melody notes at accompaniment onsets, then into writable lengths (tied)
@@ -54,7 +55,7 @@ def assemble(m, mel, bass, acc, slaps=(), vel=(100, 62, 80, 80), h0=None):
             if any(s2 == s for s2, _ in h.get(t, [])): dropped.append((m, t, p, 'string taken')); continue
             h.setdefault(t, []).append((s, f))
         else:
-            nxt = min([x for x in starts if x > t] + [16])
+            nxt = min([x for x in starts if x > t] + [BAR])
             if any(p0 == t and s2 == s for p0, _, ns in fills for s2, _ in ns): dropped.append((m, t, p, 'string taken')); continue
             same = [x for x in fills if x[0] == t]
             if same: same[0][2].append((s, f))
