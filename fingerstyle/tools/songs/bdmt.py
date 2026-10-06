@@ -130,15 +130,29 @@ LH = {
  58: '0:D3 2:A3 6:D4 10:A3', 59: '0:G2 4:D3 8:A3', 60: '0:C2 2:C3', 61: '0:C3',
 }
 
+# ---- piano right hand below the melody (written pitch), read from the sheet: 'onset16:p1,p2' ----
+# Placed before the left hand (they get their strings first). Bars 13 and 59 are already in H.
+RH = {3: '0:E4,G4 8:G4,C5', 4: '0:G4,D5 8:C5', 5: '0:G4,C5 8:G4', 6: '0:G4,Bb4 8:G4,Bb4,C5', 8: '12:E6', 9: '0:G4,C5',
+ 10: '0:G4,D5', 11: '0:G4 8:G4', 12: '8:G4', 14: '0:G4 8:G4', 15: '0:G4', 16: '0:B4 8:B4',
+ 19: '8:G4', 21: '0:D4', 22: '0:E4,G4 8:G4,C5', 23: '0:G4,D5', 24: '0:G4,C5 8:G4', 25: '0:G4,Bb4 8:G4,Bb4,C5',
+ 26: '8:C4,G4', 28: '0:G4,C5', 29: '0:G4,D5 8:G4', 30: '0:G4 8:G4,Bb4', 32: '0:G4 8:G4', 33: '0:E4 8:C4',
+ 34: '8:E4', 35: '0:E4 8:E4,C5', 36: '0:E4,D5 10:G4,B4', 37: '0:G4 8:G4', 38: '8:G4 10:A4', 39: '10:D4 15:A4',
+ 40: '4:G4 8:G4 11:G4 14:G4', 41: '0:G4 8:G4', 42: '0:B4 8:Ab4,B4', 43: '8:G4', 44: '8:A4 15:A4', 45: '8:G4',
+ 46: '0:E4 8:C4', 47: '8:D4', 48: '0:G4 8:G4', 49: '0:G4', 50: '8:Ab4,B4', 53: '8:G4', 58: '0:G4 4:F4 8:G4',
+ 60: '0:C4'}
+def rh(m):
+    return [(int(t), A.note_midi(p) - 12) for t, ps in (tok.split(':') for tok in RH.get(m, '').split()) for p in ps.split(',')]
+
 # ---- arrangement ----
 DROPPED, OCT = [], []
 # fixes for stretches: a fretted bass ringing under a high melody
-POS_OVR = {(61, 0, 48): (6, 8)}   # (bar, pos, midi) -> (s, f)
+POS_OVR = {(61, 0, 48): (6, 8),   # (bar, pos, midi) -> (s, f)
+           (39, 15, 57): (5, 2)}  # user: A at string 4 fret 7 under Bb fret 3 -> string 5 fret 2
 BASS_END = {(8, 0): 10, (28, 2): 6, (54, 0): 14}       # (bar, pos) -> the bass stops here
 
 LEGATO = {}   # counts of h/p and slides from accomp.legato()
 
-def bars():
+def bars(with_rh=True):
     mel = melody(); out = []
     seq = []
     for i, m in enumerate(PLAY):          # melody re-fingered for as many h/p/s as possible
@@ -160,7 +174,8 @@ def bars():
             sf = POS_OVR.get((m, t, p)) or min(A.cands(p, (6, 5, 4, 3)), key=lambda sf: (sf[1] > 5, sf[1]))
             bass.append((t, sf, BASS_END[(m, t)]) if (m, t) in BASS_END else (t, sf))
         ev = mel[m]
-        acc = A.place(m, ev, bass, [(t, p) for t, p in notes if bass_t.get(t) != p], DROPPED, OCT, POS_OVR)
+        extra = rh(m) if with_rh else []   # right-hand notes first: they get their strings before the left hand
+        acc = A.place(m, ev, bass, extra + [(t, p) for t, p in notes if bass_t.get(t) != p], DROPPED, OCT, POS_OVR, span=3, low=4)   # user: stay in the low position
         bar, d = A.assemble(m, ev, bass, acc, h0=H.get(m)); DROPPED.extend(d); out.append(bar)
     return out
 

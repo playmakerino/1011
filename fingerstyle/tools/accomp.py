@@ -78,7 +78,7 @@ def assemble(m, mel, bass, acc, slaps=(), vel=(100, 62, 80, 80), h0=None):
 def cands(p, strings=range(6, 0, -1)):
     return [(s, p - TUNE[s - 1]) for s in strings if 0 <= p - TUNE[s - 1] <= 12]
 
-def place(m, ev, bass, notes, dropped, octave=None, pos_ovr=None):
+def place(m, ev, bass, notes, dropped, octave=None, pos_ovr=None, span=4, low=None):
     """notes: [(pos, midi)] accompaniment pitches -> [(pos, (s,f))] on the fretboard.
     A note at/above the melody goes down an octave; same note as the ringing bass is dropped; the string is
     chosen near the melody's fret, avoiding the melody string and the ringing bass string."""
@@ -95,11 +95,13 @@ def place(m, ev, bass, notes, dropped, octave=None, pos_ovr=None):
         if rb and pitch(*rb[0][1]) == p and (len(rb[0]) < 3 or rb[0][2] > t):
             dropped.append((m, t, p, 'same note ringing in the bass')); continue
         ringing = [x[1][0] for x in rb]
+        if any(pitch(*sf) == p for t2, sf in acc if t2 == t):
+            dropped.append((m, t, p, 'same note already struck')); continue
         def cost(sf):
             s, f = sf
-            fr = [x for x in [e['f'] if e else 0] + [x[1][1] for x in rb] if x] if f else []
+            fr = [x for x in [e['f'] if e else 0] + [x[1][1] for x in rb] + [f2 for t2, (s2, f2) in acc if t2 == t] if x] if f else []
             st = max([abs(f - x) for x in fr] + [0])          # stretch against the melody and the ringing bass
-            return (s in ringing) * 10 + max(0, st - 4) * 20 + f * 0.1
+            return (s in ringing) * 10 + max(0, st - span) * 20 + f * 0.1 + (max(0, f - low) * 3 if low is not None else 0)
         c = [sf for sf in cands(p) if not (e and sf[0] == e['s']) and sf[0] not in used.get(t, ())]
         if (m, t, p) in pos_ovr: c = [pos_ovr[(m, t, p)]]
         if not c: dropped.append((m, t, p, 'no string')); continue
@@ -108,12 +110,12 @@ def place(m, ev, bass, notes, dropped, octave=None, pos_ovr=None):
         used.setdefault(t, set()).add(sf[0]); acc.append((t, sf))
     return acc
 
-def legato(seq, keep=1.0, max_fret=5):
+def legato(seq, keep=1.0, max_fret=5, max_leg=2):
     """Re-finger a melody to get as many hammer-ons / pull-offs / slides as possible.
     seq: melody events of the whole song in play order, each with 'bar' (index) added. Chooses (s,f) per note by DP:
     +3 per legato pair (pairs only: a note reached by legato does not start another), -keep for leaving the original position, -0.3 per fret of a jump beyond 4 frets.
-    Legato pair = consecutive notes (no rest), same string, second note not tied: 1-3 frets -> h/p, 4-5 frets
-    (both fretted) -> slide. h/p across a bar line is allowed (drawn from the bar line). Sets e['s'], e['f'], e['hammer'], e['slide']."""
+    Legato pair = consecutive notes (no rest), same string, second note not tied, 1..max_leg frets apart -> h/p
+    (the user: at most 2 frets, no slides). h/p across a bar line is allowed (drawn from the bar line). Sets e['s'], e['f'], e['hammer'], e['slide']."""
     def opts(e):
         if e.get('harm') or e.get('lock'): return [(e['s0'], e['f0'])]
         top = max(max_fret, e['f0'])        # stay in the low position unless the note already sits higher
@@ -121,9 +123,7 @@ def legato(seq, keep=1.0, max_fret=5):
     def kind(a, sa, b, sb):
         if sa[0] != sb[0] or b['tied'] or a.get('harm') or b.get('harm') or a['end'] != b['start'] or a['p'] == b['p']: return None
         d = abs(sa[1] - sb[1])
-        if 1 <= d <= 3: return 'h'
-        if 4 <= d <= 5 and sa[1] and sb[1]: return 's'
-        return None
+        return 'h' if 1 <= d <= max_leg else None    # hammer-on / pull-off only, at most max_leg frets
     def move(sa, sb):
         if not sa[1] or not sb[1]: return 0
         return max(0, abs(sa[1] - sb[1]) - 4) * 0.3

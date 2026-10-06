@@ -87,6 +87,7 @@ Không chỉ là cách chuyển từ sheet piano: soạn phần đệm bài nào
 6. Đặt lên guitar: nốt đệm phải thấp hơn giai điệu (không thì hạ 1 quãng tám), không trùng dây giai điệu, không trùng bass đang ngân; bass bấm phím thấp mà giai điệu lên cao thì cắt bass sớm.
 - Số đo trên bdmt: bản C giữ 73% nốt tay trái đúng cao độ (95% đúng tên nốt); bản tự chế mẫu rải chỉ 41% và nghe kém hơn.
 - Công cụ: `tools/accomp.py` (`parse_lh`, `place()` đặt nốt đệm lên dây/phím, `assemble()` ghép bass + nốt đệm + giai điệu, `legato()` luyến). Ví dụ: `songs/bdmt.py` (tay trái chép từ sheet piano), `songs/mhkcas.py` (tay trái tự viết, giữ slap phách 3).
-- Luyến (h/p/s): chỉ từng cặp 2 nốt liền nhau, không chuỗi 3 nốt trở lên (người dùng, bdmt).
+- Luyến: chỉ từng cặp 2 nốt liền nhau, không chuỗi 3 nốt trở lên; cách **tối đa 2 phím** (không luyến phím 1 → 5 trên cùng dây: đổi nốt kia sang dây khác) (người dùng, bdmt).
+- Tránh nhảy phím: nốt đệm không lên phím cao (vd dây 4 phím 7) khi các nốt khác ở thế thấp; chọn dây khác ở phím thấp, cắt bass sớm, hoặc bỏ nốt. Không đánh 2 nốt cùng cao độ cùng lúc.
 - Nốt phím 15 dây 1 nghe chói: dùng harmonic tự nhiên cùng cao độ (G5 = dây 3 phím 5). Thẻ .tg: `<harmonic type="N.H" data="0"/>` trong `<note>`; trang tab ghi `<5>`.
 - Ô trong TuxGuitar đánh số từ ô đầu file: nếu bài bắt đầu từ ô 2 của sheet thì ô TuxGuitar n = ô sheet n+1.
