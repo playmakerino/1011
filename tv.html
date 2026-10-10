@@ -916,7 +916,7 @@ function createPlayer(subs){
     playerVars:{ rel:0, modestbranding:1, playsinline:1, fs:1, autoplay:1, cc_load_policy:subs?1:0, cc_lang_pref:"en", hl:"en", origin:location.origin },
     events:{
       onReady:()=>{ ytReady=true; if(pending){ startVideo(pending); pending=null; } },
-      onStateChange:e=>{ if(e.data===1 && prebuf) yt.pauseVideo(); if(e.data===1 && seekWake && Date.now()-seekWake<10000){ seekWake=0; wakeYt(); } }
+      onStateChange:e=>{ if(e.data===1 && prebuf) yt.pauseVideo(); if(isOpen()&&!dvList) wakeOnState(e.data); }
     }
   });
 }
@@ -1003,6 +1003,7 @@ function openPlayer(vid){
   showModal();
   ensurePlayer();
   const r=request(vid), ready=prebuf && prebuf.vid===vid && prebuf.list===r.list; prebuf=null;
+  wakeOnPlay=true; // a paused pre-buffer (or the last video, closed while paused) may have left the controls up
   if(!ytReady){ pending=r; toast("Loading…"); }
   else{ yt.unMute(); if(ready){ yt.seekTo(0,true); yt.playVideo(); } else startVideo(r); }
 }
@@ -1016,6 +1017,7 @@ function openVideos(ids){
   showModal();
   ensurePlayer();
   const r=ids.length>1?{ids}:{vid:ids[0]};
+  wakeOnPlay=true;
   if(!ytReady){ pending=r; toast("Loading…"); }
   else{ yt.unMute(); startVideo(r); }
 }
@@ -1023,7 +1025,7 @@ function closePlayer(fromHistory){
   if(!isOpen()) return;
   const ex=document.fullscreenElement||document.webkitFullscreenElement;
   if(ex){ (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }
-  pending=null; prebuf=null; seekTarget=null; hideBar();
+  pending=null; prebuf=null; seekTarget=null; hideBar(); wakeOnPlay=false;
   dvStop();
   if(ytReady) try{ yt.stopVideo(); }catch(_){}
   toast.hide();
@@ -1057,12 +1059,21 @@ function showBar(){
   if(!barTick) barTick=setInterval(()=>{ if(seekTarget==null) drawBar(pTime()); },250); // live position once applied
 }
 function hideBar(){ clearTimeout(barTimer); barTimer=0; clearInterval(barTick); barTick=0; ybar.classList.remove("on"); flushSeek(); }
-function flushSeek(){ if(seekTarget==null) return; const t=seekTarget; seekTarget=null; if(dvList) dvEl.currentTime=t; else { yt.seekTo(t,true); seekWake=Date.now(); wakeYt(); } }
-// A seek through the API brings up the embed's controls but never starts their autohide timer (that only
-// runs after pointer input), so they stayed on screen. A fake hover now and again once it plays from the
-// new spot starts it: they hide 3 s later, as after a mouse seek.
-let seekWake=0;
-function wakeYt(){ if(IN_APP&&window.TVApp?.wakePlayer) try{ TVApp.wakePlayer(); }catch(_){} }
+function flushSeek(){ if(seekTarget==null) return; const t=seekTarget; seekTarget=null; if(dvList) dvEl.currentTime=t; else { yt.seekTo(t,true); wakeYt(); } }
+// The embed's controls come up on their own (API pause/seek, a paused pre-buffer, the end of a video) but
+// their autohide timer only starts on pointer input, and when it runs out the controls hide only if the
+// video is playing at that moment. So a fake hover is not enough when play starts more than 3 s later
+// (still buffering), or when play starts with no input at all (opening a paused pre-buffered video,
+// the next one in a playlist): they stayed on screen. Every hover therefore also arms one more for the
+// next time the video actually plays; the 3 s timer then runs while it plays and the controls hide.
+let wakeOnPlay=false, wakeAt=0;
+function wakeYt(){ wakeOnPlay=true; pokeYt(); }
+function pokeYt(){ wakeAt=Date.now(); if(IN_APP&&window.TVApp?.wakePlayer) try{ TVApp.wakePlayer(); }catch(_){} }
+function wakeOnState(s){
+  if(s===0) wakeOnPlay=true; // ended: controls/end screen up; the next playlist item plays with no input
+  else if(s===3 && Date.now()-wakeAt<3500) wakeOnPlay=true; // a running hide timer could expire while buffering
+  else if(s===1 && wakeOnPlay){ wakeOnPlay=false; pokeYt(); }
+}
 function seekBy(sec){
   if(!dvList&&!ytReady){ toast("Loading…"); return; }
   const d=pDuration();
