@@ -84,6 +84,8 @@
   .ybar .yl,.ybar .yp{position:absolute; left:0; top:0; bottom:0; width:0}
   .ybar .yl{background:rgba(255,255,255,.4)}
   .ybar .yp{background:linear-gradient(90deg,#f03 80%,#ff2791)}
+  .ybar .ytm{position:absolute; left:17px; bottom:0; font:13px/39px Roboto,Arial,sans-serif; color:#fff; text-shadow:0 0 2px rgba(0,0,0,.5); display:none}
+  .player.dv .ybar .ytm{display:block} /* time only for Drive: the YouTube embed shows its own */
   .ybar .yk{position:absolute; left:0; top:50%; width:13px; height:13px; margin:-6.5px 0 0 -6.5px; border-radius:50%; background:#f03}
   @media (max-width:520px){ main{padding:16px 14px 60px} }
 
@@ -144,7 +146,7 @@
   <div class="player" id="player" tabindex="-1">
     <video id="dvideo" hidden playsinline preload="auto"></video>
     <div class="toast" id="toast" hidden></div>
-    <div class="ybar" id="ybar"><div class="yg"></div><div class="yt"><div class="yl" id="yload"></div><div class="yp" id="yplay"></div><div class="yk" id="yknob"></div></div></div>
+    <div class="ybar" id="ybar"><div class="yg"></div><div class="ytm" id="ytime"></div><div class="yt"><div class="yl" id="yload"></div><div class="yp" id="yplay"></div><div class="yk" id="yknob"></div></div></div>
   </div>
 </div>
 
@@ -991,7 +993,7 @@ function dvStop(){
   dvEl.hidden=true; playerEl.classList.remove("dv");
 }
 function dvClearTracks(){ dvEl.querySelectorAll("track").forEach(t=>{ try{ URL.revokeObjectURL(t.src); }catch(_){} t.remove(); }); }
-dvEl.addEventListener("playing",()=>toast.hide());
+dvEl.addEventListener("playing",()=>{ toast.hide(); if(ybar.classList.contains("on")&&!barTimer) barTimer=setTimeout(hideBar,BAR_MS); }); // resumed: the bar hides again
 dvEl.addEventListener("error",()=>{ if(dvList) toast("Can't play this file",0); });
 dvEl.addEventListener("ended",()=>{ if(dvList&&dvIndex+1<dvList.length) dvPlay(dvList,dvIndex+1); else showBar(); }); // next file, else stay (OK replays)
 function openPlayer(vid){
@@ -1036,7 +1038,7 @@ window.addEventListener("popstate",()=>{ closePlayer(true); ttCloseFeed(true); }
 // Seeking works like the YouTube TV app: Left/Right only move the scrubber on the bar (the video plays
 // on, nothing buffers), OK applies the jump, and the pending jump is applied anyway when the bar hides
 // after 3 s of no presses (the player's own control autohide time). One seek instead of one per press.
-const ybar=$("#ybar"), yLoad=$("#yload"), yPlay=$("#yplay"), yKnob=$("#yknob");
+const ybar=$("#ybar"), yLoad=$("#yload"), yPlay=$("#yplay"), yKnob=$("#yknob"), yTime=$("#ytime");
 const BAR_MS=3000;
 let seekTarget=null, barTimer=0, barTick=0;
 // The three player facts the bar/seek code needs, from whichever player is on (Drive <video> or YouTube).
@@ -1047,10 +1049,11 @@ function drawBar(t){
   const d=pDuration(), f=d?Math.max(0,Math.min(1,t/d)):0;
   let l=0; try{ l=pLoaded(); }catch(_){}
   yPlay.style.width=(f*100)+"%"; yKnob.style.left=(f*100)+"%"; yLoad.style.width=(Math.max(f,l)*100)+"%";
+  if(dvList) yTime.textContent=fmtSecs(t)+" / "+fmtSecs(d);
 }
 function showBar(){
   ybar.classList.add("on");
-  clearTimeout(barTimer); barTimer=setTimeout(hideBar,BAR_MS);
+  clearTimeout(barTimer); barTimer=(dvList&&dvEl.paused&&seekTarget==null)?0:setTimeout(hideBar,BAR_MS); // a paused Drive file keeps its bar and time up
   if(!barTick) barTick=setInterval(()=>{ if(seekTarget==null) drawBar(pTime()); },250); // live position once applied
 }
 function hideBar(){ clearTimeout(barTimer); barTimer=0; clearInterval(barTick); barTick=0; ybar.classList.remove("on"); flushSeek(); }
