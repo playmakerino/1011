@@ -174,6 +174,7 @@ const API_KEY = "AIzaSyDGWoJDMbutkYWJZZzullATm1cnttCAQUE"; // restricted: github
 //                page's own <video> straight off Drive's download link; a file ends -> the next one starts. The list is
 //                file:"drive/<name>.json", made by scripts/drive_folder.py <folderId> <file> — rerun it after changing the folder.)
 // subs:false  -> don't force English subtitles on for this source (default: forced on)
+// series:true -> a drive source shows as a Series (opens its episode list) even while it holds one file
 // autonext    -> play as a playlist so the next video starts by itself
 // titleMust    -> a playlist source shows only videos whose title contains this text (case-insensitive)
 const SOURCES = [
@@ -201,7 +202,7 @@ const SOURCES = [
   { id:"brave",      type:"drive",        file:"drive/brave.json" }, // folder 16GhcmFxKN_5kx468t7KZwRvVvmae12Ls
   { id:"pooh",       type:"playlist",     playlistId:"PLv042z7GzQ6vdmE3uYtmYMXRouq9cs97Z" }, // The New Adventures of Winnie the Pooh (Disney Kids)
   { id:"otgw",       type:"drive",        file:"drive/otgw.json" }, // Over the Garden Wall (2014), folder 1Yyt23fYhQnu3d45EmvsvyWREbjeQ2JpP
-  { id:"mouse",      type:"drive",        file:"drive/mouse.json" }, // If You Give a Mouse a Cookie, folder 1RUITqd4nM9As4zPpge9I7K5FnFsxIrBo
+  { id:"mouse",      type:"drive",        file:"drive/mouse.json", series:true }, // If You Give a Mouse a Cookie, folder 1RUITqd4nM9As4zPpge9I7K5FnFsxIrBo
 ];
 const PAGE_SIZE = 24;
 const REGION = "VN"; // hide videos that can't play in this region (region-blocked / not embeddable)
@@ -422,7 +423,7 @@ async function fetchHome(){
     }
     if(s.type==="drive"){
       const d=tt[s.id], videos=d.videos||[]; // tile: the first file's Drive thumbnail
-      return { title:d.title||s.id, thumb:{s:videos[0]?driveCover(videos[0],1280):"",ss:""}, avatar:"", type:videos.length===1?"Movie":"Series", drive:true, count:videos.length>1?videos.length:null, videos };
+      return { title:d.title||s.id, thumb:{s:videos[0]?driveCover(videos[0],1280):"",ss:""}, avatar:"", type:videos.length===1&&!s.series?"Movie":"Series", drive:true, count:videos.length>1||s.series?videos.length:null, videos };
     }
     const {it,thumb}=ch[s.id]; if(!it) throw new Error("Channel not found: "+s.handle);
     return { title:decode(it.snippet.title), thumb:thumb||thumbs(it.snippet.thumbnails), avatar:avpick(it.snippet.thumbnails),
@@ -440,7 +441,7 @@ async function renderHome(seq){
     const fi=[...homeEl.children].indexOf(document.activeElement);
     homeEl.innerHTML="";
     byRecent(RECENT_SRC,SOURCES.map((s,i)=>({s,m:metas[i]})),p=>p.s.id).forEach(({s,m})=>{
-      const go=(s.type==="drive"&&m.videos?.length===1)
+      const go=(s.type==="drive"&&m.videos?.length===1&&!s.series)
         ? ()=>{ currentTopSource=s.id; currentSubs=s.subs!==false; openDrive(m.videos.map(driveItem),0); } // a single film: play it straight away
         : (s.type==="video")
         ? (s.videoIds.length>1
