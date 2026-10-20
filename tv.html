@@ -626,21 +626,22 @@ const driveUrl=id=>"https://www.googleapis.com/drive/v3/files/"+encodeURICompone
 const driveThumb=(id,w)=>"https://drive.google.com/thumbnail?id="+encodeURIComponent(id)+"&sz=w"+(w||640);
 async function fetchDrive(file){
   const j=await fetchJson(file+"?t="+Date.now(),{cache:"no-store"});
-  return { title:decode(j.title||""), videos:(j.videos||[]).map(v=>({ id:String(v.id), title:decode(v.title||""), dur:+v.dur||0, subId:v.subId||"", subFmt:v.subFmt||"", thumbId:v.thumbId||"" })) };
+  return { title:decode(j.title||""), videos:(j.videos||[]).map(v=>({ id:String(v.id), title:decode(v.title||""), dur:+v.dur||0, subId:v.subId||"", subFmt:v.subFmt||"", thumbId:v.thumbId||"", thumbFile:v.thumbFile||"", subFile:v.subFile||"" })) };
 }
-// Card picture: an image file paired with the video in the folder (served through the Drive API like the video),
-// else Drive's own thumbnail of the file, which is its first frame (black for most films).
-const driveCover=(v,w)=>v.thumbId?driveUrl(v.thumbId):driveThumb(v.id,w);
-// A .srt/.vtt in the folder named like the video (scripts/drive_folder.py pairs them) is fetched through the
-// Drive API like the video itself and handed to a <track> as a blob: URL (SRT is turned into WebVTT here).
+// Card picture: an image file paired with the video in the folder. Served from its repo copy (thumbFile, made on a
+// runner by scripts/drive_assets.py) so a list costs no alt=media hits on the home IP (Google blocks the IP after
+// too many); else through the Drive API like the video, else Drive's own thumbnail (first frame, black for films).
+const driveCover=(v,w)=>v.thumbFile||(v.thumbId?driveUrl(v.thumbId):driveThumb(v.id,w));
+// A .srt/.vtt in the folder named like the video (scripts/drive_folder.py pairs them) is fetched from its repo copy
+// (subFile), else through the Drive API, and handed to a <track> as a blob: URL (SRT is turned into WebVTT here).
 const srtToVtt=t=>"WEBVTT\n\n"+t.replace(/^﻿/,"").replace(/\r/g,"").replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g,"$1.$2");
-async function fetchSub(id,fmt){
-  const r=await fetch(driveUrl(id)); if(!r.ok) throw new Error("subtitle "+r.status);
+async function fetchSub(id,fmt,file){
+  const r=await fetch(file||driveUrl(id)); if(!r.ok) throw new Error("subtitle "+r.status);
   let t=await r.text(); if(fmt!=="vtt"||!/^﻿?WEBVTT/.test(t)) t=srtToVtt(t);
   return URL.createObjectURL(new Blob([t],{type:"text/vtt"}));
 }
 const fmtSecs=s=>{ s=Math.max(0,Math.floor(s||0)); const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60,p=n=>String(n).padStart(2,"0"); return h? h+":"+p(m)+":"+p(x):m+":"+p(x); };
-const driveItem=v=>({ id:v.id, title:v.title, ch:"", th:{s:driveCover(v),ss:""}, dur:v.dur?fmtSecs(v.dur):"", views:0, pub:"", subId:v.subId, subFmt:v.subFmt });
+const driveItem=v=>({ id:v.id, title:v.title, ch:"", th:{s:driveCover(v),ss:""}, dur:v.dur?fmtSecs(v.dur):"", views:0, pub:"", subId:v.subId, subFmt:v.subFmt, subFile:v.subFile });
 async function showDrive(id,seq){
   const src=SOURCES.find(s=>s.id===id&&s.type==="drive");
   if(!src){ location.replace("#home"); return; }
@@ -980,7 +981,7 @@ function dvPlay(list,i){
   playerEl.classList.add("dv"); dvEl.hidden=false;
   dvEl.poster=v.th.s; dvEl.src=driveUrl(v.id);
   dvClearTracks();
-  if(v.subId&&currentSubs) fetchSub(v.subId,v.subFmt).then(url=>{
+  if(v.subId&&currentSubs) fetchSub(v.subId,v.subFmt,v.subFile).then(url=>{
     if(dvList!==list||dvIndex!==i){ URL.revokeObjectURL(url); return; } // another file started meanwhile
     const t=document.createElement("track"); t.kind="subtitles"; t.src=url; t.default=true; dvEl.appendChild(t);
     try{ t.track.mode="showing"; }catch(_){}
