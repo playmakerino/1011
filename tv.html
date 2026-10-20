@@ -39,6 +39,7 @@
   .card{cursor:pointer; display:flex; flex-direction:column}
   .thumb{position:relative; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:var(--ph)}
   .thumb img{width:100%; height:100%; object-fit:cover}
+  .pillar .thumb img,.src.pillar .banner img{transform:scale(1.334)} /* pillar:true sources: crop the baked-in side bars */
   .dur{ position:absolute; right:8px; bottom:8px; background:rgba(0,0,0,.8); color:#fff; font-size:12px; font-weight:500; padding:2px 5px; border-radius:5px; line-height:1.2; }
   .row{display:flex; gap:12px; margin-top:12px}
   .av{width:36px; height:36px; border-radius:50%; flex:0 0 36px; object-fit:cover; background:var(--chip)}
@@ -174,6 +175,7 @@ const API_KEY = "AIzaSyCHAQDgAxv0RJ9FoggyNAN5kzytPe4mBRo"; // restricted: github
 // subs:false  -> don't force English subtitles on for this source (default: forced on)
 // series:true -> a drive source shows as a Series (opens its episode list) even while it holds one file
 // autonext    -> play as a playlist so the next video starts by itself
+// pillar:true -> its YouTube thumbnails are a 4:3 film boxed in 16:9 (black side bars baked in): zoom 4/3 to cut them
 // titleMust    -> a playlist source shows only videos whose title contains this text (case-insensitive)
 const SOURCES = [
   { id:"paw",     type:"channelPlaylists", handle:"@PAWPatrolOfficial" },
@@ -191,11 +193,11 @@ const SOURCES = [
   { id:"pl2",        type:"playlist",     playlistId:"PLJYf0JdTApCrVnJpQgUb4BQm_5I3KuvZZ" },
   { id:"pl3",        type:"playlist",     playlistId:"PLji6YJWrrJAwiH4mbXBpg67Fjh8Gur5qv" },
   { id:"mv1",        type:"drive",        file:"drive/dalmatians.json" }, // folder 16GhcmFxKN_5kx468t7KZwRvVvmae12Ls
-  { id:"mv2",        type:"video",        videoIds:["OxDyOvlFvr0","a4RmadV-Z1s"], title:"Walt Disney - Peter Pan" },
-  { id:"mv3",        type:"video",        videoIds:["HT4LGAweQ_c","vSz2js25y7c"], title:"Walt Disney - Pinocchio" },
-  { id:"mv4",        type:"video",        videoIds:["Oacwfg23HPI","FM4QDP86nTk"], title:"Walt Disney - Snow White and the Seven Dwarfs" },
-  { id:"mv5",        type:"video",        videoIds:["w3mejN9SDzU","LXDmYN6Sixk"], title:"Walt Disney - Cinderella" },
-  { id:"mv6",        type:"video",        videoIds:["Krg7Khp6i2Y","09PBfqqT7Lc"], title:"Walt Disney - Alice in Wonderland" },
+  { id:"mv2",        type:"video",        videoIds:["OxDyOvlFvr0","a4RmadV-Z1s"], title:"Walt Disney - Peter Pan", pillar:true },
+  { id:"mv3",        type:"video",        videoIds:["HT4LGAweQ_c","vSz2js25y7c"], title:"Walt Disney - Pinocchio", pillar:true },
+  { id:"mv4",        type:"video",        videoIds:["Oacwfg23HPI","FM4QDP86nTk"], title:"Walt Disney - Snow White and the Seven Dwarfs", pillar:true },
+  { id:"mv5",        type:"video",        videoIds:["w3mejN9SDzU","LXDmYN6Sixk"], title:"Walt Disney - Cinderella", pillar:true },
+  { id:"mv6",        type:"video",        videoIds:["Krg7Khp6i2Y","09PBfqqT7Lc"], title:"Walt Disney - Alice in Wonderland", pillar:true },
   { id:"gmd",        type:"drive",        file:"drive/gmd.json" }, // folder 16GhcmFxKN_5kx468t7KZwRvVvmae12Ls
   { id:"brave",      type:"drive",        file:"drive/brave.json" }, // folder 16GhcmFxKN_5kx468t7KZwRvVvmae12Ls
   { id:"pooh",       type:"playlist",     playlistId:"PLv042z7GzQ6vdmE3uYtmYMXRouq9cs97Z" }, // The New Adventures of Winnie the Pooh (Disney Kids)
@@ -447,7 +449,7 @@ async function renderHome(seq){
             : ()=>{ currentTopSource=s.id; currentSubs=s.subs!==false; currentAutoNextList=""; currentAutoNextFilter=false; openVideos(s.videoIds); })
         : ()=>{ location.hash=(s.type==="channelPlaylists")?("ch/"+s.id):(s.type==="tiktok")?("tt/"+s.id):(s.type==="drive")?("dr/"+s.id):("pl/"+m.playlistId); };
       const btn=srcButton(m.thumb,m.type,m.title,m.count,go);
-      if(m.tiktok) btn.classList.add("tt"); homeEl.appendChild(btn);
+      if(m.tiktok) btn.classList.add("tt"); if(s.pillar) btn.classList.add("pillar"); homeEl.appendChild(btn);
     });
     refocus(homeEl,fi); painted=true;
   };
@@ -605,7 +607,7 @@ async function showVideoList(id,seq){
     if(!meta[id]?.title&&!src.title&&items[0]) navTitle.textContent=items[0].title;
     const fi=[...gridEl.children].indexOf(document.activeElement);
     gridEl.innerHTML=""; positions={};
-    items.forEach(v=>gridEl.appendChild(card(v)));
+    items.forEach(v=>{ const c=card(v); if(src.pillar) c.classList.add("pillar"); gridEl.appendChild(c); });
     refocus(gridEl,fi); stateEl.hidden=true;
     if(!items.length) showState("No videos here yet.");
     painted=true;
