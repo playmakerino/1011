@@ -15,10 +15,13 @@
         android:clipChildren="false"
         android:clipToPadding="false">
 
-        <!-- YouTube-style header: the section title, and the gear at the right. -->
+        <!-- YouTube-style header: the section title, and the gear at the right. It reaches past the grid's sides:
+             the title and the gear glyph (10dp in from its circle) both sit 28dp from the screen edge. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginStart="-28dp"
+            android:layout_marginEnd="-18dp"
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
@@ -27,7 +30,6 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="14dp"
                 android:text="@string/section_apps"
                 android:textColor="#FFFFFFFF"
                 android:textSize="16sp"
