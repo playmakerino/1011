@@ -29,8 +29,10 @@ Mọi chỉnh sửa làm thẳng trong code; không có theme hay màn hình cà
   `android.uid.system`, ~135-200 MB RAM khi chạy). Từ 25/10/2026 gói này bị tắt bằng
   `pm disable-user --user 0 com.fptplay.launcher`; chủ máy xem FPT Play bằng bản Play Store `net.fptplay.ottbox`
   (cùng phiên bản, khác chữ ký, không làm launcher). Bật lại: `pm enable com.fptplay.launcher`.
-- Sau `pm disable-user`/`pm suspend`/`pm enable`, đợi khoảng 1 phút rồi mới khởi động lại. Lệnh `reboot` của shell
-  bỏ qua bước tắt máy của Android, nên trạng thái chưa kịp ghi xuống bị mất (hai lần đầu tắt gói FPT bị "bật lại"
-  vì vậy; trong mã của app FPT, `FPTBoxService`, `GlobalKeyHandler` không có lệnh bật gói).
+  Hai lần tắt đầu tiên (`disable-user` rồi `suspend`) bị gỡ sau khởi động lại, kèm
+  `lastDisabledCaller: com.fptplay.launcher`; từ lần thứ ba trở đi thì giữ qua 3 lần khởi động. Chưa rõ nguyên nhân:
+  không phải do khởi động lại quá sớm (đã thử tắt `com.android.music` rồi `reboot` ngay, vẫn giữ); trong mã của app FPT,
+  `FPTBoxService`, `unistallapp`, `system_notification`, `ConsumeCpuService`, `GlobalKeyHandler` không có lệnh bật gói.
+  Nếu app FPT cũ lại chạy: đọc `logcat -b all -d` ngay, trước khi nhật ký bị ghi đè.
   Đã thử và bỏ trước đó: shell không có quyền `pm disable` thành phần của gói; `appops RUN_ANY_IN_BACKGROUND`
   bị đặt lại khi khởi động; `am force-stop` chỉ giữ tới lần mở FPT Play kế.
