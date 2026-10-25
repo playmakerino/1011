@@ -1,3 +1,6 @@
+Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk), for
+res/font/space_grotesk_400.ttf and space_grotesk_700.ttf (the live clock tile). Same licence as below.
+
 Copyright 2021 The Outfit Project Authors (https://github.com/Outfitio/Outfit-Fonts)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.

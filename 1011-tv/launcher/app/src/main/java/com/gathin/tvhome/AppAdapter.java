@@ -200,6 +200,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     private Drawable loadBanner(PackageManager pm, ResolveInfo ri) {
+        if (LiveClockBanner.PACKAGE.equals(ri.activityInfo.packageName)) return new LiveClockBanner(ctx);
         int id = ri.activityInfo.banner;
         if (id == 0) id = ri.activityInfo.applicationInfo.banner;
         Drawable banner = null;

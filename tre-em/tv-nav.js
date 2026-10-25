@@ -7,8 +7,11 @@
  * - The app's Back key calls TVNav.back(): the page's TVNav.onBack() closes what is open and returns true;
  *   false lets the app go back to the TV's home screen.
  *
- * A page sets window.TVNav = { scopes: [...popup selectors...], onBack: function(){...}, first: 'selector' }
- * before loading this file. */
+ * - TVNav.swap adds a button in the top right corner that opens the other clock page in place of this one, so
+ *   the app's history stays one page deep and Back always leaves the app.
+ *
+ * A page sets window.TVNav = { scopes: [...popup selectors...], onBack: function(){...}, first: 'selector',
+ * swap: { href: 'page.html', label: 'Name' } } before loading this file. */
 (function () {
   if (!/TVApp\//.test(navigator.userAgent)) return;
   var cfg = window.TVNav = window.TVNav || {};
@@ -17,9 +20,20 @@
 
   document.documentElement.classList.add('tv-nav');
   var css = document.createElement('style');
-  // Orange: it shows on the pages' cream background and on dark parts alike.
-  css.textContent = '.tv-nav :focus{outline:5px solid #ff6a00 !important;outline-offset:4px !important}';
+  // A thin ring in the pages' ink colour, with a cream gap so it also shows around dark or pink buttons.
+  css.textContent = '.tv-nav :focus{outline:3px solid #2b2b33 !important;outline-offset:3px !important}' +
+    '.tv-swap{position:fixed;top:20px;right:24px;z-index:50;padding:10px 22px;border-radius:99px;background:#fff;' +
+    'color:#3f3a5c;font:500 20px/1 "Space Grotesk",sans-serif;text-decoration:none;box-shadow:0 2px 10px rgba(60,40,20,.12)}';
   document.head.appendChild(css);
+
+  if (cfg.swap) {
+    var swap = document.createElement('a');
+    swap.className = 'tv-swap';
+    swap.href = cfg.swap.href;
+    swap.textContent = cfg.swap.label;
+    swap.addEventListener('click', function (e) { e.preventDefault(); location.replace(swap.href); });
+    document.body.appendChild(swap);
+  }
 
   function shown(el) {
     if (el.disabled || el.getAttribute('tabindex') === '-1' || el.closest('[hidden]')) return false;

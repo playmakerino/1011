@@ -1478,6 +1478,7 @@
   // Điều khiển bằng remote trong app TV (tv-nav.js không làm gì trên trình duyệt).
   window.TVNav = {
     scopes: ['#menu'],
+    swap: { href: 'dong-ho.html', label: 'Đồng Hồ' },
     onBack: function(){
       var m = document.getElementById('menu');
       if(!m.hidden){ m.hidden = true; m.dataset.part = ''; return true; }
