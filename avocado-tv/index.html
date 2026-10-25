@@ -728,11 +728,11 @@ function ev(n){try{TVNative.event(n);}catch(e){}}
 /* Playback starts (with sound) while the WebView is still hidden — on Android nothing decodes before play(),
    and this WebView refuses to unmute a video that started muted. The app shows the player on "playing"
    (first frame), a few ms later, so picture and sound effectively appear together. */
-/* Volume 70% (TikTok audio is mastered loud). This WebView ignores v.volume, so the sound goes through a Web Audio
+/* Volume 35% (TikTok audio is mastered loud; 70% = -3 dB was barely audible). This WebView ignores v.volume, so the sound goes through a Web Audio
    gain instead. That only works when the CDN answers CORS: a cross-origin video without it plays silent in Web Audio.
    So the first load asks for CORS (crossOrigin); if that load fails, it reloads without it at full volume and
    remembers the failure for a day. The graph is only built once a CORS load is confirmed (loadedmetadata). */
-var VOL=0.7,ac=null,cors=false,volMsg='';
+var VOL=0.35,ac=null,cors=false,volMsg='';
 try{cors=!(Date.now()-(+localStorage.ttNoCors||0)<864e5);}catch(e){cors=true;}
 if(cors)v.crossOrigin='use-credentials';
 function gain(){if(ac||!cors)return;try{var C=window.AudioContext||window.webkitAudioContext;ac=new C();var g=ac.createGain();g.gain.value=VOL;
