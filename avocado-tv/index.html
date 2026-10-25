@@ -181,7 +181,7 @@ const API_KEY = "AIzaSyCHAQDgAxv0RJ9FoggyNAN5kzytPe4mBRo"; // restricted: github
 // titleMust    -> a playlist source shows only videos whose title contains this text (case-insensitive)
 const SOURCES = [
   { id:"paw",     type:"channelPlaylists", handle:"@PAWPatrolOfficial" },
-  { id:"kdh",     type:"playlist",        playlistId:"PLDwbngJoT5crMIEVzjs4ltzjG2WiBX1Sm", autonext:true, titleMust:"Kpop Demon Hunters" }, // Kpop Demon Hunters
+  { id:"kdhmv",   type:"drive",           file:"drive/kdh.json" }, // KPop Demon Hunters, folder 16GhcmFxKN_5kx468t7KZwRvVvmae12Ls; poster + subtitle are hand-copied into drive/assets/
   { id:"maruko",  type:"playlist",        playlistId:"PLQGFvBFre_B3zygU6fi8irYZAZw6Pz7TP" }, // Chibi Maruko Chan English
   { id:"cloud",   type:"playlist",        playlistId:"PLfYEB5yLOF-CA0qZ4j3N19waHIDQFalqE" },
   { id:"pokemon", type:"channelPlaylists", handle:"@PokémonAsiaENG" },
@@ -983,7 +983,7 @@ function dvPlay(list,i){
   playerEl.classList.add("dv"); dvEl.hidden=false;
   dvEl.poster=v.th.s; dvEl.src=driveUrl(v.id);
   dvClearTracks();
-  if(v.subId&&currentSubs) fetchSub(v.subId,v.subFmt,v.subFile).then(url=>{
+  if((v.subId||v.subFile)&&currentSubs) fetchSub(v.subId,v.subFmt,v.subFile).then(url=>{
     if(dvList!==list||dvIndex!==i){ URL.revokeObjectURL(url); return; } // another file started meanwhile
     const t=document.createElement("track"); t.kind="subtitles"; t.src=url; t.default=true; dvEl.appendChild(t);
     try{ t.track.mode="showing"; }catch(_){}
