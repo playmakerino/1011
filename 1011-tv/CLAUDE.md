@@ -13,6 +13,8 @@ Mọi chỉnh sửa làm thẳng trong code; không có theme hay màn hình cà
 - `LibraryApps`: lưu lựa chọn ẩn/hiện.
 - `Config` đọc `res/values/config.xml`. Màu nền ở `res/values/colors.xml`.
 - `ClockActivity`/`ClockDream`/`ClockScene`: đồng hồ bảo vệ màn hình.
+- `LiveClockBanner`: ô của app Đồng Hồ (`io.github.playmakerino.clock`, ở `tre-em/android`) là đồng hồ kim chạy thật,
+  vẽ giống mặt đồng hồ trên trang `dong-ho.html`, không có kim giây; font Space Grotesk ở `res/font/`.
 
 ## Làm việc với hộp
 
