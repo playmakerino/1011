@@ -7,38 +7,24 @@
  * - The app's Back key calls TVNav.back(): the page's TVNav.onBack() closes what is open and returns true;
  *   false lets the app go back to the TV's home screen.
  *
- * - TVNav.pages adds a small switch at the top centre (on TV, computer and phone; under 768px wide each page shows
- *   its icon instead of its name), drawn like the Chat / Code switch of the Claude desktop
- *   app: a soft grey track, the current page on a raised white segment. The other segment opens its page in place
+ * - TVNav.pages adds a small switch at the top centre (on TV, computer and phone), drawn like the Chat / Code
+ *   switch of the Claude desktop app: a soft grey track, the current page on a raised white segment. The other segment opens its page in place
  *   of this one, so the app's history stays one page deep and Back always leaves the app.
  *
  * A page sets window.TVNav = { scopes: [...popup selectors...], onBack: function(){...}, first: 'selector',
- * pages: [{ href: 'page.html', label: 'Name', icon: 'clock' }, ...] } before loading this file. */
+ * pages: [{ href: 'page.html', label: 'Name' }, ...] } before loading this file. */
 (function () {
   var cfg = window.TVNav = window.TVNav || {};
   var tv = /TVApp\//.test(navigator.userAgent);
 
   var css = document.createElement('style');
   // A thin ring in the pages' ink colour, with a cream gap so it also shows around dark or pink buttons.
-  // Under 768px wide the switch shows each page's icon instead of its name.
   css.textContent = '.tv-nav :focus{outline:3px solid #2b2b33 !important;outline-offset:3px !important}' +
     '.tv-seg{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:50;display:flex;gap:2px;' +
     'padding:3px;border-radius:10px;background:rgba(63,58,92,.07);font:500 14px/1 "Space Grotesk",sans-serif}' +
-    '.tv-seg>*{padding:7px 14px;border-radius:7px;color:#8a8399;text-decoration:none}' +
-    '.tv-seg>span{background:#fff;color:#3f3a5c;box-shadow:0 1px 3px rgba(60,40,20,.14)}' +
-    '.tv-seg .ic{display:none}' +
-    '.tv-seg svg{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:1.6;' +
-    'stroke-linecap:round;stroke-linejoin:round}' +
-    '@media (max-width:767px){.tv-seg{top:8px}.tv-seg>*{padding:6px 12px}' +
-    '.tv-seg .ic{display:block}.tv-seg .tx{display:none}}';
+    '.tv-seg>*{padding:7px 14px;border-radius:7px;color:#8a8399;text-decoration:none;white-space:nowrap}' +
+    '.tv-seg>span{background:#fff;color:#3f3a5c;box-shadow:0 1px 3px rgba(60,40,20,.14)}';
   document.head.appendChild(css);
-
-  // One-colour line icons (they take the segment's text colour), like the Chat / Code icons of the Claude app.
-  var ICONS = {
-    clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
-    learn: '<svg viewBox="0 0 24 24"><path d="M3 9l9-4.5L21 9l-9 4.5z"/><path d="M7 11v4.5c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5V11"/>' +
-      '<path d="M21 9v5"/></svg>'
-  };
 
   if (cfg.pages) {
     var seg = document.createElement('nav');
@@ -47,10 +33,7 @@
     cfg.pages.forEach(function (p) {
       // The current page is a plain label, so the focus only ever lands on the other one.
       var el = document.createElement(p.href === here ? 'span' : 'a');
-      el.innerHTML = '<span class="ic">' + (ICONS[p.icon] || '') + '</span><span class="tx"></span>';
-      el.lastChild.textContent = p.label;
-      el.title = p.label;
-      el.setAttribute('aria-label', p.label);
+      el.textContent = p.label;
       if (el.tagName === 'A') {
         el.href = p.href;
         el.addEventListener('click', function (e) { e.preventDefault(); location.replace(el.href); });
