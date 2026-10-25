@@ -7,13 +7,12 @@
  * - The app's Back key calls TVNav.back(): the page's TVNav.onBack() closes what is open and returns true;
  *   false lets the app go back to the TV's home screen.
  *
- * - TVNav.go adds one small text button: Đồng Hồ is the app's main page and Học Đồng Hồ a page under it, so
- *   Đồng Hồ gets a "Học Đồng Hồ" button at the top right (the usual place of a page's actions) and Học Đồng Hồ a
- *   "Quay lại" button at the top left (the usual place of "up"). That one goes back in history, so it and the
- *   remote's Back key do the same thing: Học Đồng Hồ -> Đồng Hồ -> out of the app.
+ * - TVNav.pages adds a small switch at the top centre, drawn like the Chat / Code switch of the Claude desktop
+ *   app: a soft grey track, the current page on a raised white segment. The other segment opens its page in place
+ *   of this one, so the app's history stays one page deep and Back always leaves the app.
  *
  * A page sets window.TVNav = { scopes: [...popup selectors...], onBack: function(){...}, first: 'selector',
- * go: { href: 'page.html', label: 'Text', back: true|false } } before loading this file. */
+ * pages: [{ href: 'page.html', label: 'Name' }, ...] } before loading this file. */
 (function () {
   if (!/TVApp\//.test(navigator.userAgent)) return;
   var cfg = window.TVNav = window.TVNav || {};
@@ -24,23 +23,27 @@
   var css = document.createElement('style');
   // A thin ring in the pages' ink colour, with a cream gap so it also shows around dark or pink buttons.
   css.textContent = '.tv-nav :focus{outline:3px solid #2b2b33 !important;outline-offset:3px !important}' +
-    '.tv-go{position:fixed;top:28px;z-index:50;padding:7px 13px;border-radius:99px;background:#fff;' +
-    'color:#3f3a5c;font:500 14px/1 "Space Grotesk",sans-serif;text-decoration:none;' +
-    'box-shadow:0 2px 10px rgba(60,40,20,.12)}';
+    '.tv-seg{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:50;display:flex;gap:2px;' +
+    'padding:3px;border-radius:10px;background:rgba(63,58,92,.07);font:500 14px/1 "Space Grotesk",sans-serif}' +
+    '.tv-seg>*{padding:7px 14px;border-radius:7px;color:#8a8399;text-decoration:none}' +
+    '.tv-seg>span{background:#fff;color:#3f3a5c;box-shadow:0 1px 3px rgba(60,40,20,.14)}';
   document.head.appendChild(css);
 
-  if (cfg.go) {
-    var go = document.createElement('a');
-    var back = !!cfg.go.back;
-    go.className = 'tv-go';
-    go.href = cfg.go.href;
-    go.textContent = cfg.go.label;
-    go.style[back ? 'left' : 'right'] = '24px';
-    // Came here from the main page: go back to it rather than open it again on top of the history.
-    if (back) go.addEventListener('click', function (e) {
-      if (history.length > 1 && document.referrer.split('?')[0] === go.href) { e.preventDefault(); history.back(); }
+  if (cfg.pages) {
+    var seg = document.createElement('nav');
+    seg.className = 'tv-seg';
+    var here = location.pathname.split('/').pop();
+    cfg.pages.forEach(function (p) {
+      // The current page is a plain label, so the focus only ever lands on the other one.
+      var el = document.createElement(p.href === here ? 'span' : 'a');
+      el.textContent = p.label;
+      if (el.tagName === 'A') {
+        el.href = p.href;
+        el.addEventListener('click', function (e) { e.preventDefault(); location.replace(el.href); });
+      }
+      seg.appendChild(el);
     });
-    document.body.appendChild(go);
+    document.body.appendChild(seg);
   }
 
   function shown(el) {
@@ -67,6 +70,9 @@
   }
 
   function focusEl(el) {
+    // Arriving on a text or number box must not pop the on-screen keyboard (it would also take the arrow keys):
+    // the box stays read-only until OK.
+    if (el.tagName === 'INPUT' && !el.readOnly) { el.readOnly = true; el.dataset.tvLock = '1'; }
     el.focus();
     if (el.scrollIntoView) el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
@@ -116,14 +122,27 @@
       move(k.slice(5));
     } else if (k === 'Enter') {
       var el = document.activeElement;
-      // Buttons press themselves on Enter; an input opens the keyboard on click; anything else gets a click.
-      if (el && el !== document.body && el.tagName !== 'BUTTON') {
+      // Buttons press themselves on Enter; anything else but a box being typed in gets a click.
+      if (el && el.tagName === 'INPUT') {
+        if (!el.readOnly) return;       // typing: the keyboard's Enter belongs to the page
+        e.preventDefault();
+        // OK on a locked box: make it editable and focus it again, which opens the keyboard.
+        el.blur();                      // before unlocking: blurring locks it again
+        el.readOnly = false;
+        el.focus();
+        el.click();
+      } else if (el && el !== document.body && el.tagName !== 'BUTTON') {
         e.preventDefault();
         el.click();
-        if (el.tagName === 'INPUT') el.focus();
       }
     }
   }, true);
+
+  // Leaving a box locks it again, so the next arrival also waits for OK.
+  document.addEventListener('focusout', function (e) {
+    var el = e.target;
+    if (el.dataset && el.dataset.tvLock) el.readOnly = true;
+  });
 
   /** The app's Back key. True when the page closed something; false lets the app leave. */
   cfg.back = function () {
