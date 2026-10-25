@@ -7,11 +7,11 @@
  * - The app's Back key calls TVNav.back(): the page's TVNav.onBack() closes what is open and returns true;
  *   false lets the app go back to the TV's home screen.
  *
- * - TVNav.swap adds a button in the top right corner that opens the other clock page in place of this one, so
- *   the app's history stays one page deep and Back always leaves the app.
+ * - TVNav.pages adds a two-segment switch in the top right corner, the current page filled in. The other segment
+ *   opens its page in place of this one, so the app's history stays one page deep and Back always leaves the app.
  *
  * A page sets window.TVNav = { scopes: [...popup selectors...], onBack: function(){...}, first: 'selector',
- * swap: { href: 'page.html', label: 'Name' } } before loading this file. */
+ * pages: [{ href: 'page.html', label: 'Name' }, ...] } before loading this file. */
 (function () {
   if (!/TVApp\//.test(navigator.userAgent)) return;
   var cfg = window.TVNav = window.TVNav || {};
@@ -22,17 +22,27 @@
   var css = document.createElement('style');
   // A thin ring in the pages' ink colour, with a cream gap so it also shows around dark or pink buttons.
   css.textContent = '.tv-nav :focus{outline:3px solid #2b2b33 !important;outline-offset:3px !important}' +
-    '.tv-swap{position:fixed;top:20px;right:24px;z-index:50;padding:10px 22px;border-radius:99px;background:#fff;' +
-    'color:#3f3a5c;font:500 20px/1 "Space Grotesk",sans-serif;text-decoration:none;box-shadow:0 2px 10px rgba(60,40,20,.12)}';
+    '.tv-seg{position:fixed;top:20px;right:24px;z-index:50;display:flex;gap:4px;padding:5px;border-radius:99px;' +
+    'background:#fff;box-shadow:0 2px 10px rgba(60,40,20,.12);font:500 20px/1 "Space Grotesk",sans-serif}' +
+    '.tv-seg>*{padding:10px 22px;border-radius:99px;color:#3f3a5c;text-decoration:none}' +
+    '.tv-seg>span{background:#5a63d8;color:#fff}';
   document.head.appendChild(css);
 
-  if (cfg.swap) {
-    var swap = document.createElement('a');
-    swap.className = 'tv-swap';
-    swap.href = cfg.swap.href;
-    swap.textContent = cfg.swap.label;
-    swap.addEventListener('click', function (e) { e.preventDefault(); location.replace(swap.href); });
-    document.body.appendChild(swap);
+  if (cfg.pages) {
+    var seg = document.createElement('nav');
+    seg.className = 'tv-seg';
+    var here = location.pathname.split('/').pop();
+    cfg.pages.forEach(function (p) {
+      // The current page is a plain filled label, so the focus only ever lands on the other one.
+      var el = document.createElement(p.href === here ? 'span' : 'a');
+      el.textContent = p.label;
+      if (el.tagName === 'A') {
+        el.href = p.href;
+        el.addEventListener('click', function (e) { e.preventDefault(); location.replace(el.href); });
+      }
+      seg.appendChild(el);
+    });
+    document.body.appendChild(seg);
   }
 
   function shown(el) {

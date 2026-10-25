@@ -1,6 +1,6 @@
 name: Build Dong Ho APK
 # The "Đồng Hồ" TV app (tre-em/android): a WebView on https://playmakerino.github.io/1011/tre-em/dong-ho.html, with a
-# button to swap to Học Đồng Hồ. Built here on every change and committed as tre-em/dong-ho.apk.
+# switch to Học Đồng Hồ and back. Built here on every change and committed as tre-em/dong-ho.apk.
 on:
   push:
     branches: [main]

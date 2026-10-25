@@ -1610,7 +1610,7 @@
   window.TVNav = {
     scopes: ['.modal.open'],
     first: '#fab',
-    swap: { href: 'hoc-dong-ho.html', label: 'Học Đồng Hồ' },
+    pages: [{ href: 'dong-ho.html', label: 'Đồng Hồ' }, { href: 'hoc-dong-ho.html', label: 'Học Đồng Hồ' }],
     onBack: function(){
       var m = document.querySelector('.modal.open');
       if(m){ m.classList.remove('open'); return true; }
