@@ -1,0 +1,10 @@
+# FPT Play 650: dot 2, dich vu nguoi dung khong dung
+com.google.android.katniss
+com.google.android.apps.mediashell
+com.google.android.youtube.tvmusic
+com.hisense.systemupdate
+com.hisense.usbupdate
+com.example.android.systemupdatersample
+com.hisense.screenzoom
+com.hisense.myappinfo
+com.hisense.systemnotification

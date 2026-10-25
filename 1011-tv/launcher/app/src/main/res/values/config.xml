@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 1011 TV's settings. Change a value here and rebuild (launcher/build-and-install.ps1). -->
+<resources>
+    <!-- Tiles per row. The tiles take the width the columns leave (an 18dp gap between them), up to 264dp, and
+         shrink further if the rows below would not fit. -->
+    <integer name="columns">4</integer>
+
+    <!-- Rows of tiles that fit on the screen without scrolling; the tiles shrink for them (at most to 85% of the
+         width that the columns allow). -->
+    <integer name="rows">3</integer>
+
+    <!-- Apps never shown as tiles, unless ticked in Show or hide apps. -->
+    <string-array name="hidden_apps">
+    </string-array>
+
+    <!-- Apps shown on Home even without a TV entry point, as if ticked in Show or hide apps; they can still be
+         unticked there. -->
+    <string-array name="library_apps" translatable="false">
+    </string-array>
+
+    <!-- Hold OK on a tile opens a small menu: Remove from Home (Show or hide apps brings it back) and App info.
+         false: holding OK opens the app's App info page. -->
+    <bool name="tile_menu">false</bool>
+
+    <!-- The tiles' entrance and the fades. -->
+    <bool name="animations">true</bool>
+
+    <!-- Reduced motion, for TVs whose GPU cannot keep up: every animation lasts 90 ms or less, the focus ring
+         appears instead of fading, and there is no tile entrance. -->
+    <bool name="reduced_motion">false</bool>
+
+    <!-- Minutes Home may sit untouched before it shows the clock screensaver (ClockActivity); 0 turns it off.
+         Unlike the system screensaver this never starts over an app. -->
+    <integer name="home_idle_clock_minutes">0</integer>
+
+    <!-- The clock screensaver's slow coloured glow behind the clock. false leaves the clock and date alone on plain
+         black (OLED panels); they still move every minute. -->
+    <bool name="clock_glow">true</bool>
+</resources>

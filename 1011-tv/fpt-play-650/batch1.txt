@@ -1,0 +1,17 @@
+# FPT Play 650 (Hisense IP940N, Realtek, Android 14, firmware 14.02.12): dot 1
+# Goi y va quang cao Google
+com.google.android.tvrecommendations
+com.google.android.backdrop
+com.google.android.feedback
+com.google.android.play.games
+# App Android thua
+com.android.music
+com.android.gallery3d
+com.android.camera2
+com.android.contacts
+com.android.printspooler
+com.realtek.appdrawer
+com.rtk.mediabrowser
+com.rtk.mediabrowser.installer
+# Rogo nha thong minh (tu chay khi khoi dong)
+rogo.iot.app.tv.playrogotv

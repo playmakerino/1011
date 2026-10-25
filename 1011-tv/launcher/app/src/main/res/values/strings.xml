@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">1011 TV</string>
+    <string name="wifi">Wi-Fi</string>
+    <string name="settings">Settings</string>
+    <string name="ethernet">Ethernet</string>
+    <string name="offline">Offline</string>
+    <string name="not_available">Not available on this TV</string>
+    <string name="cant_open">Can\'t open %1$s</string>
+    <string name="date_format">EEEE  d MMMM</string>
+    <string name="dream_name">Clock</string>
+    <string name="quick_network">Network</string>
+    <string name="show_hide_apps">Show or hide apps</string>
+    <string name="section_apps">Apps</string>
+    <string name="show_hide_hint">OK ticks or unticks an app. Back to finish.</string>
+    <string name="library_remove_shortcut">Remove from Home</string>
+    <string name="library_app_info">App info</string>
+    <string name="library_save_failed">Could not save the shortcut</string>
+</resources>

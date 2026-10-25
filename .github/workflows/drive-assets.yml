@@ -1,11 +1,11 @@
 name: Copy Drive pictures + subtitles
-# scripts/drive_assets.py: pulls each drive/*.json video's picture and subtitle into drive/assets/ so
-# tv.html streams only the video from Drive (fewer alt=media hits on the home IP, see the script).
+# avocado-tv/scripts/drive_assets.py: pulls each drive/*.json video's picture and subtitle into drive/assets/ so
+# avocado-tv/index.html streams only the video from Drive (fewer alt=media hits on the home IP, see the script).
 # Runs from a GitHub runner on purpose: the home IP is the one Google blocks.
 on:
   push:
     branches: [main]
-    paths: ["drive/*.json", "scripts/drive_assets.py", ".github/workflows/drive-assets.yml"]
+    paths: ["avocado-tv/drive/*.json", "avocado-tv/scripts/drive_assets.py", ".github/workflows/drive-assets.yml"]
   workflow_dispatch:
 
 permissions:
@@ -21,13 +21,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: pip install --quiet Pillow
-      - run: python scripts/drive_assets.py
+      - run: python avocado-tv/scripts/drive_assets.py
       - name: Commit if anything changed
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add drive
+          git add avocado-tv/drive
           git diff --cached --quiet && { echo "nothing new"; exit 0; }
           git commit -m "drive: copy pictures + subtitles into the repo [skip ci]"
           for i in 1 2 3; do git pull --rebase -X theirs origin main && git push && exit 0; sleep 5; done

@@ -2,7 +2,7 @@ name: Build APK
 on:
   push:
     branches: [main]
-    paths: ["android/**", ".github/workflows/apk.yml"]
+    paths: ["avocado-tv/android/**", ".github/workflows/apk.yml"]
   workflow_dispatch:
 
 permissions:
@@ -28,11 +28,11 @@ jobs:
           gradle-version: "8.9"
       - name: Signing key (generated once, then committed so it stays the same)
         run: |
-          [ -f android/tv.jks ] && exit 0
-          keytool -genkeypair -keystore android/tv.jks -alias tv -keyalg RSA -keysize 2048 -validity 10000 \
+          [ -f avocado-tv/android/tv.jks ] && exit 0
+          keytool -genkeypair -keystore avocado-tv/android/tv.jks -alias tv -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass android -keypass android -dname "CN=TV, O=playmakerino"
       - name: Build
-        working-directory: android
+        working-directory: avocado-tv/android
         run: |
           set -o pipefail
           gradle assembleRelease -Pvc=${{ github.run_number }} --no-daemon --stacktrace 2>&1 | tee build.log
@@ -40,30 +40,30 @@ jobs:
         if: failure()
         run: |
           enc() { sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g'; }
-          KEY=$(grep -nE 'error|FAILURE|What went wrong|Exception|Caused by' -i android/build.log | head -40 | cut -c1-300 | enc)
-          TAIL=$(tail -n 60 android/build.log | cut -c1-300 | enc)
+          KEY=$(grep -nE 'error|FAILURE|What went wrong|Exception|Caused by' -i avocado-tv/android/build.log | head -40 | cut -c1-300 | enc)
+          TAIL=$(tail -n 60 avocado-tv/android/build.log | cut -c1-300 | enc)
           echo "::error title=gradle key lines::${KEY:0:3900}"
           echo "::warning title=gradle tail::${TAIL:0:3900}"
       - name: Rename
-        run: cp android/app/build/outputs/apk/release/app-release.apk tv.apk
+        run: cp avocado-tv/android/app/build/outputs/apk/release/app-release.apk avocado-tv/tv.apk
       - uses: actions/upload-artifact@v4
         with:
           name: tv-apk
-          path: tv.apk
+          path: avocado-tv/tv.apk
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk
           name: Avocado TV APK
-          body: "WebView wrapper for https://playmakerino.github.io/1011/tv.html - rebuilt automatically on every push."
-          files: tv.apk
+          body: "WebView wrapper for https://playmakerino.github.io/1011/avocado-tv/ - rebuilt automatically on every push."
+          files: avocado-tv/tv.apk
       # Also commit tv.apk to main so GitHub Pages serves it at a short URL:
-      # https://playmakerino.github.io/1011/tv.apk (easy to type in Downloader on a TV box)
+      # https://playmakerino.github.io/1011/avocado-tv/tv.apk
       - name: Commit tv.apk to repo (served by GitHub Pages)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add tv.apk android/tv.jks
+          git add avocado-tv/tv.apk avocado-tv/android/tv.jks
           git diff --cached --quiet && exit 0
           git commit -m "ci: update tv.apk [skip ci]"
           # main may have moved while we built (page-only pushes): rebase our one commit onto it, then push

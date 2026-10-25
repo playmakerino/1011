@@ -1,0 +1,8 @@
+# FPT Play 650: dot 3, thanh phan vo dung tren hop nay
+com.netflix.tokenmanager                     # Netflix khong chay tren hop nay
+com.google.android.marvin.talkback           # trinh doc man hinh
+com.android.dreams.basic                     # trinh bao ve man hinh co ban (khong dung)
+com.android.healthconnect.controller         # Health Connect
+com.android.nearby.halfsheet                 # popup ghep doi nhanh
+com.android.htmlviewer                       # trinh xem HTML
+com.google.android.syncadapters.calendar     # dong bo lich Google
