@@ -13,7 +13,7 @@
  *   of this one, so the app's history stays one page deep and Back always leaves the app.
  *
  * A page sets window.TVNav = { scopes: [...popup selectors...], onBack: function(){...}, first: 'selector',
- * pages: [{ href: 'page.html', label: 'Name', icon: '🕐' }, ...] } before loading this file. */
+ * pages: [{ href: 'page.html', label: 'Name', icon: 'clock' }, ...] } before loading this file. */
 (function () {
   var cfg = window.TVNav = window.TVNav || {};
   var tv = /TVApp\//.test(navigator.userAgent);
@@ -27,9 +27,18 @@
     '.tv-seg>*{padding:7px 14px;border-radius:7px;color:#8a8399;text-decoration:none}' +
     '.tv-seg>span{background:#fff;color:#3f3a5c;box-shadow:0 1px 3px rgba(60,40,20,.14)}' +
     '.tv-seg .ic{display:none}' +
-    '@media (max-width:767px){.tv-seg{top:8px}.tv-seg>*{padding:6px 12px;font-size:18px}' +
-    '.tv-seg .ic{display:inline}.tv-seg .tx{display:none}}';
+    '.tv-seg svg{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:1.6;' +
+    'stroke-linecap:round;stroke-linejoin:round}' +
+    '@media (max-width:767px){.tv-seg{top:8px}.tv-seg>*{padding:6px 12px}' +
+    '.tv-seg .ic{display:block}.tv-seg .tx{display:none}}';
   document.head.appendChild(css);
+
+  // One-colour line icons (they take the segment's text colour), like the Chat / Code icons of the Claude app.
+  var ICONS = {
+    clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+    learn: '<svg viewBox="0 0 24 24"><path d="M3 9l9-4.5L21 9l-9 4.5z"/><path d="M7 11v4.5c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5V11"/>' +
+      '<path d="M21 9v5"/></svg>'
+  };
 
   if (cfg.pages) {
     var seg = document.createElement('nav');
@@ -38,8 +47,7 @@
     cfg.pages.forEach(function (p) {
       // The current page is a plain label, so the focus only ever lands on the other one.
       var el = document.createElement(p.href === here ? 'span' : 'a');
-      el.innerHTML = '<span class="ic"></span><span class="tx"></span>';
-      el.firstChild.textContent = p.icon || p.label;
+      el.innerHTML = '<span class="ic">' + (ICONS[p.icon] || '') + '</span><span class="tx"></span>';
       el.lastChild.textContent = p.label;
       el.title = p.label;
       el.setAttribute('aria-label', p.label);

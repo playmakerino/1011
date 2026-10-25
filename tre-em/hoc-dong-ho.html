@@ -72,12 +72,13 @@
     }
   }
 
-  /* ===== KHUNG CHỨA ĐỒNG HỒ + TAB ĐỔI KIỂU =====
+  /* ===== KHUNG CHỨA ĐỒNG HỒ =====
      .stage đứng đúng chỗ .analog đứng trước đây trong flex của body (dọc: trên; ngang: trái),
-     nên bố cục cũ không đổi; nó chỉ ôm cả hai kiểu đồng hồ. */
-  /* Tab ĐỨNG YÊN một chỗ: .stage co theo nội dung, mà mặt kim với khối số rộng/cao khác nhau
-     -> đổi tab là hộp đổi kích thước, kéo tab chạy theo. Nên layout() khoá cứng width và
-     min-height của .stage theo mặt kim; khối số nằm gọn bên trong, tab không nhúc nhích. */
+     nên bố cục cũ không đổi; nó chỉ ôm cả hai kiểu đồng hồ.
+     .stage co theo nội dung, mà mặt kim với khối số rộng/cao khác nhau -> đổi kiểu là hộp đổi
+     kích thước, kéo cột phải chạy theo. Nên layout() khoá cứng width và min-height của .stage
+     theo mặt kim; khối số nằm gọn bên trong.
+     Tab đổi kiểu (.tabs) nằm ở đầu cột phải (.panel), trên "Chọn câu hỏi". */
   .stage{display:flex;flex-direction:column;align-items:center;flex:none;}
   .tabs{display:flex;gap:var(--sp-2);}
   /* Tab là nút GIAO DIỆN -> dùng màu giao diện (--c-sec), giống chip chọn câu hỏi.
@@ -426,22 +427,6 @@
 <symbol id="icSo" viewBox="0 0 512 512"><path d="M111.4,176.733c-8.284,0-15,6.716-15,15v48.2c0,8.284,6.716,15,15,15s15-6.716,15-15v-48.2C126.4,183.449,119.685,176.733,111.4,176.733z"/><path d="M15,176.734c-8.284,0-15,6.716-15,15v48.2c0,8.284,6.716,15,15,15s15-6.716,15-15v-48.2C30,183.45,23.284,176.734,15,176.734z"/><path d="M87.301,152.633h-48.2c-8.284,0-15,6.716-15,15s6.715,15,15,15h48.2c8.284,0,15-6.716,15-15S95.585,152.633,87.301,152.633z"/><path d="M111.4,257.066c-8.284,0-15,6.716-15,15v48.2c0,8.284,6.716,15,15,15s15-6.716,15-15v-48.2C126.4,263.782,119.685,257.066,111.4,257.066z"/><path d="M15,257.067c-8.284,0-15,6.716-15,15v48.2c0,8.284,6.716,15,15,15s15-6.716,15-15v-48.2C30,263.783,23.284,257.067,15,257.067z"/><path d="M87.301,329.367h-48.2c-8.284,0-15,6.716-15,15s6.716,15,15,15h48.2c8.284,0,15-6.716,15-15S95.585,329.367,87.301,329.367z"/><path d="M497,176.733c-8.284,0-15,6.716-15,15v48.2c0,8.284,6.716,15,15,15s15-6.716,15-15v-48.2C512,183.449,505.284,176.733,497,176.733z"/><path d="M400.601,176.734c-8.284,0-15,6.716-15,15v48.2c0,8.284,6.715,15,15,15c8.284,0,15-6.716,15-15v-48.2C415.601,183.45,408.885,176.734,400.601,176.734z"/><path d="M472.9,152.633h-48.2c-8.284,0-15,6.716-15,15s6.716,15,15,15h48.2c8.284,0,15-6.716,15-15S481.184,152.633,472.9,152.633z"/><path d="M497,257.066c-8.284,0-15,6.716-15,15v48.2c0,8.284,6.716,15,15,15s15-6.716,15-15v-48.2C512,263.782,505.284,257.066,497,257.066z"/><path d="M400.601,257.067c-8.284,0-15,6.716-15,15v48.2c0,8.284,6.716,15,15,15s15-6.716,15-15v-48.2C415.601,263.783,408.885,257.067,400.601,257.067z"/><path d="M472.9,329.367h-48.2c-8.284,0-15,6.716-15,15s6.716,15,15,15h48.2c8.284,0,15-6.716,15-15S481.185,329.367,472.9,329.367z"/><path d="M336.334,176.733c-8.284,0-15,6.716-15,15v48.2c0,8.284,6.716,15,15,15s15-6.716,15-15v-48.2C351.334,183.449,344.618,176.733,336.334,176.733z"/><path d="M239.934,176.734c-8.284,0-15,6.716-15,15v48.2c0,8.284,6.715,15,15,15c8.284,0,15-6.716,15-15v-48.2C254.934,183.45,248.218,176.734,239.934,176.734z"/><path d="M312.233,152.633h-48.2c-8.284,0-15,6.716-15,15s6.716,15,15,15h48.2c8.284,0,15-6.716,15-15S320.517,152.633,312.233,152.633z"/><path d="M336.334,257.066c-8.284,0-15,6.716-15,15v48.2c0,8.284,6.716,15,15,15s15-6.716,15-15v-48.2C351.334,263.782,344.618,257.066,336.334,257.066z"/><path d="M239.934,257.067c-8.284,0-15,6.716-15,15v48.2c0,8.284,6.716,15,15,15s15-6.716,15-15v-48.2C254.934,263.783,248.218,257.067,239.934,257.067z"/><path d="M312.233,329.367h-48.2c-8.284,0-15,6.716-15,15s6.716,15,15,15h48.2c8.284,0,15-6.716,15-15S320.518,329.367,312.233,329.367z"/><path d="M186.274,205.229c-2.79-2.79-6.66-4.391-10.61-4.391c-3.94,0-7.81,1.601-10.6,4.391c-2.79,2.789-4.4,6.659-4.4,10.6c0,3.95,1.61,7.82,4.4,10.61c2.79,2.79,6.66,4.39,10.6,4.39c3.95,0,7.82-1.6,10.61-4.39c2.789-2.79,4.39-6.66,4.39-10.61C190.664,211.889,189.063,208.018,186.274,205.229z"/><path d="M186.274,285.558c-2.79-2.79-6.66-4.39-10.61-4.39c-3.94,0-7.81,1.6-10.61,4.39c-2.79,2.79-4.39,6.66-4.39,10.61c0,3.94,1.6,7.81,4.39,10.61c2.8,2.79,6.67,4.39,10.61,4.39c3.95,0,7.82-1.6,10.61-4.39c2.789-2.8,4.39-6.67,4.39-10.61C190.664,292.218,189.063,288.348,186.274,285.558z"/></symbol>
 </defs></svg>
   <div class="stage" id="stage">
-  <!-- Tab dùng ICON (bộ icon rời, để trong sprite đầu trang; bản gốc ở img/icon/).
-       Không có chữ nên phải có aria-label cho phần đọc màn hình.
-       Icon số vẽ "0:00" trải hết bề ngang 512 nhưng chỉ cao 152..360, nên viewBox của nó
-       cắt đúng dải đó — không thì icon nằm lọt thỏm giữa một ô vuông đầy khoảng trắng. -->
-  <div class="tabs" id="tabs">
-    <button class="tab on" type="button" data-view="analog" aria-label="Đồng hồ kim" title="Đồng hồ kim">
-      <svg class="tico" viewBox="0 0 443.294 443.294" aria-hidden="true">
-        <use href="#icKim" width="443.294" height="443.294"/>
-      </svg>
-    </button>
-    <button class="tab" type="button" data-view="digital" aria-label="Đồng hồ số" title="Đồng hồ số">
-      <svg class="tico" viewBox="0 152 512 208" aria-hidden="true">
-        <use href="#icSo" width="512" height="512"/>
-      </svg>
-    </button>
-  </div>
   <div class="analog" id="analog">
     <!-- Cung khoảng phút (chỉ vẽ khi biết cả hai mốc) + hai cung GIỜ THẬT đang chạy.
          Cung giờ thật luôn hiện, không dính gì tới bài tập: vòng trong là PHÚT, vòng ngoài
@@ -489,6 +474,24 @@
   </div>
 
   <div class="panel">
+    <!-- Tab đổi kiểu đồng hồ: đầu cột phải, trên "Chọn câu hỏi".
+         Tab dùng ICON (bộ icon rời, để trong sprite đầu trang; bản gốc ở img/icon/).
+         Không có chữ nên phải có aria-label cho phần đọc màn hình.
+         Icon số vẽ "0:00" trải hết bề ngang 512 nhưng chỉ cao 152..360, nên viewBox của nó
+         cắt đúng dải đó, không thì icon nằm lọt thỏm giữa một ô vuông đầy khoảng trắng. -->
+    <div class="tabs" id="tabs">
+      <button class="tab on" type="button" data-view="analog" aria-label="Đồng hồ kim" title="Đồng hồ kim">
+        <svg class="tico" viewBox="0 0 443.294 443.294" aria-hidden="true">
+          <use href="#icKim" width="443.294" height="443.294"/>
+        </svg>
+      </button>
+      <button class="tab" type="button" data-view="digital" aria-label="Đồng hồ số" title="Đồng hồ số">
+        <svg class="tico" viewBox="0 152 512 208" aria-hidden="true">
+          <use href="#icSo" width="512" height="512"/>
+        </svg>
+      </button>
+    </div>
+
     <div class="block">
       <div class="lbl">Chọn câu hỏi</div>
       <div class="pick">
@@ -758,8 +761,7 @@
       const GAP = 24;
       const availW = Math.min(vw, 1600) - EDGE*2;
       faceByW = (availW - panelW - GAP - 2*MARGIN) / 2;
-      // Hàng tab nằm TRÊN mặt đồng hồ nên ăn mất phần chiều cao đó
-      const faceByH = (vh - 2*EDGE - 2*MARGIN - elTabs.offsetHeight) / 2;
+      const faceByH = (vh - 2*EDGE - 2*MARGIN) / 2;
       FACE = Math.min(faceByW, faceByH);
     } else {
       // DỌC: đồng hồ chỉ co theo BỀ RỘNG, nội dung dài hơn màn thì cuộn
@@ -774,9 +776,9 @@
     analog.style.width  = D+'px';
     analog.style.height = D+'px';
     analog.style.margin = MARGIN+'px';
-    // Khoá hộp .stage theo mặt kim -> đổi tab không làm hộp co giãn, tab đứng yên
+    // Khoá hộp .stage theo mặt kim -> đổi kiểu đồng hồ không làm hộp co giãn, cột phải đứng yên
     elStage.style.width     = (D + 2*MARGIN)+'px';
-    elStage.style.minHeight = (D + 2*MARGIN + elTabs.offsetHeight)+'px';
+    elStage.style.minHeight = (D + 2*MARGIN)+'px';
     ARC_R_M = FACE + NOW_M_OFF;  // cung PHÚT hiện tại (+ cung khoảng teal thang phút)
     ARC_R_H = FACE + NOW_H_OFF;  // cung GIỜ hiện tại
 
@@ -1478,7 +1480,7 @@
   // Điều khiển bằng remote trong app TV (trên trình duyệt tv-nav.js chỉ thêm thanh chuyển trang).
   window.TVNav = {
     scopes: ['#menu'],
-    pages: [{ href: 'dong-ho.html', label: 'Đồng Hồ', icon: '🕐' }, { href: 'hoc-dong-ho.html', label: 'Học Đồng Hồ', icon: '✏️' }],
+    pages: [{ href: 'dong-ho.html', label: 'Đồng Hồ', icon: 'clock' }, { href: 'hoc-dong-ho.html', label: 'Học Đồng Hồ', icon: 'learn' }],
     onBack: function(){
       var m = document.getElementById('menu');
       if(!m.hidden){ m.hidden = true; m.dataset.part = ''; return true; }
