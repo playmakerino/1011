@@ -17,8 +17,8 @@ import android.widget.FrameLayout;
 import android.widget.TextView;
 
 /**
- * The kids' clock pages from GitHub Pages in a full-screen WebView: it opens on Đồng Hồ, and a two-segment switch at the top
- * right goes to Học Đồng Hồ and back.
+ * The kids' clock pages from GitHub Pages in a full-screen WebView: it opens on Đồng Hồ; a small button at the top
+ * right opens Học Đồng Hồ, whose back arrow or the Back key returns.
  * The pages' tv-nav.js turns the remote's arrows and OK into focus moves and clicks; it only runs because of the
  * "TVApp/" tag added to the user agent.
  */
