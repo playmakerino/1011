@@ -1,0 +1,52 @@
+name: Build Dong Ho APK
+# The "Đồng Hồ" TV app (tre-em/android): a WebView on https://playmakerino.github.io/1011/tre-em/, where the child
+# picks Đồng Hồ or Học Đồng Hồ. Built here on every change and committed as tre-em/dong-ho.apk.
+on:
+  push:
+    branches: [main]
+    paths: ["tre-em/android/**", ".github/workflows/apk-dong-ho.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+# Two pushes in a row would build in parallel and the later one fail to rebase its APK: queue them.
+concurrency:
+  group: apk-dong-ho
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Build
+        working-directory: tre-em/android
+        run: |
+          set -o pipefail
+          gradle assembleRelease -Pvc=${{ github.run_number }} --no-daemon --stacktrace 2>&1 | tee build.log
+      - name: Surface build errors as annotations (visible without login)
+        if: failure()
+        run: |
+          enc() { sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g'; }
+          KEY=$(grep -nE 'error|FAILURE|What went wrong|Exception|Caused by' -i tre-em/android/build.log | head -40 | cut -c1-300 | enc)
+          echo "::error title=gradle key lines::${KEY:0:3900}"
+      - name: Rename
+        run: cp tre-em/android/app/build/outputs/apk/release/app-release.apk tre-em/dong-ho.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dong-ho-apk
+          path: tre-em/dong-ho.apk
+      - name: Commit dong-ho.apk to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tre-em/dong-ho.apk
+          git diff --cached --quiet && exit 0
+          git commit -m "ci: update dong-ho.apk [skip ci]"
+          for i in 1 2 3; do git pull --rebase -X theirs origin main && git push && exit 0; sleep 5; done
+          exit 1

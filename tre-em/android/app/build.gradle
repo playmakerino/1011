@@ -1,0 +1,34 @@
+plugins { id "com.android.application" }
+
+android {
+    namespace "io.github.playmakerino.clock"
+    compileSdk 34
+    defaultConfig {
+        applicationId "io.github.playmakerino.clock"
+        minSdk 21
+        targetSdk 34
+        // CI passes -Pvc=<run number> so every build is a higher version than the last.
+        versionCode (project.hasProperty("vc") ? project.vc.toInteger() : 1)
+        versionName "1." + (project.hasProperty("vc") ? project.vc : "0")
+    }
+    signingConfigs {
+        // Fixed key committed in tre-em/android/clock.jks so updates install over the previous build.
+        release {
+            storeFile rootProject.file("clock.jks")
+            storePassword "android"
+            keyAlias "clock"
+            keyPassword "android"
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+    lint { checkReleaseBuilds false }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
