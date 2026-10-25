@@ -1,5 +1,5 @@
 /* Remote (D-pad) control for the kids' pages, used only inside the "Đồng Hồ" TV app (tre-em/android), which
- * adds "TVApp/" to the user agent. In a browser this file does nothing, so phones and computers are unchanged.
+ * adds "TVApp/" to the user agent. In a browser only the page switch (TVNav.pages) is added, nothing else.
  *
  * - Arrow keys move the focus to the nearest focusable element in that direction (buttons, inputs, and anything
  *   with a tabindex), only inside an open popup when the page lists one in TVNav.scopes.
@@ -7,26 +7,28 @@
  * - The app's Back key calls TVNav.back(): the page's TVNav.onBack() closes what is open and returns true;
  *   false lets the app go back to the TV's home screen.
  *
- * - TVNav.pages adds a small switch at the top centre, drawn like the Chat / Code switch of the Claude desktop
+ * - TVNav.pages adds a small switch at the top centre (on TV, computer and phone; under 768px wide each page shows
+ *   its icon instead of its name), drawn like the Chat / Code switch of the Claude desktop
  *   app: a soft grey track, the current page on a raised white segment. The other segment opens its page in place
  *   of this one, so the app's history stays one page deep and Back always leaves the app.
  *
  * A page sets window.TVNav = { scopes: [...popup selectors...], onBack: function(){...}, first: 'selector',
- * pages: [{ href: 'page.html', label: 'Name' }, ...] } before loading this file. */
+ * pages: [{ href: 'page.html', label: 'Name', icon: '🕐' }, ...] } before loading this file. */
 (function () {
-  if (!/TVApp\//.test(navigator.userAgent)) return;
   var cfg = window.TVNav = window.TVNav || {};
-  var FOCUSABLE = 'button, input, select, textarea, a[href], [tabindex]';
-  var lastBase = null;   // last element focused outside any popup, to return to when a popup closes
+  var tv = /TVApp\//.test(navigator.userAgent);
 
-  document.documentElement.classList.add('tv-nav');
   var css = document.createElement('style');
   // A thin ring in the pages' ink colour, with a cream gap so it also shows around dark or pink buttons.
+  // Under 768px wide the switch shows each page's icon instead of its name.
   css.textContent = '.tv-nav :focus{outline:3px solid #2b2b33 !important;outline-offset:3px !important}' +
     '.tv-seg{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:50;display:flex;gap:2px;' +
     'padding:3px;border-radius:10px;background:rgba(63,58,92,.07);font:500 14px/1 "Space Grotesk",sans-serif}' +
     '.tv-seg>*{padding:7px 14px;border-radius:7px;color:#8a8399;text-decoration:none}' +
-    '.tv-seg>span{background:#fff;color:#3f3a5c;box-shadow:0 1px 3px rgba(60,40,20,.14)}';
+    '.tv-seg>span{background:#fff;color:#3f3a5c;box-shadow:0 1px 3px rgba(60,40,20,.14)}' +
+    '.tv-seg .ic{display:none}' +
+    '@media (max-width:767px){.tv-seg{top:8px}.tv-seg>*{padding:6px 12px;font-size:18px}' +
+    '.tv-seg .ic{display:inline}.tv-seg .tx{display:none}}';
   document.head.appendChild(css);
 
   if (cfg.pages) {
@@ -36,7 +38,11 @@
     cfg.pages.forEach(function (p) {
       // The current page is a plain label, so the focus only ever lands on the other one.
       var el = document.createElement(p.href === here ? 'span' : 'a');
-      el.textContent = p.label;
+      el.innerHTML = '<span class="ic"></span><span class="tx"></span>';
+      el.firstChild.textContent = p.icon || p.label;
+      el.lastChild.textContent = p.label;
+      el.title = p.label;
+      el.setAttribute('aria-label', p.label);
       if (el.tagName === 'A') {
         el.href = p.href;
         el.addEventListener('click', function (e) { e.preventDefault(); location.replace(el.href); });
@@ -45,6 +51,11 @@
     });
     document.body.appendChild(seg);
   }
+
+  if (!tv) return;
+  var FOCUSABLE = 'button, input, select, textarea, a[href], [tabindex]';
+  var lastBase = null;   // last element focused outside any popup, to return to when a popup closes
+  document.documentElement.classList.add('tv-nav');
 
   function shown(el) {
     if (el.disabled || el.getAttribute('tabindex') === '-1' || el.closest('[hidden]')) return false;
