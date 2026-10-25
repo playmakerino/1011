@@ -5,7 +5,7 @@ Trang GitHub Pages: https://playmakerino.github.io/1011/ (mục lục ở `index
 | Thư mục | Nội dung | Địa chỉ web |
 |---|---|---|
 | `avocado-tv/` | Avocado TV: trang xem video (`index.html`), dữ liệu `tiktok/` và `drive/`, app Android bọc trang (`android/`, build thành `tv.apk`), script cập nhật dữ liệu (`scripts/`) | `/1011/avocado-tv/` |
-| `tre-em/` | Trò chơi cho trẻ: Cân Đĩa, Đồng Hồ, Học Đồng Hồ. App TV "Đồng Hồ" (`android/`, build thành `dong-ho.apk`) mở thẳng Đồng Hồ, có nút nhỏ sang Học Đồng Hồ, bên đó có mũi tên quay lại; `tv-nav.js` cho điều khiển bằng remote | `/1011/tre-em/` |
+| `tre-em/` | Trò chơi cho trẻ: Cân Đĩa, Đồng Hồ, Học Đồng Hồ. App TV "Đồng Hồ" (`android/`, build thành `dong-ho.apk`) mở thẳng Đồng Hồ, có nút chữ nhỏ sang Học Đồng Hồ, bên đó có nút "Quay lại"; `tv-nav.js` cho điều khiển bằng remote | `/1011/tre-em/` |
 | `fingerstyle/` | Tab guitar fingerstyle | `/1011/fingerstyle/...` |
 | `1011-tv/` | Launcher 1011 TV cho hộp FPT Play 650 (không phải trang web; xem `1011-tv/README.md`) | |
 

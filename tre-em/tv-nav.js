@@ -7,13 +7,13 @@
  * - The app's Back key calls TVNav.back(): the page's TVNav.onBack() closes what is open and returns true;
  *   false lets the app go back to the TV's home screen.
  *
- * - TVNav.go adds one small round button: Đồng Hồ is the app's main page and Học Đồng Hồ a page under it, so
- *   Đồng Hồ gets a "learn" button at the top right (the usual place of a page's actions) and Học Đồng Hồ a back
- *   arrow at the top left (the usual place of "up"). The arrow goes back in history, so it and the remote's
- *   Back key do the same thing: Học Đồng Hồ -> Đồng Hồ -> out of the app.
+ * - TVNav.go adds one small text button: Đồng Hồ is the app's main page and Học Đồng Hồ a page under it, so
+ *   Đồng Hồ gets a "Học Đồng Hồ" button at the top right (the usual place of a page's actions) and Học Đồng Hồ a
+ *   "Quay lại" button at the top left (the usual place of "up"). That one goes back in history, so it and the
+ *   remote's Back key do the same thing: Học Đồng Hồ -> Đồng Hồ -> out of the app.
  *
  * A page sets window.TVNav = { scopes: [...popup selectors...], onBack: function(){...}, first: 'selector',
- * go: { href: 'page.html', label: 'Name', icon: 'learn' | 'back' } } before loading this file. */
+ * go: { href: 'page.html', label: 'Text', back: true|false } } before loading this file. */
 (function () {
   if (!/TVApp\//.test(navigator.userAgent)) return;
   var cfg = window.TVNav = window.TVNav || {};
@@ -24,24 +24,18 @@
   var css = document.createElement('style');
   // A thin ring in the pages' ink colour, with a cream gap so it also shows around dark or pink buttons.
   css.textContent = '.tv-nav :focus{outline:3px solid #2b2b33 !important;outline-offset:3px !important}' +
-    '.tv-go{position:fixed;top:16px;z-index:50;width:56px;height:56px;border-radius:50%;background:#fff;' +
-    'color:#3f3a5c;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(60,40,20,.12)}' +
-    '.tv-go svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;' +
-    'stroke-linejoin:round}';
+    '.tv-go{position:fixed;top:22px;z-index:50;padding:12px 20px;border-radius:99px;background:#fff;' +
+    'color:#3f3a5c;font:500 18px/1 "Space Grotesk",sans-serif;text-decoration:none;' +
+    'box-shadow:0 2px 10px rgba(60,40,20,.12)}';
   document.head.appendChild(css);
 
-  var ICONS = {
-    learn: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/><path d="M22 9v6"/>',
-    back: '<path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>'
-  };
   if (cfg.go) {
     var go = document.createElement('a');
-    var back = cfg.go.icon === 'back';
+    var back = !!cfg.go.back;
     go.className = 'tv-go';
     go.href = cfg.go.href;
-    go.title = go.ariaLabel = cfg.go.label;
+    go.textContent = cfg.go.label;
     go.style[back ? 'left' : 'right'] = '24px';
-    go.innerHTML = '<svg viewBox="0 0 24 24">' + ICONS[cfg.go.icon] + '</svg>';
     // Came here from the main page: go back to it rather than open it again on top of the history.
     if (back) go.addEventListener('click', function (e) {
       if (history.length > 1 && document.referrer.split('?')[0] === go.href) { e.preventDefault(); history.back(); }
