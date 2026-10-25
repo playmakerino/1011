@@ -25,7 +25,7 @@ final class LiveClockBanner extends Drawable {
 
     static final String PACKAGE = "io.github.playmakerino.clock";
 
-    private static final int BG = 0xFFFDF6F0;
+    private static final int BG = 0xFFFFFFFF;
     private static final int HOUR = 0xFF5A63D8;
     private static final int MINUTE = 0xFFF5921B;
     private static final int ACCENT = 0xFFFF5D97;
