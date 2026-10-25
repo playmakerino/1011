@@ -98,8 +98,6 @@
   @media(max-width:520px){ .ttgrid{margin-inline:-11px} }
   .ttitem{position:relative; aspect-ratio:9/16; border-radius:8px; overflow:hidden; background:var(--ph); border:none; padding:0; cursor:pointer; color:inherit}
   .ttitem img{width:100%; height:100%; object-fit:cover}
-  .ttitem .v{position:absolute; left:8px; bottom:7px; display:flex; align-items:center; gap:4px; color:#fff; font-size:13px; font-weight:600; text-shadow:0 1px 3px rgba(0,0,0,.7)}
-  .ttitem .v svg{width:15px; height:15px; fill:#fff; filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}
   .ttitem:hover img{filter:brightness(1.08)}
 
   /* TikTok player: full-screen vertical feed; caption/date live in a side panel, not over the video */
@@ -763,11 +761,9 @@ seek:function(d){var dur=v.duration||0,x=(target==null?v.currentTime:target)+d;i
 stop:function(){clearTimeout(barT);clearInterval(tick);tick=0;target=null;try{v.pause();v.removeAttribute('src');v.load();}catch(e){}}};
 v.src=u;if(ap)play(); /* the app shows the player on the first frame */
 }catch(e){try{TVNative.event('error');}catch(x){}}})`.replace("__GRAD__",GRAD_PNG);
-const PLAY_ICON='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 function ttItem(v,i){
   const b=document.createElement("button"); b.className="ttitem"; b.type="button"; b.dataset.vid=v.id;
-  b.innerHTML='<img loading="lazy" decoding="async" src="'+esc(v.thumb)+'" alt="" onerror="this.remove()">'+
-    '<span class="v">'+PLAY_ICON+esc(fmtCount(v.views))+'</span>';
+  b.innerHTML='<img loading="lazy" decoding="async" src="'+esc(v.thumb)+'" alt="" onerror="this.remove()">'; // no view count: the list is not re-synced, so it goes stale
   onActivate(b,()=>openFeed(i));
   if(TT_NATIVE){ b.onfocus=()=>ttPrefetch(v.id); b.onblur=()=>ttPrefetch(null); } // resolve the stream while the tile is focused
   return b;
