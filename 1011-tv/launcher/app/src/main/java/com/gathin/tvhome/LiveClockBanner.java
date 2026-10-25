@@ -18,7 +18,7 @@ import java.util.Calendar;
 /**
  * The tile of the "Đồng Hồ" app (tre-em/android in the 1011 repo): its analog clock face, running, instead of the
  * app's still banner. Drawn like the face on https://playmakerino.github.io/1011/tre-em/dong-ho.html (white face,
- * hour ticks and numerals in the hour blue, minute ticks in orange, pink second hand), without the rings around it.
+ * hour ticks and numerals in the hour blue, minute ticks in orange), without the rings around it or a second hand.
  * Every size below is the page's pixel size divided by its face radius (118 px), so the two keep the same shape.
  */
 final class LiveClockBanner extends Drawable {
@@ -29,7 +29,7 @@ final class LiveClockBanner extends Drawable {
     private static final int RIM = 0xFF2B2B2B;
     private static final int HOUR = 0xFF5A63D8;
     private static final int MINUTE = 0xFFF5921B;
-    private static final int SECOND = 0xFFFF5D97;
+    private static final int ACCENT = 0xFFFF5D97;
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -94,7 +94,7 @@ final class LiveClockBanner extends Drawable {
         }
 
         now.setTimeInMillis(System.currentTimeMillis());
-        int h = now.get(Calendar.HOUR), m = now.get(Calendar.MINUTE), s = now.get(Calendar.SECOND);
+        int h = now.get(Calendar.HOUR), m = now.get(Calendar.MINUTE);
 
         // Numerals 2 px inside the hour ticks; the current hour in bold, as on the page.
         float size = r * 15.2f / 118f;
@@ -111,20 +111,19 @@ final class LiveClockBanner extends Drawable {
         }
 
         paint.setStrokeCap(Paint.Cap.ROUND);
-        hand(c, cx, cy, (h + m / 60f + s / 3600f) * 30, r * 0.34f, r * 5 / 118f, HOUR);
-        hand(c, cx, cy, (m + s / 60f) * 6, r * 0.55f, r * 3 / 118f, MINUTE);
-        hand(c, cx, cy, s * 6, r * 0.62f, r * 1.5f / 118f, SECOND);
+        hand(c, cx, cy, (h + m / 60f) * 30, r * 0.34f, r * 5 / 118f, HOUR);
+        hand(c, cx, cy, m * 6, r * 0.55f, r * 3 / 118f, MINUTE);
 
         // Pink hub with a 4 px white ring.
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(0xFFFFFFFF);
         c.drawCircle(cx, cy, r * 8.5f / 118f, paint);
-        paint.setColor(SECOND);
+        paint.setColor(ACCENT);
         c.drawCircle(cx, cy, r * 4.5f / 118f, paint);
 
         if (running) {
             unscheduleSelf(tick);
-            scheduleSelf(tick, SystemClock.uptimeMillis() + 1000 - System.currentTimeMillis() % 1000);
+            scheduleSelf(tick, SystemClock.uptimeMillis() + 60000 - System.currentTimeMillis() % 60000);
         }
     }
 
@@ -136,7 +135,7 @@ final class LiveClockBanner extends Drawable {
         c.drawLine(cx, cy, cx + (float) Math.sin(a) * len, cy - (float) Math.cos(a) * len, paint);
     }
 
-    /** Ticks once a second while the tile is on screen; the view hides it when Home leaves. */
+    /** Moves on at each new minute while the tile is on screen; the view hides it when Home leaves. */
     @Override
     public boolean setVisible(boolean visible, boolean restart) {
         boolean changed = super.setVisible(visible, restart);
