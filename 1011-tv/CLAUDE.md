@@ -25,3 +25,7 @@ Mọi chỉnh sửa làm thẳng trong code; không có theme hay màn hình cà
 - Không tắt gói lõi Android hay gói nhà máy (`com.hisense.bigfac`, `com.example.facservicetest`).
   Tắt app bằng `tools/disable.sh <danh sách>`, không gỡ app hệ thống.
 - Cổng ADB 5555 được giữ mở theo ý chủ máy.
+- `com.fptplay.launcher` vừa là launcher gốc vừa là app xem FPT Play (một gói, tự cập nhật). Chủ máy vẫn xem nên
+  không tắt gói; chỉ chặn tự chạy khi khởi động bằng `am force-stop com.fptplay.launcher` (cờ `stopped=true` giữ qua
+  khởi động lại, gói không nhận BOOT_COMPLETED). Mở FPT Play một lần là cờ mất, phải force-stop lại.
+  Shell không có quyền `pm disable` thành phần của gói này; `appops RUN_ANY_IN_BACKGROUND` bị đặt lại khi khởi động.
