@@ -73,7 +73,11 @@ public class MainActivity extends Activity {
         root.addView(offline, new FrameLayout.LayoutParams(-1, -1));
 
         immersive();
-        if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) web.loadUrl(URL);
+        if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) {
+            // A fresh start always gets the latest pages from GitHub Pages; the pages' own saved data stays.
+            web.clearCache(true);
+            web.loadUrl(URL);
+        }
         web.requestFocus();
     }
 
