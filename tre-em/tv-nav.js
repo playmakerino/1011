@@ -1,15 +1,18 @@
 /* Remote (D-pad) control for the kids' pages, used only inside the "Đồng Hồ" TV app (tre-em/android), which
  * adds "TVApp/" to the user agent. In a browser only the page switch (TVNav.pages) is added, nothing else.
  *
- * - Arrow keys move the focus to the nearest focusable element in that direction (buttons, inputs, and anything
- *   with a tabindex), only inside an open popup when the page lists one in TVNav.scopes.
+ * - Arrow keys move the focus between focusable elements (buttons, inputs, and anything with a tabindex), only
+ *   inside an open popup when the page lists one in TVNav.scopes. Left / Right step through a group (elements
+ *   with the same parent) in page order; elsewhere the focus goes to the nearest element wholly on that side,
+ *   on the same row for Left / Right.
  * - OK (Enter) presses the focused element; buttons do that by themselves, other elements get a click().
  * - The app's Back key calls TVNav.back(): the page's TVNav.onBack() closes what is open and returns true;
  *   false lets the app go back to the TV's home screen.
  *
  * - TVNav.pages adds a small switch at the top centre (on TV, computer and phone), drawn like the Chat / Code
- *   switch of the Claude desktop app: a soft grey track, the current page on a raised white segment. The other segment opens its page in place
- *   of this one, so the app's history stays one page deep and Back always leaves the app.
+ *   switch of the Claude desktop app: a soft grey track, the current page on a raised white segment. The other
+ *   segment opens its page in place of this one, so the app's history stays one page deep and Back always
+ *   leaves the app.
  *
  * A page sets window.TVNav = { scopes: [...popup selectors...], onBack: function(){...}, first: 'selector',
  * pages: [{ href: 'page.html', label: 'Name' }, ...] } before loading this file. */
@@ -86,26 +89,50 @@
     focusEl(first && all.indexOf(first) >= 0 ? first : all[0]);
   }
 
+  /** Two boxes overlap in height, so they sit on one row. */
+  function sameRow(a, b) {
+    return b.bottom > a.top && b.top < a.bottom;
+  }
+
   function move(dir) {
     var all = items();
     if (!all.length) return;
     var cur = document.activeElement;
     if (!cur || all.indexOf(cur) < 0) return restore(all);
+    var side = dir === 'Left' || dir === 'Right';
+
+    // Left / Right inside a group (focusable elements sharing one parent, e.g. a row of chips): the previous or
+    // next one in page order, wrapped lines included. At either end of the group the focus stays.
+    // A group stacked as one column (a dropdown menu) is left to Up / Down.
+    if (side) {
+      var group = all.filter(function (el) { return el.parentNode === cur.parentNode; });
+      var isRow = group.some(function (el, i) {
+        return i > 0 && sameRow(el.getBoundingClientRect(), group[i - 1].getBoundingClientRect());
+      });
+      if (isRow) {
+        var next = group[group.indexOf(cur) + (dir === 'Right' ? 1 : -1)];
+        if (next) focusEl(next);
+        return;
+      }
+    }
+
+    // Otherwise by position: only elements wholly on that side, and for Left / Right only ones on the same row.
+    // Score = gap along the move + twice the sideways gap, so the focus keeps to its row or column.
     var a = cur.getBoundingClientRect();
-    var ax = a.left + a.width / 2, ay = a.top + a.height / 2;
     var best = null, bestScore = Infinity;
     all.forEach(function (el) {
       if (el === cur) return;
       var b = el.getBoundingClientRect();
-      var dx = b.left + b.width / 2 - ax, dy = b.top + b.height / 2 - ay;
       var main, cross;
-      // Only elements that lie in the pressed direction; cross-axis distance counts double so the focus
-      // keeps to its row or column instead of jumping diagonally.
-      if (dir === 'Right') { if (b.left < a.right - 4 && dx <= 4) return; main = dx; cross = Math.abs(dy); }
-      else if (dir === 'Left') { if (b.right > a.left + 4 && dx >= -4) return; main = -dx; cross = Math.abs(dy); }
-      else if (dir === 'Down') { if (b.top < a.bottom - 4 && dy <= 4) return; main = dy; cross = Math.abs(dx); }
-      else { if (b.bottom > a.top + 4 && dy >= -4) return; main = -dy; cross = Math.abs(dx); }
-      if (main <= 0) return;
+      if (side) {
+        if (!sameRow(a, b)) return;
+        main = dir === 'Right' ? b.left - a.right : a.left - b.right;
+        cross = 0;
+      } else {
+        main = dir === 'Down' ? b.top - a.bottom : a.top - b.bottom;
+        cross = Math.max(0, b.left - a.right, a.left - b.right);
+      }
+      if (main < 0) return;
       var score = main + 2 * cross;
       if (score < bestScore) { bestScore = score; best = el; }
     });
