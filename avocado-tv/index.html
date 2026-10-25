@@ -730,9 +730,23 @@ function ev(n){try{TVNative.event(n);}catch(e){}}
 /* Playback starts (with sound) while the WebView is still hidden — on Android nothing decodes before play(),
    and this WebView refuses to unmute a video that started muted. The app shows the player on "playing"
    (first frame), a few ms later, so picture and sound effectively appear together. */
-v.addEventListener('playing',function(){ev('playing')});
-v.addEventListener('error',function(){ev('error')});
-function play(){v.play().catch(function(){});}
+/* Volume 70% (TikTok audio is mastered loud). This WebView ignores v.volume, so the sound goes through a Web Audio
+   gain instead. That only works when the CDN answers CORS: a cross-origin video without it plays silent in Web Audio.
+   So the first load asks for CORS (crossOrigin); if that load fails, it reloads without it at full volume and
+   remembers the failure for a day. The graph is only built once a CORS load is confirmed (loadedmetadata). */
+var VOL=0.7,ac=null,cors=false,volMsg='';
+try{cors=!(Date.now()-(+localStorage.ttNoCors||0)<864e5);}catch(e){cors=true;}
+if(cors)v.crossOrigin='use-credentials';
+function gain(){if(ac||!cors)return;try{var C=window.AudioContext||window.webkitAudioContext;ac=new C();var g=ac.createGain();g.gain.value=VOL;
+ac.createMediaElementSource(v).connect(g);g.connect(ac.destination);if(ac.state==='suspended')ac.resume();volMsg='âm lượng '+Math.round(VOL*100)+'%';}
+catch(e){volMsg='âm lượng 100% (Web Audio lỗi: '+e.name+')';}}
+v.addEventListener('loadedmetadata',gain);
+v.addEventListener('playing',function(){ev('playing');if(ac&&ac.state==='suspended')ac.resume();if(volMsg){toast(volMsg);volMsg='';}}); /* volMsg: debug line until confirmed on the TV */
+v.addEventListener('error',function(){
+if(cors&&!ac){cors=false;try{localStorage.ttNoCors=Date.now();}catch(e){}volMsg='âm lượng 100% (CDN không cho CORS)';
+v.removeAttribute('crossorigin');v.src=u;if(want)play();return;}
+ev('error')});
+var want=false;function play(){want=true;if(ac&&ac.state==='suspended')ac.resume();v.play().catch(function(){});}
 /* Seeking as in the YouTube player: Left/Right move the scrubber only, OK applies the jump (or it is applied
    when the bar hides, 3 s after the last press). The bar stays up while paused, so the time can be read. */
 var target=null,barT=0,tick=0;
