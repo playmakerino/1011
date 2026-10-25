@@ -26,8 +26,12 @@ Mọi chỉnh sửa làm thẳng trong code; không có theme hay màn hình cà
   Tắt app bằng `tools/disable.sh <danh sách>`, không gỡ app hệ thống.
 - Cổng ADB 5555 được giữ mở theo ý chủ máy.
 - `com.fptplay.launcher` vừa là launcher gốc vừa là app xem FPT Play (một gói, tự cập nhật, chạy quyền hệ thống
-  `android.uid.system`). Không tắt được, nên để nguyên, kể cả việc nó tự chạy khi khởi động (~135-200 MB RAM).
-  Đã thử và bỏ: shell không có quyền `pm disable` thành phần của gói; `pm disable-user` và `pm suspend` cả gói đều
-  nhận nhưng bị gỡ ở lần khởi động kế (`lastDisabledCaller: com.fptplay.launcher`); `appops RUN_ANY_IN_BACKGROUND`
+  `android.uid.system`, ~135-200 MB RAM khi chạy). Từ 25/10/2026 gói này bị tắt bằng
+  `pm disable-user --user 0 com.fptplay.launcher`; chủ máy xem FPT Play bằng bản Play Store `net.fptplay.ottbox`
+  (cùng phiên bản, khác chữ ký, không làm launcher). Bật lại: `pm enable com.fptplay.launcher`.
+  Hai lần đầu trạng thái tắt (và `pm suspend`) bị gỡ sau khởi động lại (`lastDisabledCaller: com.fptplay.launcher`),
+  lần thứ ba thì giữ; chưa rõ cái gì gỡ. Không phải mã của chính app, `FPTBoxService`, `unistallapp`,
+  `system_notification`, `ConsumeCpuService`, `GlobalKeyHandler` (đã tìm trong mã, không có lệnh bật gói).
+  Nếu app lại chạy: đọc `logcat -b all -d` ngay, trước khi nhật ký bị ghi đè.
+  Đã thử và bỏ trước đó: shell không có quyền `pm disable` thành phần của gói; `appops RUN_ANY_IN_BACKGROUND`
   bị đặt lại khi khởi động; `am force-stop` chỉ giữ tới lần mở FPT Play kế.
-- Bản Play Store `net.fptplay.ottbox` (cùng phiên bản, khác chữ ký, không làm launcher) cũng được cài và xem được.
