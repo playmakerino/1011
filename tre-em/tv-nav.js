@@ -24,8 +24,8 @@
   var css = document.createElement('style');
   // A thin ring in the pages' ink colour, with a cream gap so it also shows around dark or pink buttons.
   css.textContent = '.tv-nav :focus{outline:3px solid #2b2b33 !important;outline-offset:3px !important}' +
-    '.tv-go{position:fixed;top:22px;z-index:50;padding:12px 20px;border-radius:99px;background:#fff;' +
-    'color:#3f3a5c;font:500 18px/1 "Space Grotesk",sans-serif;text-decoration:none;' +
+    '.tv-go{position:fixed;top:28px;z-index:50;padding:7px 13px;border-radius:99px;background:#fff;' +
+    'color:#3f3a5c;font:500 14px/1 "Space Grotesk",sans-serif;text-decoration:none;' +
     'box-shadow:0 2px 10px rgba(60,40,20,.12)}';
   document.head.appendChild(css);
 
