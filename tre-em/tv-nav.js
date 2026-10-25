@@ -21,8 +21,11 @@
   var tv = /TVApp\//.test(navigator.userAgent);
 
   var css = document.createElement('style');
-  // A thin ring in the pages' ink colour, with a cream gap so it also shows around dark or pink buttons.
-  css.textContent = '.tv-nav :focus{outline:3px solid #2b2b33 !important;outline-offset:3px !important}' +
+  // The focus ring is its own element (.tv-ring, below) on top of everything: an outline is painted with its
+  // element, so a neighbour drawn later or a higher layer covers it.
+  css.textContent = '.tv-nav :focus{outline:none !important}' +
+    '.tv-ring{position:fixed;z-index:2147483647;pointer-events:none;box-sizing:border-box;' +
+    'border:3px solid #2b2b33;display:none}' +
     '.tv-seg{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:50;display:flex;gap:2px;' +
     'padding:3px;border-radius:10px;background:rgba(63,58,92,.07);font:500 14px/1 "Space Grotesk",sans-serif}' +
     '.tv-seg>*{padding:7px 14px;border-radius:7px;color:#8a8399;text-decoration:none;white-space:nowrap}' +
@@ -50,6 +53,35 @@
   var FOCUSABLE = 'button, input, select, textarea, a[href], [tabindex]';
   var lastBase = null;   // last element focused outside any popup, to return to when a popup closes
   document.documentElement.classList.add('tv-nav');
+
+  // A thin ring in the pages' ink colour, 3px clear of the element so it also shows around dark or pink buttons.
+  // It follows the focused element every frame, since some move by themselves (the labels around the clock).
+  var ring = document.createElement('div');
+  ring.className = 'tv-ring';
+  document.body.appendChild(ring);
+  var GAP = 6;   // ring width + the clear space
+  var tracking = false;
+  function trackRing() {
+    var el = document.activeElement;
+    if (!el || el === document.body || el === document.documentElement) {
+      ring.style.display = 'none';
+      tracking = false;
+      return;
+    }
+    var r = el.getBoundingClientRect();
+    var rad = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0;
+    // A focused element that has just been hidden (a closed popup) has no box: no ring, but keep watching.
+    ring.style.display = r.width < 2 || r.height < 2 ? 'none' : 'block';
+    ring.style.left = (r.left - GAP) + 'px';
+    ring.style.top = (r.top - GAP) + 'px';
+    ring.style.width = (r.width + 2 * GAP) + 'px';
+    ring.style.height = (r.height + 2 * GAP) + 'px';
+    ring.style.borderRadius = (rad ? rad + GAP : 0) + 'px';
+    requestAnimationFrame(trackRing);
+  }
+  document.addEventListener('focusin', function () {
+    if (!tracking) { tracking = true; requestAnimationFrame(trackRing); }
+  });
 
   function shown(el) {
     if (el.disabled || el.getAttribute('tabindex') === '-1' || el.closest('[hidden]')) return false;
