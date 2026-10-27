@@ -170,7 +170,7 @@
       msg.innerHTML = '<div class="empty">Chưa có bài tập</div>';
       return;
     }
-    top.innerHTML = '<b>Bài tập về nhà</b>' + badge(d.at) + '<span>' + when(d.at) + '</span>';
+    top.innerHTML = '<b>Bài tập về nhà</b><span>Gửi vào ' + when(d.at) + '</span>';
     msg.textContent = d.text || '';
     msg.hidden = !d.text;
     view.classList.toggle('no-text', !d.text);
