@@ -683,15 +683,15 @@
     {emoji:'🎒', hour:7.75, days:[1,2,3,4,5]},                    // ba lô: T2-T6 7h45 sáng
     {emoji:'☕', hour:8.5,  days:[0]},                            // cà phê: Chủ nhật 8h30
     {emoji:'🔠', hour:8.5,  days:[6]},                            // chữ cái: thứ Bảy 8h30
-    {emoji:'🎨', hour:10,   days:[6], inner:true},                // vẽ: thứ Bảy 10h — vòng TRONG, tránh đè 22h
+    {emoji:'🎨', hour:10,   days:[6]},                             // vẽ: thứ Bảy 10h, vòng NGOÀI (vòng trong cùng góc là 😴 22h)
     {emoji:'🏀', hour:18,   days:[2]},                             // bóng rổ: thứ Ba 18h
     {emoji:'🩰', hour:18,   days:[5]},                             // múa: thứ Sáu 18h
     {emoji:'🔠', hour:18,   days:[3]},                             // chữ cái: thứ Tư 18h
     {emoji:'♟️', hour:18,   days:[0]},                             // cờ: Chủ nhật 18h
     {emoji:'🎹', hour:19.25, days:[4]},                           // piano: thứ Năm 19h15
-    {emoji:'✍️', hour:17,    days:[1,2,3,4,5]},                   // viết: T2-T6 17h
+    {emoji:'✍️', hour:17,    days:[1,2,3,4,5], inner:true},       // viết: T2-T6 17h, vòng TRONG
     {emoji:'🤸🏼', hour:20.25, days:[6,0]},                        // T7-CN 20h15
-    {emoji:'😴', hour:22},                                        // đi ngủ: mọi ngày
+    {emoji:'😴', hour:22,   inner:true},                          // đi ngủ: mọi ngày, vòng TRONG
   ];
   // Emoji hoạt động ở góc ô lịch theo THỨ — SUY THẲNG từ bảng trên, không có cờ khai báo riêng:
   //   nhãn chỉ diễn ra vào MỘT SỐ THỨ (có days) -> đánh dấu đúng các thứ đó (T7 -> ['🔠','🎨']);
