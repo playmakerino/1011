@@ -26,7 +26,7 @@
   /* ---------- Trang đăng (điện thoại) ---------- */
   .bar{position:sticky;top:0;z-index:5;height:52px;display:flex;align-items:center;gap:8px;padding:0 16px;background:transparent}
   body.scrolled .bar{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.07)}
-  .bar h1{margin:0;font-size:13px;line-height:28px;font-weight:500;letter-spacing:-.02em;flex:1}
+  .bar h1{margin:0;font-size:13px;line-height:28px;font-weight:500;letter-spacing:-.02em}
   .btn-header{height:28px;border-radius:9999px;padding:4px 12px;background:#fff;font-size:13px;font-weight:500;color:var(--text);text-decoration:none;display:inline-flex;align-items:center;
     box-shadow:0 0 0 1px rgba(0,0,0,.07),0 2px 20px rgba(0,0,0,.03),0 5px 20px rgba(0,0,0,.03),0 8px 60px rgba(0,0,0,.03)}
   /* Thanh lưu: chỉ hiện khi có thay đổi chưa lưu (contextual save bar). */
@@ -45,8 +45,7 @@
   .spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(16,16,16,.2);border-top-color:#101010;animation:spin .7s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   main.edit{max-width:1000px;margin:0 auto;padding:4px 16px 40px;display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
-  main.edit .meta{grid-column:1/-1}
-  @media (min-width:768px){ main.edit{grid-template-columns:1fr 1fr} }
+  @media (min-width:768px){ main.edit{grid-template-columns:2fr 1fr} }
   .card{background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px}
   .card h2{margin:0 0 12px;font-size:15px;line-height:22px;font-weight:500}
   .label{display:block;font-weight:500;margin-bottom:4px}
@@ -68,9 +67,6 @@
   .zone.filled:hover .x,.zone.filled:focus-within .x,.zone.filled .x:focus{display:grid}
   @media (hover:none){.zone.filled .x{display:grid}}
   .x:hover{background:#f7f7f7}
-  .meta{display:flex;align-items:center;gap:8px;color:var(--text2);min-height:20px}
-  .badge{height:20px;padding:1px 6px;border-radius:8px;font-size:12px;line-height:18px;font-weight:500;background:rgba(0,0,0,.05);color:#4a4a4a;white-space:nowrap}
-  .badge.ok{background:#b3f782;color:#214b03}
   /* Kết quả lưu: hiện đúng chỗ thanh lưu (save result toast). */
   .toast{position:fixed;left:50%;top:12px;z-index:11;transform:translate(-50%,-8px);opacity:0;pointer-events:none;min-height:36px;
     display:flex;align-items:center;gap:6px;padding:8px 16px 8px 12px;border-radius:9999px;background:#0a0a0a;color:#fff;font-weight:500;
@@ -85,7 +81,6 @@
   /* Dòng tiêu đề như thanh trên của Shopify (Analytics · Last refreshed): tên đậm vừa, ghi chú xám cùng cỡ. */
   .view .top{display:flex;align-items:center;gap:.7vw;font-size:1.8vw;line-height:1.5;letter-spacing:-.02em;color:var(--text2)}
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
-  .view .badge{height:auto;font-size:1.3vw;line-height:1.5;padding:.15vw .7vw;border-radius:.7vw}
   .view .body{flex:1;min-height:0;display:flex;justify-content:center;gap:2.4vw}
   /* Tin nhắn trong một khung rộng 2/3 màn hình, cao hết phần còn lại; dài quá thì cuộn trong khung. */
   .view .msg{flex:none;height:100%;width:66.667%;overflow:auto;background:#fff;border-radius:20px;box-shadow:var(--card);padding:2.4vw 2.2vw;
@@ -123,7 +118,6 @@
       </div>
       <input type="file" id="file" accept="image/*" hidden>
     </section>
-    <div class="meta" id="meta"></div>
   </main>
   <div class="toast" id="toast"></div>
 </div>
@@ -145,8 +139,6 @@
   const DAYS = ['Chủ nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'];
   const pad = n => String(n).padStart(2,'0');
   const when = t => { const d=new Date(t); return pad(d.getHours())+':'+pad(d.getMinutes())+' '+DAYS[d.getDay()]+' '+pad(d.getDate())+'/'+pad(d.getMonth()+1); };
-  const isToday = t => new Date(t).toDateString() === new Date().toDateString();
-  const badge = t => '<span class="badge'+(isToday(t)?' ok">Hôm nay':'">Bài cũ')+'</span>';
 
   let ref = null;
   if (typeof firebase !== 'undefined') {
@@ -208,7 +200,7 @@
   function refresh(){ $('savebar').classList.toggle('on', dirty()); }
   $('discard').addEventListener('click', () => { text.value = saved.text; img = saved.img; drawZone(); refresh(); });
   function meta(){
-    $('meta').innerHTML = saved.at ? badge(saved.at) + '<span>Đăng lúc ' + when(saved.at) + '</span>' : '<span>Chưa có bài nào.</span>';
+    $('meta').textContent = saved.at ? 'Gửi vào ' + when(saved.at) : 'Chưa có bài';
   }
 
   function drawZone(){
