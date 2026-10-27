@@ -59,10 +59,10 @@
   .zone:focus-visible{border-color:var(--focus)}
   .pill{height:28px;border-radius:9999px;padding:4px 12px 4px 8px;background:#ebebeb;font-weight:500;display:inline-flex;align-items:center;gap:4px}
   .zone .hint{color:var(--text2)}
-  .zone.filled{padding:12px;background:#f7f7f7;border-style:solid;border-color:transparent}
-  .zone.filled:hover{border-color:#8a8a8a;border-style:dashed}
+  /* Đã có ảnh: chỉ còn ảnh, không nền xám và không viền quanh; bấm vào ảnh để thay. */
+  .zone.filled{padding:0;border:0;background:none}
   .zone img{display:block;max-width:100%;max-height:320px;border-radius:6px;object-fit:contain}
-  .zone .x{position:absolute;top:18px;right:18px;width:28px;height:28px;border-radius:50%;background:#fff;display:none;place-items:center;color:#4a4a4a;
+  .zone .x{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:#fff;display:none;place-items:center;color:#4a4a4a;
     box-shadow:0 0 0 1px rgba(0,0,0,.07),0 2px 20px rgba(0,0,0,.03)}
   .zone.filled:hover .x,.zone.filled:focus-within .x,.zone.filled .x:focus{display:grid}
   @media (hover:none){.zone.filled .x{display:grid}}
