@@ -48,12 +48,17 @@
   main.edit{max-width:1000px;margin:0 auto;padding:0 16px 40px;display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
   @media (min-width:768px){ main.edit{grid-template-columns:1fr 1fr} }
   .card{background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px}
-  /* Hai thẻ vuông trên điện thoại, khổ A4 dọc trên máy tính (như khung trên tivi); ô nhập và ô ảnh lấp hết phần còn lại. */
-  main.edit .card{aspect-ratio:1;display:flex;flex-direction:column;min-width:0}
-  @media (min-width:768px){ main.edit .card{aspect-ratio:210/297} }
+  /* Điện thoại: thẻ tin nhắn vuông, thẻ ảnh cao theo ảnh. Máy tính: hai thẻ khổ A4 dọc như khung trên tivi.
+     Ô nhập và ô ảnh lấp hết phần còn lại của thẻ. */
+  main.edit .card{display:flex;flex-direction:column;min-width:0}
+  main.edit .card.text-card{aspect-ratio:1}
   main.edit textarea{flex:1;min-height:0;resize:none;overflow:auto;field-sizing:fixed}
-  main.edit .zone{flex:1;min-height:0;justify-content:center}
-  main.edit .zone.filled img{width:100%;height:100%;max-height:none;object-fit:contain;object-position:top}
+  main.edit .zone.filled img{width:100%;height:auto;max-height:none}
+  @media (min-width:768px){
+    main.edit .card,main.edit .card.text-card{aspect-ratio:210/297}
+    main.edit .zone{flex:1;min-height:0;justify-content:center}
+    main.edit .zone.filled img{height:100%;object-fit:contain;object-position:top}
+  }
   .card h2{margin:0 0 12px;font-size:13px;line-height:20px;font-weight:500;letter-spacing:-.02em}
   .label{display:block;font-weight:500;margin-bottom:4px}
   textarea{display:block;width:100%;min-height:140px;resize:vertical;border:0;outline:0;border-radius:12px;padding:6px 12px;
@@ -117,7 +122,7 @@
     <button class="ok" id="save" type="button">Lưu</button>
   </div>
   <main class="edit">
-    <section class="card">
+    <section class="card text-card">
       <h2>Tin nhắn của cô</h2>
       <textarea id="text" aria-label="Tin nhắn của cô" placeholder="Dán tin nhắn của cô vào đây"></textarea>
       <div class="help">Sửa thẳng tin nhắn cũ, lưu xong tivi đổi theo.</div>
