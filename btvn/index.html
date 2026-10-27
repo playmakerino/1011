@@ -12,28 +12,34 @@
      launcher 1011 TV) là trang xem, không sửa được. Chỉ giữ một bài: /btvn = {text, img, at}. Ảnh mới thay ảnh cũ,
      tin nhắn sửa thẳng. Giao diện theo D:\Bamboo\claude\guide\SHOPIFY-UI-GUIDE.md (Polaris). -->
 <style>
+  /* ---------- Chung ---------- */
   :root{
-    --text:#101010; --text2:#616161; --ph:#4a4a4a; --line:#f2f2f2; --focus:#5083f0;
+    --text:#101010; --text2:#616161; --ph:#4a4a4a; --focus:#5083f0;
     --ring:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.13);
     --ring-focus:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 0 0 1px #5083f0,0 0 0 3px rgba(53,115,246,.06),0 4px 20px 2px rgba(53,115,246,.06);
     --card:0 0 2px rgba(0,0,0,.24),0 2px 12px rgba(0,0,0,.02),0 4px 16px rgba(0,0,0,.02),0 4px 48px rgba(0,0,0,.02);
+    /* Máy tính và tivi: khoảng cách tới mép trên và mép dưới màn hình. */
+    --gap-y:40px;
+    /* Độ rộng nội dung trang đăng. Máy tính: hai thẻ A4 vừa chiều cao màn hình (lề trên 40px + thanh tiêu đề 52px,
+       lề dưới 40px; hai thẻ, khe 12px, lề hai bên 16px), tối đa 760px. */
+    --mw:1000px;
   }
+  @media (min-width:768px){ :root{--mw:min(760px, calc((100vh - 132px) * 420 / 297 + 44px))} }
   *{box-sizing:border-box}
   html,body{margin:0;background:#fff;color:var(--text)}
   body{font-family:Inter,system-ui,sans-serif;font-size:13px;line-height:20px;letter-spacing:-.01em}
   button{font-family:inherit;line-height:20px;letter-spacing:inherit;padding:0;border:0;cursor:pointer}
   [hidden]{display:none!important}
+  /* Chống xô lệch bố cục: nội dung ẩn (vẫn giữ chỗ) tới khi có dữ liệu đầu tiên và ảnh đã giải mã; xem ready(). */
+  body.loading main.edit,body.loading .bar .note,body.loading .view .stage{visibility:hidden}
 
-  /* ---------- Trang đăng (điện thoại) ---------- */
-  /* --mw: độ rộng nội dung. Máy tính: hai thẻ A4 vừa chiều cao màn hình (thanh trên 52px, lề dưới 24px; hai thẻ,
-     khe 12px, lề hai bên 16px), tối đa 760px (mỗi thẻ khoảng 358 × 506). */
-  :root{--mw:1000px}
-  @media (min-width:768px){ :root{--mw:min(760px, calc((100vh - 76px) * 420 / 297 + 44px))} }
-  /* Lề trái bằng lề của main.edit (rộng --mw, đặt giữa), để tiêu đề thẳng mép trái thẻ như trên tivi. */
-  .bar{position:sticky;top:0;z-index:5;height:52px;display:flex;align-items:center;gap:8px;padding:0 max(16px, calc((100% - var(--mw)) / 2 + 16px));background:transparent}
+  /* ---------- Trang đăng ---------- */
+  /* Thanh trên: lề trái bằng lề của main.edit (rộng --mw, đặt giữa), để tiêu đề thẳng mép trái thẻ như trên tivi. */
+  .bar{position:sticky;top:0;z-index:5;height:52px;display:flex;align-items:center;gap:8px;padding:0 max(16px, calc((100% - var(--mw)) / 2 + 16px))}
   body.scrolled .bar{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.07)}
   .bar h1{margin:0;font-size:13px;line-height:28px;font-weight:500;letter-spacing:-.02em}
   .bar .note{flex:1;min-width:0;color:var(--text2);letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
   /* Thanh lưu: chỉ hiện khi có thay đổi chưa lưu (contextual save bar). */
   .savebar{position:fixed;top:12px;left:50%;z-index:10;transform:translate(-50%,-8px);opacity:0;pointer-events:none;
     height:36px;display:flex;align-items:center;gap:4px;padding:4px 4px 4px 16px;border-radius:9999px;background:#0a0a0a;color:#fff;
@@ -49,39 +55,6 @@
   .savebar.busy .ok{pointer-events:none}
   .spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(16,16,16,.2);border-top-color:#101010;animation:spin .7s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
-  main.edit{max-width:var(--mw);margin:0 auto;padding:0 16px 24px;display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
-  @media (min-width:768px){ main.edit{grid-template-columns:1fr 1fr} }
-  .card{background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px}
-  /* Điện thoại: thẻ tin nhắn vuông, thẻ ảnh cao theo ảnh. Máy tính: hai thẻ khổ A4 dọc như khung trên tivi.
-     Ô nhập và ô ảnh lấp hết phần còn lại của thẻ. */
-  main.edit .card{display:flex;flex-direction:column;min-width:0}
-  main.edit .card.text-card{aspect-ratio:1}
-  main.edit textarea{flex:1;min-height:0;resize:none;overflow:auto;field-sizing:fixed}
-  main.edit .zone.filled img{width:100%;height:auto;max-height:none}
-  @media (min-width:768px){
-    main.edit .card,main.edit .card.text-card{aspect-ratio:210/297}
-    main.edit .zone{flex:1;min-height:0;justify-content:center}
-    main.edit .zone.filled img{height:100%;object-fit:contain;object-position:top}
-  }
-  .card h2{margin:0 0 12px;font-size:13px;line-height:20px;font-weight:500;letter-spacing:-.02em}
-  .label{display:block;font-weight:500;margin-bottom:4px}
-  textarea{display:block;width:100%;min-height:140px;resize:vertical;border:0;outline:0;border-radius:12px;padding:6px 12px;
-    font:inherit;font-size:13px;line-height:20px;letter-spacing:inherit;color:var(--text);box-shadow:var(--ring);field-sizing:content}
-  textarea::placeholder{color:var(--ph)}
-  textarea:focus{box-shadow:var(--ring-focus)}
-  .help{font-size:12px;line-height:18px;color:var(--ph);margin-top:4px}
-  .zone{position:relative;border:1px dashed #c0c0c0;border-radius:8px;background:#fff;padding:20px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;text-align:center;outline:0}
-  .zone:hover .pill,.zone:focus-visible .pill{background:#e3e3e3}
-  .zone:focus-visible{border-color:var(--focus)}
-  .pill{height:28px;border-radius:9999px;padding:4px 12px 4px 8px;background:#ebebeb;font-weight:500;display:inline-flex;align-items:center;gap:4px}
-  /* Đã có ảnh: chỉ còn ảnh, không nền xám và không viền quanh; bấm vào ảnh để thay. */
-  .zone.filled{padding:0;border:0;background:none}
-  .zone img{display:block;max-width:100%;max-height:320px;border-radius:6px;object-fit:contain}
-  .zone .x{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:#fff;display:none;place-items:center;color:#4a4a4a;
-    box-shadow:0 0 0 1px rgba(0,0,0,.07),0 2px 20px rgba(0,0,0,.03)}
-  .zone.filled:hover .x,.zone.filled:focus-within .x,.zone.filled .x:focus{display:grid}
-  @media (hover:none){.zone.filled .x{display:grid}}
-  .x:hover{background:#f7f7f7}
   /* Kết quả lưu: hiện đúng chỗ thanh lưu (save result toast). */
   .toast{position:fixed;left:50%;top:12px;z-index:11;transform:translate(-50%,-8px);opacity:0;pointer-events:none;min-height:36px;
     display:flex;align-items:center;gap:6px;padding:8px 16px 8px 12px;border-radius:9999px;background:#0a0a0a;color:#fff;font-weight:500;
@@ -90,19 +63,47 @@
   .toast.err{background:#8e0b21;border-radius:18px;padding-left:16px}
   .toast.err svg{display:none}
 
+  /* Hai thẻ. Điện thoại: một cột, thẻ tin nhắn vuông, thẻ ảnh cao theo ảnh. Máy tính: hai cột, hai thẻ khổ A4 dọc như
+     khung trên tivi. Ô nhập và ô ảnh lấp hết phần còn lại của thẻ. */
+  main.edit{max-width:var(--mw);margin:0 auto;padding:0 16px 24px;display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
+  .card{background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px;display:flex;flex-direction:column;min-width:0}
+  .card.text-card{aspect-ratio:1}
+  .card h2{margin:0 0 12px;font-size:13px;line-height:20px;font-weight:500;letter-spacing:-.02em}
+  .help{font-size:12px;line-height:18px;color:var(--ph);margin-top:4px}
+  textarea{display:block;width:100%;flex:1;min-height:0;resize:none;overflow:auto;border:0;outline:0;border-radius:12px;padding:6px 12px;
+    font:inherit;font-size:13px;line-height:20px;letter-spacing:inherit;color:var(--text);box-shadow:var(--ring)}
+  textarea::placeholder{color:var(--ph)}
+  textarea:focus{box-shadow:var(--ring-focus)}
+  /* Ô ảnh: chưa có ảnh là vùng nét đứt với nút "Thêm ảnh"; có ảnh thì chỉ còn ảnh, bấm vào ảnh để thay. */
+  .zone{position:relative;border:1px dashed #c0c0c0;border-radius:8px;padding:20px 12px;display:flex;flex-direction:column;align-items:center;cursor:pointer;outline:0}
+  .zone:hover .pill,.zone:focus-visible .pill{background:#e3e3e3}
+  .zone:focus-visible{border-color:var(--focus)}
+  .pill{height:28px;border-radius:9999px;padding:4px 12px 4px 8px;background:#ebebeb;font-weight:500;display:inline-flex;align-items:center;gap:4px}
+  .zone.filled{padding:0;border:0}
+  .zone img{display:block;width:100%;height:auto;border-radius:6px}
+  .zone .x{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:#fff;display:none;place-items:center;color:#4a4a4a;
+    box-shadow:0 0 0 1px rgba(0,0,0,.07),0 2px 20px rgba(0,0,0,.03)}
+  .zone .x:hover{background:#f7f7f7}
+  .zone.filled:hover .x,.zone.filled:focus-within .x{display:grid}
+  @media (hover:none){ .zone.filled .x{display:grid} }
+  @media (min-width:768px){
+    .bar{height:calc(52px + var(--gap-y));padding-top:var(--gap-y)}
+    main.edit{grid-template-columns:1fr 1fr;padding-bottom:var(--gap-y)}
+    .card,.card.text-card{aspect-ratio:210/297}
+    .zone{flex:1;min-height:0;justify-content:center}
+    .zone img{height:100%;object-fit:contain;object-position:top}
+  }
+
   /* ---------- Trang xem (tivi, ?tv) ---------- */
-  /* Chống xô lệch bố cục: nội dung ẩn (vẫn giữ chỗ) tới khi có dữ liệu đầu tiên và ảnh đã giải mã; xem ready(). */
-  body.loading main.edit,body.loading .bar .note,body.loading .view .stage{visibility:hidden}
   body.tv{height:100vh;overflow:hidden}
-  /* Lề an toàn của Android TV: 5% hai bên và dưới (tivi cắt bớt mép). Phía trên không thêm lề: thanh tiêu đề 52px như
-     trang đăng, đã đủ xa vùng bị cắt. */
-  .view{height:100vh;padding:0 5vw 5vh}
+  /* Hai bên: lề an toàn của Android TV, 5% (tivi cắt bớt mép). Trên và dưới: --gap-y như trang đăng trên máy tính. */
+  .view{height:100vh;padding:var(--gap-y) 5vw}
   /* Tiêu đề và khung A4 nằm trong một khối căn giữa; layout() đặt độ rộng, nên tiêu đề luôn thẳng mép trái khung. */
   .view .stage{height:100%;margin:0 auto;display:flex;flex-direction:column}
   /* Dòng tiêu đề như thanh trên của Shopify (Analytics · Last refreshed): tên đậm vừa, ghi chú xám cùng cỡ. */
   .view .top{flex:none;height:52px;display:flex;align-items:center;gap:6px;font-size:13px;line-height:28px;letter-spacing:-.02em;color:var(--text2);white-space:nowrap}
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
-  /* Khung khổ A4 dọc (layout() đặt độ rộng), cao hết phần còn lại: tin nhắn rồi ảnh bài mẫu ngay dưới, dài quá thì cuộn.
+  /* Khung khổ A4 dọc, cao hết phần còn lại: tin nhắn rồi ảnh bài mẫu ngay dưới, dài quá thì cuộn.
      Chữ 16px như _TitleText_ ở Shopify Analytics, cao dòng 24px cho đoạn nhiều dòng. */
   .view .msg{flex:1;min-height:0;overflow:auto;background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px;scrollbar-width:none}
   .view .msg::-webkit-scrollbar{display:none}
@@ -132,9 +133,7 @@
     </section>
     <section class="card">
       <h2>Ảnh bài mẫu</h2>
-      <div class="zone" id="zone" tabindex="0" role="button" aria-label="Chọn ảnh bài mẫu">
-        <span class="pill"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#101010" stroke-width="1.6" stroke-linecap="round"/></svg>Thêm ảnh</span>
-      </div>
+      <div class="zone" id="zone" tabindex="0" role="button" aria-label="Chọn ảnh bài mẫu"></div>
       <div class="help">Chọn hoặc dán một ảnh. Ảnh mới sẽ thay ảnh cũ.</div>
       <input type="file" id="file" accept="image/*" hidden>
     </section>
@@ -201,8 +200,8 @@
     const H = v.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 52;
     $('stage').style.width = Math.min(W, Math.round(H * 210 / 297)) + 'px';
   }
-  addEventListener('resize', () => { if (TV) layout(); });
   if (TV) {
+    addEventListener('resize', layout);
     // Lên/xuống trên remote cuộn tin nhắn dài.
     addEventListener('keydown', e => {
       const m = $('msg'), step = m.clientHeight * .6;
@@ -295,7 +294,8 @@
     // Ảnh không đổi thì không gửi lại.
     const p = img === saved.img ? ref.update({text: next.text, at: next.at}) : ref.set(next);
     // Lỗi của trang sau khi đã ghi xong không được báo thành "Lưu không được".
-    p.then(() => { saved = next; toast('Đã lưu'); try { meta(); } catch (e) { console.error(e); } }, e => toast(/permission/i.test(e && e.message) ? 'Firebase chưa cho ghi nhánh /btvn' : 'Lưu không được, thử lại', true))
+    p.then(() => { saved = next; toast('Đã lưu'); try { meta(); } catch (e) { console.error(e); } },
+           e => toast(/permission/i.test(e && e.message) ? 'Firebase chưa cho ghi nhánh /btvn' : 'Lưu không được, thử lại', true))
      .finally(() => { $('savebar').classList.remove('busy'); save.textContent = 'Lưu'; refresh(); });
   });
 
