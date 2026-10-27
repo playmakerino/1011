@@ -77,19 +77,19 @@
 
   /* ---------- Trang xem (tivi, ?tv) ---------- */
   body.tv{height:100vh;overflow:hidden}
-  .view{height:100vh;display:flex;flex-direction:column;padding:2.2vw 3vw;gap:1.6vw}
+  /* Cỡ chữ và khoảng cách như Shopify Analytics: chữ 13px/20px, lề 16px, các thẻ cách nhau 12px. */
   /* Dòng tiêu đề như thanh trên của Shopify (Analytics · Last refreshed): tên đậm vừa, ghi chú xám cùng cỡ. */
-  .view .top{display:flex;align-items:center;gap:.7vw;font-size:1.8vw;line-height:1.5;letter-spacing:-.02em;color:var(--text2)}
+  .view .top{flex:none;height:52px;display:flex;align-items:center;gap:6px;font-size:13px;line-height:28px;letter-spacing:-.02em;color:var(--text2)}
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
-  .view .body{flex:1;min-height:0;display:flex;justify-content:center;gap:2.4vw}
+  .view .body{flex:1;min-height:0;display:flex;justify-content:center;gap:12px}
   /* Tin nhắn trong một khung rộng 2/3 màn hình, cao hết phần còn lại; dài quá thì cuộn trong khung. */
-  .view .msg{flex:none;height:100%;width:66.667%;overflow:auto;background:#fff;border-radius:20px;box-shadow:var(--card);padding:2.4vw 2.2vw;
-    white-space:pre-wrap;word-wrap:break-word;font-size:1.6vw;line-height:1.5;font-weight:450;letter-spacing:-.01em;scrollbar-width:none}
+  .view .msg{flex:none;height:100%;width:66.667%;overflow:auto;background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px;
+    white-space:pre-wrap;word-wrap:break-word;font-size:13px;line-height:20px;letter-spacing:-.01em;scrollbar-width:none}
   .view .msg::-webkit-scrollbar{display:none}
   /* Ảnh rộng theo chính nó (không chiếm hết phần còn lại), để trang A4 và ảnh cùng nằm giữa màn hình. */
   .view .pic{flex:0 1 auto;min-width:0;height:100%;display:flex;align-items:flex-start}
   .view .pic img{display:block;max-width:100%;max-height:100%;object-fit:contain;border-radius:20px;box-shadow:var(--card)}
-  .view .empty{font-size:1.6vw;color:var(--text2)}
+  .view .empty{color:var(--text2)}
 </style>
 </head>
 <body>
