@@ -27,8 +27,6 @@
   .bar{position:sticky;top:0;z-index:5;height:52px;display:flex;align-items:center;gap:8px;padding:0 16px;background:transparent}
   body.scrolled .bar{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.07)}
   .bar h1{margin:0;font-size:13px;line-height:28px;font-weight:500;letter-spacing:-.02em}
-  .btn-header{height:28px;border-radius:9999px;padding:4px 12px;background:#fff;font-size:13px;font-weight:500;color:var(--text);text-decoration:none;display:inline-flex;align-items:center;
-    box-shadow:0 0 0 1px rgba(0,0,0,.07),0 2px 20px rgba(0,0,0,.03),0 5px 20px rgba(0,0,0,.03),0 8px 60px rgba(0,0,0,.03)}
   /* Thanh lưu: chỉ hiện khi có thay đổi chưa lưu (contextual save bar). */
   .savebar{position:fixed;top:12px;left:50%;z-index:10;transform:translate(-50%,-8px);opacity:0;pointer-events:none;
     height:36px;display:flex;align-items:center;gap:4px;padding:4px 4px 4px 16px;border-radius:9999px;background:#0a0a0a;color:#fff;
@@ -97,7 +95,6 @@
 <div id="edit" hidden>
   <header class="bar">
     <h1>Bài tập về nhà</h1>
-    <a class="btn-header" href="?tv" target="_blank">Xem như tivi</a>
   </header>
   <div class="savebar" id="savebar">
     <span>Chưa lưu thay đổi</span>
