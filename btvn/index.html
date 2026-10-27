@@ -20,11 +20,11 @@
     --card:0 0 2px rgba(0,0,0,.24),0 2px 12px rgba(0,0,0,.02),0 4px 16px rgba(0,0,0,.02),0 4px 48px rgba(0,0,0,.02);
     /* Máy tính và tivi: khoảng cách tới mép trên và mép dưới màn hình. */
     --gap-y:40px;
-    /* Độ rộng nội dung trang đăng. Máy tính: hai thẻ A4 vừa chiều cao màn hình (lề trên 34px + hàng tiêu đề 28px + 12px,
+    /* Độ rộng nội dung trang đăng. Máy tính: hai thẻ vuông vừa chiều cao màn hình (lề trên 34px + hàng tiêu đề 28px + 12px,
        lề dưới 40px; hai thẻ, khe 12px, lề hai bên 16px), tối đa 760px. */
     --mw:1000px;
   }
-  @media (min-width:768px){ :root{--mw:min(760px, calc((100vh - 114px) * 420 / 297 + 44px))} }
+  @media (min-width:768px){ :root{--mw:min(760px, calc((100vh - 114px) * 2 + 44px))} }
   *{box-sizing:border-box}
   html,body{margin:0;background:#fff;color:var(--text)}
   body{font-family:Inter,system-ui,sans-serif;font-size:13px;line-height:20px;letter-spacing:-.01em}
@@ -63,8 +63,8 @@
   .toast.err{background:#8e0b21;border-radius:18px;padding-left:16px}
   .toast.err svg{display:none}
 
-  /* Hai thẻ. Điện thoại: một cột, thẻ tin nhắn vuông, thẻ ảnh cao theo ảnh. Máy tính: hai cột, hai thẻ khổ A4 dọc như
-     khung trên tivi. Ô nhập và ô ảnh lấp hết phần còn lại của thẻ. */
+  /* Hai thẻ. Điện thoại: một cột, thẻ tin nhắn vuông, thẻ ảnh cao theo ảnh. Máy tính: hai cột, hai thẻ vuông.
+     Ô nhập và ô ảnh lấp hết phần còn lại của thẻ. */
   main.edit{max-width:var(--mw);margin:0 auto;padding:0 16px 24px;display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
   .card{background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px;display:flex;flex-direction:column;min-width:0}
   .card.text-card{aspect-ratio:1}
@@ -91,24 +91,24 @@
        thẻ; đáy thẻ cách mép dưới --gap-y. */
     .bar{height:calc(var(--gap-y) + 34px);padding-top:calc(var(--gap-y) - 6px);padding-bottom:12px}
     main.edit{grid-template-columns:1fr 1fr;padding-bottom:var(--gap-y)}
-    .card,.card.text-card{aspect-ratio:210/297}
+    .card{aspect-ratio:1}
     .zone{flex:1;min-height:0;justify-content:center}
     .zone img{height:100%;object-fit:contain;object-position:top}
   }
 
   /* ---------- Trang xem (tivi, ?tv) ---------- */
   body.tv{height:100vh;overflow:hidden}
-  /* Hai bên: lề an toàn của Android TV, 5% (tivi cắt bớt mép). Trên và dưới: như trang đăng trên máy tính, nét chữ
-     tiêu đề và đáy khung cùng cách mép --gap-y (trên bớt 6px trống sẵn trong hàng chữ 28px). */
-  .view{height:100vh;padding:calc(var(--gap-y) - 6px) 5vw var(--gap-y)}
-  /* Tiêu đề và khung A4 nằm trong một khối căn giữa; layout() đặt độ rộng, nên tiêu đề luôn thẳng mép trái khung. */
-  .view .stage{height:100%;margin:0 auto;display:flex;flex-direction:column}
+  /* Hai bên: lề an toàn của Android TV, 5% (tivi cắt bớt mép); trên và dưới --gap-y. Tiêu đề và khung nằm giữa màn hình
+     theo cả hai chiều. */
+  .view{height:100vh;padding:var(--gap-y) 5vw;display:flex;flex-direction:column;justify-content:center}
+  /* Tiêu đề và khung trong một khối; layout() đặt độ rộng, nên tiêu đề luôn thẳng mép trái khung. */
+  .view .stage{max-height:100%;min-height:0;margin:0 auto;display:flex;flex-direction:column}
   /* Dòng tiêu đề như thanh trên của Shopify (Analytics · Last refreshed): tên đậm vừa, ghi chú xám cùng cỡ. */
   .view .top{flex:none;height:40px;padding-bottom:12px;display:flex;align-items:center;gap:6px;font-size:13px;line-height:28px;letter-spacing:-.02em;color:var(--text2);white-space:nowrap}
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
-  /* Khung khổ A4 dọc, cao hết phần còn lại: tin nhắn rồi ảnh bài mẫu ngay dưới, dài quá thì cuộn.
+  /* Khung cao theo nội dung (tin nhắn rồi ảnh bài mẫu ngay dưới); cao quá màn hình thì dừng ở đó và cuộn.
      Chữ 16px như _TitleText_ ở Shopify Analytics, cao dòng 24px cho đoạn nhiều dòng. */
-  .view .msg{flex:1;min-height:0;overflow:auto;background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px;scrollbar-width:none}
+  .view .msg{flex:0 1 auto;min-height:0;overflow:auto;background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px;scrollbar-width:none}
   .view .msg::-webkit-scrollbar{display:none}
   .view .txt{white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:24px;letter-spacing:-.13px}
   .view .msg img{display:block;width:100%;height:auto;border-radius:8px}
@@ -196,7 +196,7 @@
     $('msg').scrollTop = 0;
     layout();
   }
-  // Khung khổ A4 dọc (210 × 297) cao hết phần dưới thanh tiêu đề; khối chung rộng bằng khung, margin auto đặt nó giữa màn hình.
+  // Độ rộng khung: bằng khổ A4 dọc (210 × 297) của phần cao tối đa dưới hàng tiêu đề; chiều cao thì theo nội dung.
   function layout(){
     const v = $('view'), cs = getComputedStyle(v);
     const W = v.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
