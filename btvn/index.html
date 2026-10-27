@@ -89,7 +89,7 @@
   .view .top{flex:none;height:52px;display:flex;align-items:center;gap:6px;font-size:13px;line-height:28px;letter-spacing:-.02em;color:var(--text2);white-space:nowrap}
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
   .view .body{flex:1;min-height:0;display:flex;gap:12px}
-  /* Tin nhắn rộng 2/3 phần trong lề, cao hết phần còn lại; dài quá thì cuộn trong khung. Chữ 16px như _TitleText_ ở Shopify Analytics, cao dòng 24px cho đoạn nhiều dòng. */
+  /* Tin nhắn khổ A4 dọc (layout() đặt độ rộng), cao hết phần còn lại; dài quá thì cuộn trong khung. Chữ 16px như _TitleText_ ở Shopify Analytics, cao dòng 24px cho đoạn nhiều dòng. */
   .view .msg{flex:none;height:100%;overflow:auto;background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px;
     white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:24px;letter-spacing:-.13px;scrollbar-width:none}
   .view .msg::-webkit-scrollbar{display:none}
@@ -180,14 +180,14 @@
     msg.scrollTop = 0;
     layout();
   }
-  // Độ rộng tính bằng JavaScript: tin nhắn 2/3 phần trong lề; ảnh vừa phần còn lại theo đúng tỷ lệ của nó;
+  // Độ rộng tính bằng JavaScript: tin nhắn khổ A4 dọc (210 × 297) cao hết phần còn lại; ảnh vừa phần còn lại theo đúng tỷ lệ của nó;
   // khối chung rộng đúng bằng tổng, nên margin auto đặt nó giữa màn hình.
   function layout(){
     const v = $('view'), cs = getComputedStyle(v), msg = $('msg'), im = $('picImg');
     const W = v.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     const H = v.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 52;
     const hasT = !msg.hidden, hasI = !$('pic').hidden && im.naturalWidth > 0;
-    const mw = hasT ? Math.round(W * 2 / 3) : 0;
+    const mw = hasT ? Math.min(W, Math.round(H * 210 / 297)) : 0;   // khung tin nhắn khổ A4 dọc
     let pw = 0;
     if (hasI) {
       const r = im.naturalWidth / im.naturalHeight;
