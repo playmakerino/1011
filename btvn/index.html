@@ -98,11 +98,12 @@
 
   /* ---------- Trang xem (tivi, ?tv) ---------- */
   body.tv{height:100vh;overflow:hidden}
-  /* Hai bên: lề an toàn của Android TV, 5% (tivi cắt bớt mép); trên và dưới --gap-y. Tiêu đề và khung nằm giữa màn hình
-     theo cả hai chiều. */
-  .view{height:100vh;padding:var(--gap-y) 5vw;display:flex;flex-direction:column;justify-content:center}
-  /* Tiêu đề và khung trong một khối; layout() đặt độ rộng, nên tiêu đề luôn thẳng mép trái khung. */
-  .view .stage{max-height:100%;min-height:0;margin:0 auto;display:flex;flex-direction:column}
+  /* Hai bên: lề an toàn của Android TV, 5% (tivi cắt bớt mép). Trên và dưới: --gap-y cộng hàng tiêu đề 40px, bằng nhau
+     để khung nằm đúng giữa màn hình theo cả hai chiều. */
+  .view{height:100vh;padding:calc(var(--gap-y) + 40px) 5vw;display:flex;flex-direction:column;justify-content:center}
+  /* Khối chỉ chứa khung; layout() đặt độ rộng. Tiêu đề đặt ngay trên khung, thẳng mép trái, không làm lệch khung. */
+  .view .stage{position:relative;max-height:100%;min-height:0;margin:0 auto;display:flex;flex-direction:column}
+  .view .stage .top{position:absolute;left:0;bottom:100%}
   /* Dòng tiêu đề như thanh trên của Shopify (Analytics · Last refreshed): tên đậm vừa, ghi chú xám cùng cỡ. */
   .view .top{flex:none;height:40px;padding-bottom:12px;display:flex;align-items:center;gap:6px;font-size:13px;line-height:28px;letter-spacing:-.02em;color:var(--text2);white-space:nowrap}
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
@@ -196,11 +197,11 @@
     $('msg').scrollTop = 0;
     layout();
   }
-  // Độ rộng khung: bằng khổ A4 dọc (210 × 297) của phần cao tối đa dưới hàng tiêu đề; chiều cao thì theo nội dung.
+  // Độ rộng khung: bằng khổ A4 dọc (210 × 297) của chiều cao tối đa; chiều cao thì theo nội dung.
   function layout(){
     const v = $('view'), cs = getComputedStyle(v);
     const W = v.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    const H = v.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 40;   // hàng tiêu đề .top
+    const H = v.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
     $('stage').style.width = Math.min(W, Math.round(H * 210 / 297)) + 'px';
   }
   if (TV) {
