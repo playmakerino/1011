@@ -20,11 +20,11 @@
     --card:0 0 2px rgba(0,0,0,.24),0 2px 12px rgba(0,0,0,.02),0 4px 16px rgba(0,0,0,.02),0 4px 48px rgba(0,0,0,.02);
     /* Máy tính và tivi: khoảng cách tới mép trên và mép dưới màn hình. */
     --gap-y:40px;
-    /* Độ rộng nội dung trang đăng. Máy tính: hai thẻ A4 vừa chiều cao màn hình (lề trên 40px + hàng tiêu đề 28px + 12px,
+    /* Độ rộng nội dung trang đăng. Máy tính: hai thẻ A4 vừa chiều cao màn hình (lề trên 34px + hàng tiêu đề 28px + 12px,
        lề dưới 40px; hai thẻ, khe 12px, lề hai bên 16px), tối đa 760px. */
     --mw:1000px;
   }
-  @media (min-width:768px){ :root{--mw:min(760px, calc((100vh - 120px) * 420 / 297 + 44px))} }
+  @media (min-width:768px){ :root{--mw:min(760px, calc((100vh - 114px) * 420 / 297 + 44px))} }
   *{box-sizing:border-box}
   html,body{margin:0;background:#fff;color:var(--text)}
   body{font-family:Inter,system-ui,sans-serif;font-size:13px;line-height:20px;letter-spacing:-.01em}
@@ -87,8 +87,9 @@
   .zone.filled:hover .x,.zone.filled:focus-within .x{display:grid}
   @media (hover:none){ .zone.filled .x{display:grid} }
   @media (min-width:768px){
-    /* Chữ tiêu đề (hàng 28px) cách mép trên --gap-y, rồi 12px tới thẻ; đáy thẻ cách mép dưới --gap-y. */
-    .bar{height:calc(var(--gap-y) + 40px);padding-top:var(--gap-y);padding-bottom:12px}
+    /* Nét chữ tiêu đề cách mép trên --gap-y (hàng 28px có 6px trống trên chữ 13px, nên lề trên bớt 6px), rồi 12px tới
+       thẻ; đáy thẻ cách mép dưới --gap-y. */
+    .bar{height:calc(var(--gap-y) + 34px);padding-top:calc(var(--gap-y) - 6px);padding-bottom:12px}
     main.edit{grid-template-columns:1fr 1fr;padding-bottom:var(--gap-y)}
     .card,.card.text-card{aspect-ratio:210/297}
     .zone{flex:1;min-height:0;justify-content:center}
@@ -97,8 +98,9 @@
 
   /* ---------- Trang xem (tivi, ?tv) ---------- */
   body.tv{height:100vh;overflow:hidden}
-  /* Hai bên: lề an toàn của Android TV, 5% (tivi cắt bớt mép). Trên và dưới: --gap-y như trang đăng trên máy tính. */
-  .view{height:100vh;padding:var(--gap-y) 5vw}
+  /* Hai bên: lề an toàn của Android TV, 5% (tivi cắt bớt mép). Trên và dưới: như trang đăng trên máy tính, nét chữ
+     tiêu đề và đáy khung cùng cách mép --gap-y (trên bớt 6px trống sẵn trong hàng chữ 28px). */
+  .view{height:100vh;padding:calc(var(--gap-y) - 6px) 5vw var(--gap-y)}
   /* Tiêu đề và khung A4 nằm trong một khối căn giữa; layout() đặt độ rộng, nên tiêu đề luôn thẳng mép trái khung. */
   .view .stage{height:100%;margin:0 auto;display:flex;flex-direction:column}
   /* Dòng tiêu đề như thanh trên của Shopify (Analytics · Last refreshed): tên đậm vừa, ghi chú xám cùng cỡ. */
