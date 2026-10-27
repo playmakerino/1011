@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bài tập về nhà</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap" rel="stylesheet">
+<!-- Một trang cho cả hai việc: mở bình thường (điện thoại của bố mẹ) là trang đăng; mở với ?tv (ô "Bài tập" trên
+     launcher 1011 TV) là trang xem, không sửa được. Chỉ giữ một bài: /btvn = {text, img, at}. Ảnh mới thay ảnh cũ,
+     tin nhắn sửa thẳng. Giao diện theo D:\Bamboo\claude\guide\SHOPIFY-UI-GUIDE.md (Polaris). -->
+<style>
+  :root{
+    --text:#101010; --text2:#616161; --ph:#4a4a4a; --line:#f2f2f2; --focus:#5083f0;
+    --ring:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.13);
+    --ring-focus:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 0 0 1px #5083f0,0 0 0 3px rgba(53,115,246,.06),0 4px 20px 2px rgba(53,115,246,.06);
+    --card:0 0 2px rgba(0,0,0,.24),0 2px 12px rgba(0,0,0,.02),0 4px 16px rgba(0,0,0,.02),0 4px 48px rgba(0,0,0,.02);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:#fff;color:var(--text)}
+  body{font-family:Inter,system-ui,sans-serif;font-size:13px;line-height:20px;letter-spacing:-.01em}
+  button{font-family:inherit;line-height:20px;letter-spacing:inherit;padding:0;border:0;cursor:pointer}
+  [hidden]{display:none!important}
+
+  /* ---------- Trang đăng (điện thoại) ---------- */
+  .bar{position:sticky;top:0;z-index:5;height:52px;display:flex;align-items:center;gap:8px;padding:0 16px;background:transparent}
+  body.scrolled .bar{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.07)}
+  .bar h1{margin:0;font-size:13px;line-height:28px;font-weight:500;letter-spacing:-.02em;flex:1}
+  .btn-header{height:28px;border-radius:9999px;padding:4px 12px;background:#fff;font-size:13px;font-weight:500;color:var(--text);text-decoration:none;display:inline-flex;align-items:center;
+    box-shadow:0 0 0 1px rgba(0,0,0,.07),0 2px 20px rgba(0,0,0,.03),0 5px 20px rgba(0,0,0,.03),0 8px 60px rgba(0,0,0,.03)}
+  /* Thanh lưu: chỉ hiện khi có thay đổi chưa lưu (contextual save bar). */
+  .savebar{position:fixed;top:12px;left:50%;z-index:10;transform:translate(-50%,-8px);opacity:0;pointer-events:none;
+    height:36px;display:flex;align-items:center;gap:4px;padding:4px 4px 4px 16px;border-radius:9999px;background:#0a0a0a;color:#fff;
+    font-weight:450;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:opacity .2s,transform .2s}
+  .savebar.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  .savebar span{margin-right:8px}
+  .savebar button{height:28px;border-radius:9999px;padding:4px 12px;font-size:13px}
+  .savebar .discard{background:#303030;color:#fff;font-weight:600}
+  .savebar .discard:hover{background:#404040}
+  .savebar .ok{background:#fff;color:#101010;font-weight:500;min-width:52px;display:grid;place-items:center}
+  .savebar .ok:hover{background:#ebebeb}
+  .savebar.busy .discard{background:#202020;color:rgba(255,255,255,.3);pointer-events:none}
+  .savebar.busy .ok{pointer-events:none}
+  .spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(16,16,16,.2);border-top-color:#101010;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  main.edit{max-width:1000px;margin:0 auto;padding:4px 16px 40px;display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
+  main.edit .meta{grid-column:1/-1}
+  @media (min-width:768px){ main.edit{grid-template-columns:1fr 1fr} }
+  .card{background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px}
+  .card h2{margin:0 0 12px;font-size:15px;line-height:22px;font-weight:500}
+  .label{display:block;font-weight:500;margin-bottom:4px}
+  textarea{display:block;width:100%;min-height:140px;resize:vertical;border:0;outline:0;border-radius:12px;padding:6px 12px;
+    font:inherit;font-size:13px;line-height:20px;letter-spacing:inherit;color:var(--text);box-shadow:var(--ring);field-sizing:content}
+  textarea::placeholder{color:var(--ph)}
+  textarea:focus{box-shadow:var(--ring-focus)}
+  .help{font-size:12px;line-height:18px;color:var(--ph);margin-top:4px}
+  .zone{position:relative;border:1px dashed #c0c0c0;border-radius:8px;background:#fff;padding:20px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;text-align:center;outline:0}
+  .zone:hover .pill,.zone:focus-visible .pill{background:#e3e3e3}
+  .zone:focus-visible{border-color:var(--focus)}
+  .pill{height:28px;border-radius:9999px;padding:4px 12px 4px 8px;background:#ebebeb;font-weight:500;display:inline-flex;align-items:center;gap:4px}
+  .zone .hint{color:var(--text2)}
+  .zone.filled{padding:12px;background:#f7f7f7;border-style:solid;border-color:transparent}
+  .zone.filled:hover{border-color:#8a8a8a;border-style:dashed}
+  .zone img{display:block;max-width:100%;max-height:320px;border-radius:6px;object-fit:contain}
+  .zone .x{position:absolute;top:18px;right:18px;width:28px;height:28px;border-radius:50%;background:#fff;display:none;place-items:center;color:#4a4a4a;
+    box-shadow:0 0 0 1px rgba(0,0,0,.07),0 2px 20px rgba(0,0,0,.03)}
+  .zone.filled:hover .x,.zone.filled:focus-within .x,.zone.filled .x:focus{display:grid}
+  @media (hover:none){.zone.filled .x{display:grid}}
+  .x:hover{background:#f7f7f7}
+  .meta{display:flex;align-items:center;gap:8px;color:var(--text2);min-height:20px}
+  .badge{height:20px;padding:1px 6px;border-radius:8px;font-size:12px;line-height:18px;font-weight:500;background:rgba(0,0,0,.05);color:#4a4a4a;white-space:nowrap}
+  .badge.ok{background:#b3f782;color:#214b03}
+  /* Kết quả lưu: hiện đúng chỗ thanh lưu (save result toast). */
+  .toast{position:fixed;left:50%;top:12px;z-index:11;transform:translate(-50%,-8px);opacity:0;pointer-events:none;min-height:36px;
+    display:flex;align-items:center;gap:6px;padding:8px 16px 8px 12px;border-radius:9999px;background:#0a0a0a;color:#fff;font-weight:500;
+    box-shadow:0 8px 24px rgba(0,0,0,.2);transition:opacity .2s,transform .2s;max-width:calc(100% - 32px)}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+  .toast.err{background:#8e0b21;border-radius:18px;padding-left:16px}
+  .toast.err svg{display:none}
+
+  /* ---------- Trang xem (tivi, ?tv) ---------- */
+  body.tv{height:100vh;overflow:hidden}
+  .view{height:100vh;display:flex;flex-direction:column;padding:2.2vw 3vw;gap:1.6vw}
+  .view .top{display:flex;align-items:center;gap:1vw;font-size:1.5vw;line-height:1.4;color:var(--text2)}
+  .view .top b{color:var(--text);font-weight:600;font-size:1.9vw}
+  .view .badge{height:auto;font-size:1.3vw;line-height:1.5;padding:.15vw .7vw;border-radius:.7vw}
+  .view .body{flex:1;min-height:0;display:flex;gap:2.4vw}
+  .view .msg{flex:1;min-width:0;overflow:auto;white-space:pre-wrap;word-wrap:break-word;font-size:2.5vw;line-height:1.5;font-weight:450;letter-spacing:-.01em;scrollbar-width:none}
+  .view .msg::-webkit-scrollbar{display:none}
+  .view .pic{flex:0 1 auto;max-width:58%;min-width:0;display:flex;align-items:flex-start}
+  .view .pic img{display:block;max-width:100%;max-height:100%;object-fit:contain;border-radius:20px;box-shadow:var(--card)}
+  .view.no-text .pic{max-width:100%;flex:1;justify-content:center}
+  .view .empty{margin:auto;font-size:2.4vw;color:var(--text2)}
+</style>
+</head>
+<body>
+
+<div id="edit" hidden>
+  <header class="bar">
+    <h1>Bài tập về nhà</h1>
+    <a class="btn-header" href="?tv" target="_blank">Xem như tivi</a>
+  </header>
+  <div class="savebar" id="savebar">
+    <span>Chưa lưu thay đổi</span>
+    <button class="discard" id="discard" type="button">Huỷ</button>
+    <button class="ok" id="save" type="button">Lưu</button>
+  </div>
+  <main class="edit">
+    <section class="card">
+      <h2>Tin nhắn của cô</h2>
+      <textarea id="text" aria-label="Tin nhắn của cô" placeholder="Dán tin nhắn của cô vào đây"></textarea>
+      <div class="help">Sửa thẳng tin nhắn cũ, lưu xong tivi đổi theo.</div>
+    </section>
+    <section class="card">
+      <h2>Ảnh bài mẫu</h2>
+      <div class="zone" id="zone" tabindex="0" role="button" aria-label="Chọn ảnh bài mẫu">
+        <span class="pill"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#101010" stroke-width="1.6" stroke-linecap="round"/></svg>Thêm ảnh</span>
+        <span class="hint">Chọn hoặc dán một ảnh. Ảnh mới sẽ thay ảnh cũ.</span>
+      </div>
+      <input type="file" id="file" accept="image/*" hidden>
+    </section>
+    <div class="meta" id="meta"></div>
+  </main>
+  <div class="toast" id="toast"></div>
+</div>
+
+<div class="view" id="view" hidden>
+  <div class="top" id="top"></div>
+  <div class="body">
+    <div class="msg" id="msg" tabindex="0"></div>
+    <div class="pic" id="pic" hidden><img id="picImg" alt=""></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-database-compat.js"></script>
+<script>
+(function(){
+  const TV = new URLSearchParams(location.search).has('tv');
+  const $ = id => document.getElementById(id);
+  const DAYS = ['Chủ nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'];
+  const pad = n => String(n).padStart(2,'0');
+  const when = t => { const d=new Date(t); return pad(d.getHours())+':'+pad(d.getMinutes())+' '+DAYS[d.getDay()]+' '+pad(d.getDate())+'/'+pad(d.getMonth()+1); };
+  const isToday = t => new Date(t).toDateString() === new Date().toDateString();
+  const badge = t => '<span class="badge'+(isToday(t)?' ok">Hôm nay':'">Bài cũ')+'</span>';
+
+  let ref = null;
+  if (typeof firebase !== 'undefined') {
+    firebase.initializeApp({
+      apiKey: "AIzaSyCQnlQxrXyceuYHCNnyGIEAyU_KyBQUAXs",
+      authDomain: "a2-1011-thoi-gian.firebaseapp.com",
+      databaseURL: "https://a2-1011-thoi-gian-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "a2-1011-thoi-gian",
+      storageBucket: "a2-1011-thoi-gian.firebasestorage.app"
+    });
+    ref = firebase.database().ref('btvn');
+  }
+
+  if (TV) { document.body.classList.add('tv'); $('view').hidden = false; }
+  else { $('edit').hidden = false; }
+
+  /* ---------- Trang xem ---------- */
+  function renderView(d){
+    const top = $('top'), msg = $('msg'), pic = $('pic'), view = $('view');
+    if (!d || (!d.text && !d.img)) {
+      top.innerHTML = ''; pic.hidden = true;
+      msg.innerHTML = '<div class="empty">Chưa có bài tập</div>';
+      return;
+    }
+    top.innerHTML = '<b>Bài tập về nhà</b>' + badge(d.at) + '<span>' + when(d.at) + '</span>';
+    msg.textContent = d.text || '';
+    msg.hidden = !d.text;
+    view.classList.toggle('no-text', !d.text);
+    if (d.img) { $('picImg').src = d.img; pic.hidden = false; } else { pic.hidden = true; $('picImg').removeAttribute('src'); }
+    msg.scrollTop = 0;
+  }
+  if (TV) {
+    // Lên/xuống trên remote cuộn tin nhắn dài.
+    addEventListener('keydown', e => {
+      const m = $('msg'), step = m.clientHeight * .6;
+      if (e.key === 'ArrowDown') { m.scrollBy({top: step, behavior:'smooth'}); e.preventDefault(); }
+      if (e.key === 'ArrowUp') { m.scrollBy({top: -step, behavior:'smooth'}); e.preventDefault(); }
+    });
+    if (ref) ref.on('value', s => renderView(s.val()), () => renderView(null));
+    else renderView(null);
+    return;
+  }
+
+  /* ---------- Trang đăng ---------- */
+  const text = $('text'), zone = $('zone'), file = $('file'), save = $('save');
+  let saved = {text:'', img:'', at:0};   // bản đang có trên Firebase
+  let img = '';                          // ảnh đang hiển thị trong ô (data URL)
+
+  addEventListener('scroll', () => document.body.classList.toggle('scrolled', scrollY > 0), {passive:true});
+
+  let toastTimer;
+  function toast(msg, err){
+    const t = $('toast');
+    t.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="8" fill="#36b37e"/><path d="M5.5 9.2l2.3 2.3 4.7-4.8" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    t.append(msg); t.classList.toggle('err', !!err); t.classList.add('on');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), err ? 6000 : 4000);
+  }
+  function dirty(){ return text.value !== saved.text || img !== saved.img; }
+  function refresh(){ $('savebar').classList.toggle('on', dirty()); }
+  $('discard').addEventListener('click', () => { text.value = saved.text; img = saved.img; drawZone(); refresh(); });
+  function meta(){
+    $('meta').innerHTML = saved.at ? badge(saved.at) + '<span>Đăng lúc ' + when(saved.at) + '</span>' : '<span>Chưa có bài nào.</span>';
+  }
+
+  function drawZone(){
+    zone.classList.toggle('filled', !!img);
+    if (img) {
+      zone.innerHTML = '<img alt="Ảnh bài mẫu"><button class="x" type="button" aria-label="Bỏ ảnh">'
+        + '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>';
+      zone.querySelector('img').src = img;
+      const x = zone.querySelector('.x');
+      x.addEventListener('click', e => { e.stopPropagation(); img = ''; drawZone(); refresh(); });
+      x.addEventListener('keydown', e => e.stopPropagation());
+    } else {
+      zone.innerHTML = '<span class="pill"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#101010" stroke-width="1.6" stroke-linecap="round"/></svg>Thêm ảnh</span>'
+        + '<span class="hint">Chọn hoặc dán một ảnh. Ảnh mới sẽ thay ảnh cũ.</span>';
+    }
+  }
+
+  // Thu nhỏ ảnh: cạnh dài 1600, JPEG 0.82 (khoảng 200 đến 400 kB), đủ nét trên tivi 1080p.
+  function shrink(f){
+    return new Promise((ok, bad) => {
+      const u = URL.createObjectURL(f), im = new Image();
+      im.onload = () => {
+        const k = Math.min(1, 1600 / Math.max(im.naturalWidth, im.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+        const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+        g.drawImage(im, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(u); ok(c.toDataURL('image/jpeg', .82));
+      };
+      im.onerror = () => { URL.revokeObjectURL(u); bad(); };
+      im.src = u;
+    });
+  }
+  async function take(f){
+    if (!f || !/^image\//.test(f.type)) return;
+    try { img = await shrink(f); drawZone(); refresh(); }
+    catch(e){ toast('Không đọc được ảnh này', true); }
+  }
+
+  zone.addEventListener('click', () => file.click());
+  zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); file.click(); } });
+  file.addEventListener('change', () => { take(file.files[0]); file.value = ''; });
+  zone.addEventListener('dragover', e => e.preventDefault());
+  zone.addEventListener('drop', e => { e.preventDefault(); take(e.dataTransfer.files[0]); });
+  addEventListener('paste', e => {
+    const it = [...(e.clipboardData ? e.clipboardData.items : [])].find(i => i.type.startsWith('image/'));
+    if (it) { e.preventDefault(); take(it.getAsFile()); }
+  });
+  text.addEventListener('input', refresh);
+  addEventListener('beforeunload', e => { if (dirty()) e.preventDefault(); });
+
+  save.addEventListener('click', () => {
+    if (!ref) { toast('Không kết nối được Firebase', true); return; }
+    const next = {text: text.value, img, at: Date.now()};
+    $('savebar').classList.add('busy'); save.innerHTML = '<span class="spin"></span>';
+    // Ảnh không đổi thì không gửi lại.
+    const p = img === saved.img ? ref.update({text: next.text, at: next.at}) : ref.set(next);
+    p.then(() => { saved = next; meta(); toast('Đã lưu'); })
+     .catch(e => toast(/permission/i.test(e && e.message) ? 'Firebase chưa cho ghi nhánh /btvn' : 'Lưu không được, thử lại', true))
+     .finally(() => { $('savebar').classList.remove('busy'); save.textContent = 'Lưu'; refresh(); });
+  });
+
+  drawZone(); meta();
+  if (ref) ref.on('value', s => {
+    const d = s.val() || {};
+    const wasDirty = dirty();
+    saved = {text: d.text || '', img: d.img || '', at: d.at || 0};
+    // Đang sửa dở thì không ghi đè ô nhập.
+    if (!wasDirty) { text.value = saved.text; img = saved.img; drawZone(); }
+    meta(); refresh();
+  }, () => toast('Firebase chưa cho đọc nhánh /btvn', true));
+})();
+</script>
+</body>
+</html>
