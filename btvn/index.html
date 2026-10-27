@@ -74,7 +74,6 @@
   .zone:hover .pill,.zone:focus-visible .pill{background:#e3e3e3}
   .zone:focus-visible{border-color:var(--focus)}
   .pill{height:28px;border-radius:9999px;padding:4px 12px 4px 8px;background:#ebebeb;font-weight:500;display:inline-flex;align-items:center;gap:4px}
-  .zone .hint{color:var(--text2)}
   /* Đã có ảnh: chỉ còn ảnh, không nền xám và không viền quanh; bấm vào ảnh để thay. */
   .zone.filled{padding:0;border:0;background:none}
   .zone img{display:block;max-width:100%;max-height:320px;border-radius:6px;object-fit:contain}
@@ -135,8 +134,8 @@
       <h2>Ảnh bài mẫu</h2>
       <div class="zone" id="zone" tabindex="0" role="button" aria-label="Chọn ảnh bài mẫu">
         <span class="pill"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#101010" stroke-width="1.6" stroke-linecap="round"/></svg>Thêm ảnh</span>
-        <span class="hint">Chọn hoặc dán một ảnh. Ảnh mới sẽ thay ảnh cũ.</span>
       </div>
+      <div class="help">Chọn hoặc dán một ảnh. Ảnh mới sẽ thay ảnh cũ.</div>
       <input type="file" id="file" accept="image/*" hidden>
     </section>
   </main>
@@ -247,8 +246,7 @@
       x.addEventListener('click', e => { e.stopPropagation(); img = ''; drawZone(); refresh(); });
       x.addEventListener('keydown', e => e.stopPropagation());
     } else {
-      zone.innerHTML = '<span class="pill"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#101010" stroke-width="1.6" stroke-linecap="round"/></svg>Thêm ảnh</span>'
-        + '<span class="hint">Chọn hoặc dán một ảnh. Ảnh mới sẽ thay ảnh cũ.</span>';
+      zone.innerHTML = '<span class="pill"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#101010" stroke-width="1.6" stroke-linecap="round"/></svg>Thêm ảnh</span>';
     }
   }
 
