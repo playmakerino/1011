@@ -53,13 +53,16 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final String label;
         final ComponentName component;
         final String pkg;
+        /** What LaunchCounts counts this tile's opens under (LaunchCounts.key). */
+        final String countKey;
         final Drawable banner;
         final Drawable icon;
 
-        Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
+        Entry(String label, ComponentName component, Drawable banner, Drawable icon, String self) {
             this.label = label;
             this.component = component;
             this.pkg = component.getPackageName();
+            this.countKey = LaunchCounts.key(self, pkg, component.getClassName());
             this.banner = banner;
             this.icon = icon;
         }
@@ -185,13 +188,13 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             Drawable banner = loadBanner(pm, ri);
             // The icon is only drawn when there is no banner, so a tile with a banner skips loading it.
             Drawable icon = banner == null ? ri.loadIcon(pm) : null;
-            fresh.add(new Entry(label, component, banner, icon));
+            fresh.add(new Entry(label, component, banner, icon, ctx.getPackageName()));
         }
         Map<String, Integer> opens = LaunchCounts.load(ctx);
         launchCounts = opens;
         Collections.sort(fresh, (a, b) -> {
             // Most opened apps first; apps opened equally often by name.
-            int used = Integer.compare(LaunchCounts.of(opens, b.pkg), LaunchCounts.of(opens, a.pkg));
+            int used = Integer.compare(LaunchCounts.of(opens, b.countKey), LaunchCounts.of(opens, a.countKey));
             if (used != 0) return used;
             return a.label.compareToIgnoreCase(b.label);
         });
@@ -359,7 +362,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         if (now.equals(launchCounts)) return false;
         int prev = Integer.MAX_VALUE;
         for (Entry e : items) {
-            int n = LaunchCounts.of(now, e.pkg);
+            int n = LaunchCounts.of(now, e.countKey);
             if (n > prev) return true;
             prev = n;
         }
