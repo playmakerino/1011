@@ -1,5 +1,5 @@
-/* Remote (D-pad) control for the kids' pages, used only inside the "Đồng Hồ" TV app (tre-em/android), which
- * adds "TVApp/" to the user agent. In a browser only the page switch (TVNav.pages) is added, nothing else.
+/* Remote (D-pad) control for the kids' pages, used only inside the "Đồng hồ" tile of the 1011 TV launcher
+ * (1011-tv/launcher, WebTileActivity), which adds "TVApp/" to the user agent. In a browser only the page switch (TVNav.pages) is added, nothing else.
  *
  * - Arrow keys move the focus between focusable elements (buttons, inputs, and anything with a tabindex), only
  *   inside an open popup when the page lists one in TVNav.scopes. Left / Right step through a group (elements

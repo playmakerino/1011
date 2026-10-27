@@ -88,8 +88,24 @@
             </intent-filter>
         </activity>
 
-        <!-- The "Bài tập" tile (homework page). A leanback entry point of its own, so AppAdapter shows it among
-             the apps; its own task, so Back returns to Home. -->
+        <!-- Tiles that are pages of the 1011 site (WebTileActivity). Each is a leanback entry point of its own, so
+             AppAdapter shows it among the apps, in its own task, so Back returns to Home. -->
+        <activity
+            android:name=".DongHoActivity"
+            android:exported="true"
+            android:label="@string/dongho_label"
+            android:icon="@drawable/banner_dongho"
+            android:banner="@drawable/banner_dongho"
+            android:taskAffinity="com.gathin.tvhome.dongho"
+            android:excludeFromRecents="true"
+            android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
         <activity
             android:name=".BtvnActivity"
             android:exported="true"

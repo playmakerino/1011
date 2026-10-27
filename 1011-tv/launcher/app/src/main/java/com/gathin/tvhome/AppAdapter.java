@@ -176,10 +176,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
             boolean onHome = LibraryApps.visible(tvPackages.contains(pkg), hidden.contains(pkg), added.contains(pkg), removed.contains(pkg));
-            // Home's own package shows only its Bài tập tile, not Home itself.
-            boolean self = pkg.equals(ctx.getPackageName());
-            if ((self && !ri.activityInfo.name.equals(BtvnActivity.class.getName()))
-                    || !ri.activityInfo.exported || !(onHome || choosing)) continue;
+            // Home's own package shows its page tiles (WebTileActivity), not Home itself.
+            boolean home = pkg.equals(ctx.getPackageName()) && ri.activityInfo.name.equals(MainActivity.class.getName());
+            if (home || !ri.activityInfo.exported || !(onHome || choosing)) continue;
             if (onHome) visibleNow.add(pkg);
             ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
             // An app label with a bidi override or line separator must not redraw the tile name as something else.
@@ -206,7 +205,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     private Drawable loadBanner(PackageManager pm, ResolveInfo ri) {
-        if (LiveClockBanner.PACKAGE.equals(ri.activityInfo.packageName)) return new LiveClockBanner(ctx);
+        if (DongHoActivity.class.getName().equals(ri.activityInfo.name)
+                && ctx.getPackageName().equals(ri.activityInfo.packageName)) return new LiveClockBanner(ctx);
         int id = ri.activityInfo.banner;
         if (id == 0) id = ri.activityInfo.applicationInfo.banner;
         Drawable banner = null;

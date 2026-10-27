@@ -1,8 +1,7 @@
-package io.github.playmakerino.clock;
+package com.gathin.tvhome;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -17,31 +16,33 @@ import android.widget.FrameLayout;
 import android.widget.TextView;
 
 /**
- * The kids' clock pages from GitHub Pages in a full-screen WebView: it opens on Đồng Hồ; a switch at the top
- * centre goes to Học Đồng Hồ and back.
- * The pages' tv-nav.js turns the remote's arrows and OK into focus moves and clicks; it only runs because of the
- * "TVApp/" tag added to the user agent.
+ * A tile that is a page of the 1011 site (https://playmakerino.github.io/1011/) in a full-screen WebView: each
+ * subclass is its own leanback entry point, so AppAdapter lists it among the apps, and only names its page and
+ * background. Every open loads the latest page. Back closes what the page has open (the pages' tv-nav.js, TVNav.back),
+ * then goes back a page, then returns to Home.
  */
-public class MainActivity extends Activity {
+abstract class WebTileActivity extends Activity {
 
-    private static final String URL = "https://playmakerino.github.io/1011/tre-em/dong-ho.html";
-    private static final int BG = Color.BLACK;
     private WebView web;
     private TextView offline;
+
+    abstract String url();
+
+    abstract int background();
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        int bg = background();
         FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(BG);
+        root.setBackgroundColor(bg);
         setContentView(root);
 
         web = new WebView(this);
-        web.setBackgroundColor(BG);
+        web.setBackgroundColor(bg);
         web.setFocusable(true);
-        web.setFocusableInTouchMode(true);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);           // the pages keep stars and labels in localStorage
@@ -49,6 +50,7 @@ public class MainActivity extends Activity {
         s.setLoadWithOverviewMode(true);
         s.setSupportZoom(false);
         s.setTextZoom(100);                     // ignore the system font size so the layout stays as designed
+        // tv-nav.js turns the remote's arrows and OK into focus moves and clicks only under this tag.
         s.setUserAgentString(s.getUserAgentString() + " TVApp/1");
         web.setWebViewClient(new WebViewClient() {
             @Override
@@ -64,20 +66,18 @@ public class MainActivity extends Activity {
         root.addView(web, new FrameLayout.LayoutParams(-1, -1));
 
         offline = new TextView(this);
-        offline.setText("Không vào được mạng. Bấm OK để thử lại.");
+        offline.setText(R.string.web_tile_offline);
         offline.setTextSize(24);
-        offline.setTextColor(0xFFF1F1F1);
+        boolean dark = (bg & 0xFF) < 0x80;
+        offline.setTextColor(dark ? 0xFFF1F1F1 : 0xFF101010);
         offline.setGravity(Gravity.CENTER);
-        offline.setBackgroundColor(BG);
+        offline.setBackgroundColor(bg);
         offline.setVisibility(View.GONE);
         root.addView(offline, new FrameLayout.LayoutParams(-1, -1));
 
         immersive();
-        if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) {
-            // A fresh start always gets the latest pages from GitHub Pages; the pages' own saved data stays.
-            web.clearCache(true);
-            web.loadUrl(URL);
-        }
+        web.clearCache(true);
+        web.loadUrl(url());
         web.requestFocus();
     }
 
@@ -104,14 +104,10 @@ public class MainActivity extends Activity {
         return super.dispatchKeyEvent(event);
     }
 
-    /**
-     * Back closes what the page has open (TVNav.back); with nothing open, a clock page goes back to the menu,
-     * and the menu leaves the app.
-     */
     @Override
     public void onBackPressed() {
         if (offline.getVisibility() == View.VISIBLE) {
-            super.onBackPressed();
+            finish();
             return;
         }
         web.evaluateJavascript("(window.TVNav && TVNav.back) ? TVNav.back() : false", result -> {
@@ -119,12 +115,6 @@ public class MainActivity extends Activity {
             if (web.canGoBack()) web.goBack();
             else finish();
         });
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        web.saveState(outState);
     }
 
     @Override

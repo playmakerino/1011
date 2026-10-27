@@ -13,8 +13,11 @@ Mọi chỉnh sửa làm thẳng trong code; không có theme hay màn hình cà
 - `LibraryApps`: lưu lựa chọn ẩn/hiện.
 - `Config` đọc `res/values/config.xml`. Màu nền ở `res/values/colors.xml`.
 - `ClockActivity`/`ClockDream`/`ClockScene`: đồng hồ bảo vệ màn hình.
-- `LiveClockBanner`: ô của app Đồng Hồ (`io.github.playmakerino.clock`, ở `tre-em/android`) là đồng hồ số chạy thật
-  (giờ:phút 24 giờ, màu theo trang `dong-ho.html`); font Space Grotesk ở `res/font/`.
+- `WebTileActivity`: ô mở một trang của site 1011 trong WebView toàn màn hình; mỗi lớp con là một ô riêng trên lưới:
+  `BtvnActivity` ("Bài tập", `btvn/?tv`) và `DongHoActivity` ("Đồng hồ", `tre-em/dong-ho.html`; trước 10/2026 là app
+  riêng `io.github.playmakerino.clock`). `LaunchCounts` đếm lần mở các ô này theo từng màn hình, không chung với Home.
+- `LiveClockBanner`: ô "Đồng hồ" là đồng hồ số chạy thật (giờ:phút 24 giờ, màu theo trang `dong-ho.html`); font
+  Space Grotesk ở `res/font/`.
 
 ## Làm việc với hộp
 

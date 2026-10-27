@@ -17,13 +17,11 @@ import java.util.Calendar;
 import java.util.Locale;
 
 /**
- * The tile of the "Đồng Hồ" app (tre-em/android in the 1011 repo): the time as digits, hours and minutes (24 h),
- * running, instead of the app's still banner. Hours in the hour blue and minutes in the minute orange of the face
- * on https://playmakerino.github.io/1011/tre-em/dong-ho.html, with its pink between them as the colon.
+ * The tile of "Đồng hồ" (DongHoActivity): the time as digits, hours and minutes (24 h), running, instead of a still
+ * banner. Hours in the hour blue and minutes in the minute orange of the face on
+ * https://playmakerino.github.io/1011/tre-em/dong-ho.html, with its pink between them as the colon.
  */
 final class LiveClockBanner extends Drawable {
-
-    static final String PACKAGE = "io.github.playmakerino.clock";
 
     private static final int BG = 0xFFFFFFFF;
     private static final int HOUR = 0xFF5A63D8;
