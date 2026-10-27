@@ -26,9 +26,9 @@
 
   /* ---------- Trang đăng (điện thoại) ---------- */
   /* --mw: độ rộng nội dung. Máy tính: hai thẻ A4 vừa chiều cao màn hình (thanh trên 52px, lề dưới 24px; hai thẻ,
-     khe 12px, lề hai bên 16px), tối đa 1000px. */
+     khe 12px, lề hai bên 16px), tối đa 760px (mỗi thẻ khoảng 358 × 506). */
   :root{--mw:1000px}
-  @media (min-width:768px){ :root{--mw:min(1000px, calc((100vh - 76px) * 420 / 297 + 44px))} }
+  @media (min-width:768px){ :root{--mw:min(760px, calc((100vh - 76px) * 420 / 297 + 44px))} }
   /* Lề trái bằng lề của main.edit (rộng --mw, đặt giữa), để tiêu đề thẳng mép trái thẻ như trên tivi. */
   .bar{position:sticky;top:0;z-index:5;height:52px;display:flex;align-items:center;gap:8px;padding:0 max(16px, calc((100% - var(--mw)) / 2 + 16px));background:transparent}
   body.scrolled .bar{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.07)}
