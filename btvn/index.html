@@ -25,8 +25,12 @@
   [hidden]{display:none!important}
 
   /* ---------- Trang đăng (điện thoại) ---------- */
-  /* Lề trái bằng lề của main.edit (rộng tối đa 1000px, đặt giữa), để tiêu đề thẳng mép trái thẻ như trên tivi. */
-  .bar{position:sticky;top:0;z-index:5;height:52px;display:flex;align-items:center;gap:8px;padding:0 max(16px, calc((100% - 1000px) / 2 + 16px));background:transparent}
+  /* --mw: độ rộng nội dung. Máy tính: hai thẻ A4 vừa chiều cao màn hình (thanh trên 52px, lề dưới 24px; hai thẻ,
+     khe 12px, lề hai bên 16px), tối đa 1000px. */
+  :root{--mw:1000px}
+  @media (min-width:768px){ :root{--mw:min(1000px, calc((100vh - 76px) * 420 / 297 + 44px))} }
+  /* Lề trái bằng lề của main.edit (rộng --mw, đặt giữa), để tiêu đề thẳng mép trái thẻ như trên tivi. */
+  .bar{position:sticky;top:0;z-index:5;height:52px;display:flex;align-items:center;gap:8px;padding:0 max(16px, calc((100% - var(--mw)) / 2 + 16px));background:transparent}
   body.scrolled .bar{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.07)}
   .bar h1{margin:0;font-size:13px;line-height:28px;font-weight:500;letter-spacing:-.02em}
   .bar .note{flex:1;min-width:0;color:var(--text2);letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -45,7 +49,7 @@
   .savebar.busy .ok{pointer-events:none}
   .spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(16,16,16,.2);border-top-color:#101010;animation:spin .7s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
-  main.edit{max-width:1000px;margin:0 auto;padding:0 16px 40px;display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
+  main.edit{max-width:var(--mw);margin:0 auto;padding:0 16px 24px;display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
   @media (min-width:768px){ main.edit{grid-template-columns:1fr 1fr} }
   .card{background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px}
   /* Điện thoại: thẻ tin nhắn vuông, thẻ ảnh cao theo ảnh. Máy tính: hai thẻ khổ A4 dọc như khung trên tivi.
