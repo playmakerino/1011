@@ -75,19 +75,20 @@
 
   /* ---------- Trang xem (tivi, ?tv) ---------- */
   body.tv{height:100vh;overflow:hidden}
-  /* Cỡ chữ và khoảng cách như Shopify Analytics: chữ 13px/20px, lề 16px, các thẻ cách nhau 12px. */
+  /* Lề an toàn của Android TV: 5% mỗi cạnh (tivi cắt bớt mép màn hình). */
+  .view{height:100vh;padding:5vh 5vw}
+  /* Tiêu đề, tin nhắn và ảnh nằm trong một khối căn giữa; layout() đặt độ rộng, nên tiêu đề luôn thẳng mép trái tin nhắn. */
+  .view .stage{height:100%;margin:0 auto;display:flex;flex-direction:column}
   /* Dòng tiêu đề như thanh trên của Shopify (Analytics · Last refreshed): tên đậm vừa, ghi chú xám cùng cỡ. */
-  .view .top{flex:none;height:52px;display:flex;align-items:center;gap:6px;font-size:13px;line-height:28px;letter-spacing:-.02em;color:var(--text2)}
+  .view .top{flex:none;height:52px;display:flex;align-items:center;gap:6px;font-size:13px;line-height:28px;letter-spacing:-.02em;color:var(--text2);white-space:nowrap}
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
-  .view .body{flex:1;min-height:0;display:flex;justify-content:center;gap:12px}
-  /* Tin nhắn trong một khung rộng 2/3 màn hình, cao hết phần còn lại; dài quá thì cuộn trong khung.
-     Chữ như tiêu đề thẻ gợi ý ở Shopify Analytics (_TitleText_): 16px/20px, 500, -0.13px. */
-  .view .msg{flex:none;height:100%;width:66.667%;overflow:auto;background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px;
-    white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:20px;font-weight:500;letter-spacing:-.13px;scrollbar-width:none}
+  .view .body{flex:1;min-height:0;display:flex;gap:12px}
+  /* Tin nhắn rộng 2/3 phần trong lề, cao hết phần còn lại; dài quá thì cuộn trong khung. Chữ 16px/20px như _TitleText_ ở Shopify Analytics. */
+  .view .msg{flex:none;height:100%;overflow:auto;background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px;
+    white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:20px;letter-spacing:-.13px;scrollbar-width:none}
   .view .msg::-webkit-scrollbar{display:none}
-  /* Ảnh rộng theo chính nó (không chiếm hết phần còn lại), để trang A4 và ảnh cùng nằm giữa màn hình. */
-  .view .pic{flex:0 1 auto;min-width:0;height:100%;display:flex;align-items:flex-start}
-  .view .pic img{display:block;max-width:100%;max-height:100%;object-fit:contain;border-radius:20px;box-shadow:var(--card)}
+  .view .pic{flex:none}
+  .view .pic img{display:block;object-fit:contain;border-radius:20px;box-shadow:var(--card)}
   .view .empty{color:var(--text2)}
 </style>
 </head>
@@ -121,10 +122,12 @@
 </div>
 
 <div class="view" id="view" hidden>
-  <div class="top" id="top"></div>
-  <div class="body">
-    <div class="msg" id="msg" tabindex="0"></div>
-    <div class="pic" id="pic" hidden><img id="picImg" alt=""></div>
+  <div class="stage" id="stage">
+    <div class="top" id="top"></div>
+    <div class="body">
+      <div class="msg" id="msg" tabindex="0"></div>
+      <div class="pic" id="pic" hidden><img id="picImg" alt=""></div>
+    </div>
   </div>
 </div>
 
@@ -155,19 +158,36 @@
 
   /* ---------- Trang xem ---------- */
   function renderView(d){
-    const top = $('top'), msg = $('msg'), pic = $('pic'), view = $('view');
-    if (!d || (!d.text && !d.img)) {
-      top.innerHTML = ''; pic.hidden = true;
-      msg.innerHTML = '<div class="empty">Chưa có bài tập</div>';
-      return;
-    }
-    top.innerHTML = '<b>Bài tập về nhà</b><span>Gửi vào ' + when(d.at) + '</span>';
-    msg.textContent = d.text || '';
-    msg.hidden = !d.text;
-    view.classList.toggle('no-text', !d.text);
-    if (d.img) { $('picImg').src = d.img; pic.hidden = false; } else { pic.hidden = true; $('picImg').removeAttribute('src'); }
+    const top = $('top'), msg = $('msg'), pic = $('pic'), im = $('picImg');
+    const empty = !d || (!d.text && !d.img);
+    top.innerHTML = empty ? '' : '<b>Bài tập về nhà</b><span>Gửi vào ' + when(d.at) + '</span>';
+    if (empty) msg.innerHTML = '<div class="empty">Chưa có bài tập</div>';
+    else msg.textContent = d.text || '';
+    msg.hidden = !empty && !d.text;
+    if (!empty && d.img) { pic.hidden = false; if (im.getAttribute('src') !== d.img) im.src = d.img; }
+    else { pic.hidden = true; im.removeAttribute('src'); }
     msg.scrollTop = 0;
+    layout();
   }
+  // Độ rộng tính bằng JavaScript: tin nhắn 2/3 phần trong lề; ảnh vừa phần còn lại theo đúng tỷ lệ của nó;
+  // khối chung rộng đúng bằng tổng, nên margin auto đặt nó giữa màn hình.
+  function layout(){
+    const v = $('view'), cs = getComputedStyle(v), msg = $('msg'), im = $('picImg');
+    const W = v.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const H = v.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 52;
+    const hasT = !msg.hidden, hasI = !$('pic').hidden && im.naturalWidth > 0;
+    const mw = hasT ? Math.round(W * 2 / 3) : 0;
+    let pw = 0;
+    if (hasI) {
+      const r = im.naturalWidth / im.naturalHeight;
+      pw = Math.floor(Math.min(W - (hasT ? mw + 12 : 0), H * r));
+      im.style.width = pw + 'px'; im.style.height = Math.floor(pw / r) + 'px';
+    }
+    msg.style.width = mw + 'px';
+    $('stage').style.width = (mw + (hasT && hasI ? 12 : 0) + pw) + 'px';
+  }
+  $('picImg').addEventListener('load', layout);
+  addEventListener('resize', () => { if (TV) layout(); });
   if (TV) {
     // Lên/xuống trên remote cuộn tin nhắn dài.
     addEventListener('keydown', e => {
