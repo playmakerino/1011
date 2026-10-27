@@ -83,18 +83,18 @@
   /* Lề an toàn của Android TV: 5% hai bên và dưới (tivi cắt bớt mép). Phía trên không thêm lề: thanh tiêu đề 52px như
      trang đăng, đã đủ xa vùng bị cắt. */
   .view{height:100vh;padding:0 5vw 5vh}
-  /* Tiêu đề, tin nhắn và ảnh nằm trong một khối căn giữa; layout() đặt độ rộng, nên tiêu đề luôn thẳng mép trái tin nhắn. */
+  /* Tiêu đề và khung A4 nằm trong một khối căn giữa; layout() đặt độ rộng, nên tiêu đề luôn thẳng mép trái khung. */
   .view .stage{height:100%;margin:0 auto;display:flex;flex-direction:column}
   /* Dòng tiêu đề như thanh trên của Shopify (Analytics · Last refreshed): tên đậm vừa, ghi chú xám cùng cỡ. */
   .view .top{flex:none;height:52px;display:flex;align-items:center;gap:6px;font-size:13px;line-height:28px;letter-spacing:-.02em;color:var(--text2);white-space:nowrap}
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
-  .view .body{flex:1;min-height:0;display:flex;gap:12px}
-  /* Tin nhắn khổ A4 dọc (layout() đặt độ rộng), cao hết phần còn lại; dài quá thì cuộn trong khung. Chữ 16px như _TitleText_ ở Shopify Analytics, cao dòng 24px cho đoạn nhiều dòng. */
-  .view .msg{flex:none;height:100%;overflow:auto;background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px;
-    white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:24px;letter-spacing:-.13px;scrollbar-width:none}
+  /* Khung khổ A4 dọc (layout() đặt độ rộng), cao hết phần còn lại: tin nhắn rồi ảnh bài mẫu ngay dưới, dài quá thì cuộn.
+     Chữ 16px như _TitleText_ ở Shopify Analytics, cao dòng 24px cho đoạn nhiều dòng. */
+  .view .msg{flex:1;min-height:0;overflow:auto;background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px;scrollbar-width:none}
   .view .msg::-webkit-scrollbar{display:none}
-  .view .pic{flex:none}
-  .view .pic img{display:block;object-fit:contain;border-radius:20px;box-shadow:var(--card)}
+  .view .txt{white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:24px;letter-spacing:-.13px}
+  .view .msg img{display:block;width:100%;height:auto;border-radius:8px}
+  .view .txt:not([hidden]) + img{margin-top:16px}
   .view .empty{color:var(--text2)}
 </style>
 </head>
@@ -131,9 +131,9 @@
 <div class="view" id="view" hidden>
   <div class="stage" id="stage">
     <div class="top" id="top"></div>
-    <div class="body">
-      <div class="msg" id="msg" tabindex="0"></div>
-      <div class="pic" id="pic" hidden><img id="picImg" alt=""></div>
+    <div class="msg" id="msg" tabindex="0">
+      <div class="txt" id="txt"></div>
+      <img id="picImg" alt="" hidden>
     </div>
   </div>
 </div>
@@ -169,35 +169,24 @@
 
   /* ---------- Trang xem ---------- */
   function renderView(d){
-    const top = $('top'), msg = $('msg'), pic = $('pic'), im = $('picImg');
+    const top = $('top'), txt = $('txt'), im = $('picImg');
     const empty = !d || (!d.text && !d.img);
     top.innerHTML = empty ? '' : '<b>Bài tập về nhà</b><span>Gửi vào ' + when(d.at) + '</span>';
-    if (empty) msg.innerHTML = '<div class="empty">Chưa có bài tập</div>';
-    else msg.textContent = d.text || '';
-    msg.hidden = !empty && !d.text;
-    if (!empty && d.img) { pic.hidden = false; if (im.getAttribute('src') !== d.img) im.src = d.img; }
-    else { pic.hidden = true; im.removeAttribute('src'); }
-    msg.scrollTop = 0;
+    if (empty) txt.innerHTML = '<span class="empty">Chưa có bài tập</span>';
+    else txt.textContent = d.text || '';
+    txt.hidden = !empty && !d.text;
+    if (!empty && d.img) { im.hidden = false; if (im.getAttribute('src') !== d.img) im.src = d.img; }
+    else { im.hidden = true; im.removeAttribute('src'); }
+    $('msg').scrollTop = 0;
     layout();
   }
-  // Độ rộng tính bằng JavaScript: tin nhắn khổ A4 dọc (210 × 297) cao hết phần còn lại; ảnh vừa phần còn lại theo đúng tỷ lệ của nó;
-  // khối chung rộng đúng bằng tổng, nên margin auto đặt nó giữa màn hình.
+  // Khung khổ A4 dọc (210 × 297) cao hết phần dưới thanh tiêu đề; khối chung rộng bằng khung, margin auto đặt nó giữa màn hình.
   function layout(){
-    const v = $('view'), cs = getComputedStyle(v), msg = $('msg'), im = $('picImg');
+    const v = $('view'), cs = getComputedStyle(v);
     const W = v.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     const H = v.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 52;
-    const hasT = !msg.hidden, hasI = !$('pic').hidden && im.naturalWidth > 0;
-    const mw = hasT ? Math.min(W, Math.round(H * 210 / 297)) : 0;   // khung tin nhắn khổ A4 dọc
-    let pw = 0;
-    if (hasI) {
-      const r = im.naturalWidth / im.naturalHeight;
-      pw = Math.floor(Math.min(W - (hasT ? mw + 12 : 0), H * r));
-      im.style.width = pw + 'px'; im.style.height = Math.floor(pw / r) + 'px';
-    }
-    msg.style.width = mw + 'px';
-    $('stage').style.width = (mw + (hasT && hasI ? 12 : 0) + pw) + 'px';
+    $('stage').style.width = Math.min(W, Math.round(H * 210 / 297)) + 'px';
   }
-  $('picImg').addEventListener('load', layout);
   addEventListener('resize', () => { if (TV) layout(); });
   if (TV) {
     // Lên/xuống trên remote cuộn tin nhắn dài.
@@ -206,7 +195,7 @@
       if (e.key === 'ArrowDown') { m.scrollBy({top: step, behavior:'smooth'}); e.preventDefault(); }
       if (e.key === 'ArrowUp') { m.scrollBy({top: -step, behavior:'smooth'}); e.preventDefault(); }
     });
-    if (ref) ref.on('value', s => { renderView(s.val()); ready($('pic').hidden ? null : $('picImg')); },
+    if (ref) ref.on('value', s => { renderView(s.val()); ready($('picImg').hidden ? null : $('picImg')); },
       () => { renderView(null); ready(); });
     else { renderView(null); ready(); }
     return;
