@@ -4,7 +4,8 @@
  * - Arrow keys move the focus between focusable elements (buttons, inputs, and anything with a tabindex), only
  *   inside an open popup when the page lists one in TVNav.scopes. Left / Right step through a group (elements
  *   with the same parent) in page order; elsewhere the focus goes to the nearest element wholly on that side,
- *   on the same row for Left / Right. Up / Down into a box marked data-tv-enter from outside it lands on the
+ *   on the same row for Left / Right. Up / Down in a group that wraps onto several lines goes to the line below
+ *   or above in that group first. Up / Down into a box marked data-tv-enter from outside it lands on the
  *   box's first element instead (a sentence with boxes in it is entered at its start, not under the focus).
  * - OK (Enter) presses the focused element; buttons do that by themselves, other elements get a click().
  * - The app's Back key calls TVNav.back(): the page's TVNav.onBack() closes what is open and returns true;
@@ -149,11 +150,24 @@
       }
     }
 
+    // Up / Down in a group that wraps onto several lines (a row of chips too long for the screen): to the line
+    // below or above within the group first, the nearest one along it, before leaving the group.
+    var pool = all;
+    if (!side) {
+      var c = cur.getBoundingClientRect();
+      var mates = all.filter(function (el) {
+        if (el === cur || el.parentNode !== cur.parentNode) return false;
+        var b = el.getBoundingClientRect();
+        return dir === 'Down' ? b.top >= c.bottom : b.bottom <= c.top;
+      });
+      if (mates.length) pool = mates;
+    }
+
     // Otherwise by position: only elements wholly on that side, and for Left / Right only ones on the same row.
     // Score = gap along the move + twice the sideways gap, so the focus keeps to its row or column.
     var a = cur.getBoundingClientRect();
     var best = null, bestScore = Infinity;
-    all.forEach(function (el) {
+    pool.forEach(function (el) {
       if (el === cur) return;
       var b = el.getBoundingClientRect();
       var main, cross;
