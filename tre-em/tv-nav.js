@@ -4,7 +4,8 @@
  * - Arrow keys move the focus between focusable elements (buttons, inputs, and anything with a tabindex), only
  *   inside an open popup when the page lists one in TVNav.scopes. Left / Right step through a group (elements
  *   with the same parent) in page order; elsewhere the focus goes to the nearest element wholly on that side,
- *   on the same row for Left / Right.
+ *   on the same row for Left / Right. Up / Down into a box marked data-tv-enter from outside it lands on the
+ *   box's first element instead (a sentence with boxes in it is entered at its start, not under the focus).
  * - OK (Enter) presses the focused element; buttons do that by themselves, other elements get a click().
  * - The app's Back key calls TVNav.back(): the page's TVNav.onBack() closes what is open and returns true;
  *   false lets the app go back to the TV's home screen.
@@ -168,7 +169,10 @@
       var score = main + 2 * cross;
       if (score < bestScore) { bestScore = score; best = el; }
     });
-    if (best) focusEl(best);
+    if (!best) return;
+    var box = !side && best.closest('[data-tv-enter]');
+    if (box && !box.contains(cur)) best = all.filter(function (el) { return box.contains(el); })[0] || best;
+    focusEl(best);
   }
 
   document.addEventListener('focusin', function (e) {

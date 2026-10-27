@@ -502,7 +502,8 @@
     <!-- Hai khối dưới đây ẩn cho tới khi chọn chỗ cần hỏi (chip ở trên) -->
     <div class="block" id="qBlock" hidden>
       <div class="lbl">Câu hỏi</div>
-      <div class="say" id="qSay"></div>
+      <!-- data-tv-enter: lên/xuống bằng remote từ ngoài vào câu hỏi thì vào ô đầu câu (nút ▾), xem tv-nav.js -->
+      <div class="say" id="qSay" data-tv-enter></div>
       <!-- Kiểu số chỉ đếm được tới 20 phút. Báo ngay ở đây, sát câu hỏi cần sửa, chứ không
            để dưới hình tay — chỗ phải sửa là câu hỏi. -->
       <div class="warn" id="warn" hidden>Không đủ ngón để đếm.</div>
