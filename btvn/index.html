@@ -2,7 +2,8 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- maximum-scale=1: iPhone không tự phóng to khi chạm ô nhập 13px (vẫn chụm hai ngón để phóng to được). -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Bài tập về nhà</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -88,9 +89,9 @@
   .view .top{flex:none;height:52px;display:flex;align-items:center;gap:6px;font-size:13px;line-height:28px;letter-spacing:-.02em;color:var(--text2);white-space:nowrap}
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
   .view .body{flex:1;min-height:0;display:flex;gap:12px}
-  /* Tin nhắn rộng 2/3 phần trong lề, cao hết phần còn lại; dài quá thì cuộn trong khung. Chữ 16px/20px như _TitleText_ ở Shopify Analytics. */
+  /* Tin nhắn rộng 2/3 phần trong lề, cao hết phần còn lại; dài quá thì cuộn trong khung. Chữ 16px như _TitleText_ ở Shopify Analytics, cao dòng 24px cho đoạn nhiều dòng. */
   .view .msg{flex:none;height:100%;overflow:auto;background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px;
-    white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:20px;letter-spacing:-.13px;scrollbar-width:none}
+    white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:24px;letter-spacing:-.13px;scrollbar-width:none}
   .view .msg::-webkit-scrollbar{display:none}
   .view .pic{flex:none}
   .view .pic img{display:block;object-fit:contain;border-radius:20px;box-shadow:var(--card)}
