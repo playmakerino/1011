@@ -6,7 +6,7 @@
 <title>Bài tập về nhà</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=block" rel="stylesheet">
 <!-- Một trang cho cả hai việc: mở bình thường (điện thoại của bố mẹ) là trang đăng; mở với ?tv (ô "Bài tập" trên
      launcher 1011 TV) là trang xem, không sửa được. Chỉ giữ một bài: /btvn = {text, img, at}. Ảnh mới thay ảnh cũ,
      tin nhắn sửa thẳng. Giao diện theo D:\Bamboo\claude\guide\SHOPIFY-UI-GUIDE.md (Polaris). -->
@@ -28,6 +28,7 @@
   .bar{position:sticky;top:0;z-index:5;height:52px;display:flex;align-items:center;gap:8px;padding:0 max(16px, calc((100% - 1000px) / 2 + 16px));background:transparent}
   body.scrolled .bar{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.07)}
   .bar h1{margin:0;font-size:13px;line-height:28px;font-weight:500;letter-spacing:-.02em}
+  .bar .note{flex:1;min-width:0;color:var(--text2);letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* Thanh lưu: chỉ hiện khi có thay đổi chưa lưu (contextual save bar). */
   .savebar{position:fixed;top:12px;left:50%;z-index:10;transform:translate(-50%,-8px);opacity:0;pointer-events:none;
     height:36px;display:flex;align-items:center;gap:4px;padding:4px 4px 4px 16px;border-radius:9999px;background:#0a0a0a;color:#fff;
@@ -43,7 +44,7 @@
   .savebar.busy .ok{pointer-events:none}
   .spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(16,16,16,.2);border-top-color:#101010;animation:spin .7s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
-  main.edit{max-width:1000px;margin:0 auto;padding:4px 16px 40px;display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
+  main.edit{max-width:1000px;margin:0 auto;padding:0 16px 40px;display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
   @media (min-width:768px){ main.edit{grid-template-columns:2fr 1fr} }
   .card{background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px}
   .card h2{margin:0 0 12px;font-size:15px;line-height:22px;font-weight:500}
@@ -75,9 +76,12 @@
   .toast.err svg{display:none}
 
   /* ---------- Trang xem (tivi, ?tv) ---------- */
+  /* Chống xô lệch bố cục: nội dung ẩn (vẫn giữ chỗ) tới khi có dữ liệu đầu tiên và ảnh đã giải mã; xem ready(). */
+  body.loading main.edit,body.loading .bar .note,body.loading .view .stage{visibility:hidden}
   body.tv{height:100vh;overflow:hidden}
-  /* Lề an toàn của Android TV: 5% mỗi cạnh (tivi cắt bớt mép màn hình). */
-  .view{height:100vh;padding:5vh 5vw}
+  /* Lề an toàn của Android TV: 5% hai bên và dưới (tivi cắt bớt mép). Phía trên không thêm lề: thanh tiêu đề 52px như
+     trang đăng, đã đủ xa vùng bị cắt. */
+  .view{height:100vh;padding:0 5vw 5vh}
   /* Tiêu đề, tin nhắn và ảnh nằm trong một khối căn giữa; layout() đặt độ rộng, nên tiêu đề luôn thẳng mép trái tin nhắn. */
   .view .stage{height:100%;margin:0 auto;display:flex;flex-direction:column}
   /* Dòng tiêu đề như thanh trên của Shopify (Analytics · Last refreshed): tên đậm vừa, ghi chú xám cùng cỡ. */
@@ -93,11 +97,12 @@
   .view .empty{color:var(--text2)}
 </style>
 </head>
-<body>
+<body class="loading">
 
 <div id="edit" hidden>
   <header class="bar">
     <h1>Bài tập về nhà</h1>
+    <span class="note" id="meta"></span>
   </header>
   <div class="savebar" id="savebar">
     <span>Chưa lưu thay đổi</span>
@@ -140,6 +145,10 @@
   const $ = id => document.getElementById(id);
   const DAYS = ['Chủ nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'];
   const pad = n => String(n).padStart(2,'0');
+  // Hiện nội dung một lần, sau khi ảnh (nếu có) đã giải mã; quá 4 giây thì hiện luôn.
+  const ready = el => (el && el.getAttribute('src') ? el.decode().catch(() => {}) : Promise.resolve())
+    .then(() => document.body.classList.remove('loading'));
+  setTimeout(() => document.body.classList.remove('loading'), 4000);
   const when = t => { const d=new Date(t); return pad(d.getHours())+':'+pad(d.getMinutes())+' '+DAYS[d.getDay()]+' '+pad(d.getDate())+'/'+pad(d.getMonth()+1); };
 
   let ref = null;
@@ -196,8 +205,9 @@
       if (e.key === 'ArrowDown') { m.scrollBy({top: step, behavior:'smooth'}); e.preventDefault(); }
       if (e.key === 'ArrowUp') { m.scrollBy({top: -step, behavior:'smooth'}); e.preventDefault(); }
     });
-    if (ref) ref.on('value', s => renderView(s.val()), () => renderView(null));
-    else renderView(null);
+    if (ref) ref.on('value', s => { renderView(s.val()); ready($('pic').hidden ? null : $('picImg')); },
+      () => { renderView(null); ready(); });
+    else { renderView(null); ready(); }
     return;
   }
 
@@ -281,8 +291,8 @@
     $('savebar').classList.add('busy'); save.innerHTML = '<span class="spin"></span>';
     // Ảnh không đổi thì không gửi lại.
     const p = img === saved.img ? ref.update({text: next.text, at: next.at}) : ref.set(next);
-    p.then(() => { saved = next; meta(); toast('Đã lưu'); })
-     .catch(e => toast(/permission/i.test(e && e.message) ? 'Firebase chưa cho ghi nhánh /btvn' : 'Lưu không được, thử lại', true))
+    // Lỗi của trang sau khi đã ghi xong không được báo thành "Lưu không được".
+    p.then(() => { saved = next; toast('Đã lưu'); try { meta(); } catch (e) { console.error(e); } }, e => toast(/permission/i.test(e && e.message) ? 'Firebase chưa cho ghi nhánh /btvn' : 'Lưu không được, thử lại', true))
      .finally(() => { $('savebar').classList.remove('busy'); save.textContent = 'Lưu'; refresh(); });
   });
 
@@ -294,7 +304,9 @@
     // Đang sửa dở thì không ghi đè ô nhập.
     if (!wasDirty) { text.value = saved.text; img = saved.img; drawZone(); }
     meta(); refresh();
-  }, () => toast('Firebase chưa cho đọc nhánh /btvn', true));
+    ready(zone.querySelector('img'));
+  }, () => { toast('Firebase chưa cho đọc nhánh /btvn', true); ready(); });
+  if (!ref) ready();
 })();
 </script>
 </body>

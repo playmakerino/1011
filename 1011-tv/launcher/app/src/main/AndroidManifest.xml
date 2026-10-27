@@ -7,6 +7,8 @@
     <uses-feature android:name="android.hardware.wifi" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
+    <!-- BtvnActivity loads the homework page. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- Sorts the grid by how often each app is opened (LaunchCounts). Granted over ADB:
@@ -83,6 +85,24 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="market" android:host="launch" />
+            </intent-filter>
+        </activity>
+
+        <!-- The "Bài tập" tile (homework page). A leanback entry point of its own, so AppAdapter shows it among
+             the apps; its own task, so Back returns to Home. -->
+        <activity
+            android:name=".BtvnActivity"
+            android:exported="true"
+            android:label="@string/btvn_label"
+            android:icon="@drawable/ic_btvn"
+            android:taskAffinity="com.gathin.tvhome.btvn"
+            android:excludeFromRecents="true"
+            android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
 

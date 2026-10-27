@@ -173,7 +173,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
             boolean onHome = LibraryApps.visible(tvPackages.contains(pkg), hidden.contains(pkg), added.contains(pkg), removed.contains(pkg));
-            if (pkg.equals(ctx.getPackageName()) || !ri.activityInfo.exported || !(onHome || choosing)) continue;
+            // Home's own package shows only its Bài tập tile, not Home itself.
+            boolean self = pkg.equals(ctx.getPackageName());
+            if ((self && !ri.activityInfo.name.equals(BtvnActivity.class.getName()))
+                    || !ri.activityInfo.exported || !(onHome || choosing)) continue;
             if (onHome) visibleNow.add(pkg);
             ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
             // An app label with a bidi override or line separator must not redraw the tile name as something else.
