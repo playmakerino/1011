@@ -265,7 +265,11 @@
   zone.addEventListener('drop', e => { e.preventDefault(); take(e.dataTransfer.files[0]); });
   addEventListener('paste', e => {
     const it = [...(e.clipboardData ? e.clipboardData.items : [])].find(i => i.type.startsWith('image/'));
-    if (it) { e.preventDefault(); take(it.getAsFile()); }
+    if (!it) return;
+    take(it.getAsFile());
+    // Copy từ Zalo có cả chữ lẫn ảnh: chữ vẫn dán vào ô tin nhắn như bình thường, chỉ chặn khi không có chữ.
+    const hasText = e.clipboardData.types.includes('text/plain') && e.clipboardData.getData('text/plain').trim();
+    if (!(hasText && e.target === text)) e.preventDefault();
   });
   text.addEventListener('input', refresh);
   addEventListener('beforeunload', e => { if (dirty()) e.preventDefault(); });
