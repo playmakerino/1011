@@ -82,8 +82,10 @@
   /* ---------- Trang xem (tivi, ?tv) ---------- */
   body.tv{height:100vh;overflow:hidden}
   .view{height:100vh;display:flex;flex-direction:column;padding:2.2vw 3vw;gap:1.6vw}
-  .view .top{display:flex;align-items:center;gap:1vw;font-size:1.5vw;line-height:1.4;color:var(--text2)}
-  .view .top b{color:var(--text);font-weight:600;font-size:1.9vw}
+  /* Dòng tiêu đề như thanh trên của Shopify (Analytics · Last refreshed): biểu tượng, tên đậm vừa, ghi chú xám cùng cỡ. */
+  .view .top{display:flex;align-items:center;gap:.7vw;font-size:1.8vw;line-height:1.5;letter-spacing:-.02em;color:var(--text2)}
+  .view .top svg{width:1.3em;height:1.3em;flex:none}
+  .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
   .view .badge{height:auto;font-size:1.3vw;line-height:1.5;padding:.15vw .7vw;border-radius:.7vw}
   .view .body{flex:1;min-height:0;display:flex;justify-content:center;gap:2.4vw}
   /* Tin nhắn trong một khung rộng 2/3 màn hình, cao hết phần còn lại; dài quá thì cuộn trong khung. */
@@ -170,7 +172,8 @@
       msg.innerHTML = '<div class="empty">Chưa có bài tập</div>';
       return;
     }
-    top.innerHTML = '<b>Bài tập về nhà</b><span>Gửi vào ' + when(d.at) + '</span>';
+    top.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 5.5C8.6 4.5 6.8 4 4.5 4 3.8 4 3.1 4.1 2.5 4.2v11c.6-.1 1.3-.2 2-.2 2.3 0 4.1.5 5.5 1.5 1.4-1 3.2-1.5 5.5-1.5.7 0 1.4.1 2 .2v-11c-.6-.1-1.3-.2-2-.2-2.3 0-4.1.5-5.5 1.5zm0 0v10.5" fill="none" stroke="#101010" stroke-width="1.6" stroke-linejoin="round"/></svg>'
+      + '<b>Bài tập về nhà</b><span>Gửi vào ' + when(d.at) + '</span>';
     msg.textContent = d.text || '';
     msg.hidden = !d.text;
     view.classList.toggle('no-text', !d.text);
