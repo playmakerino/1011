@@ -10,7 +10,6 @@ Trang GitHub Pages: https://playmakerino.github.io/1011/ (mục lục ở `index
 | `btvn/` | Bài tập về nhà: một trang, mở thường là trang bố mẹ đăng tin nhắn và ảnh bài mẫu của cô (Firebase `/btvn`), mở với `?tv` là trang con xem trên tivi (ô "Bài tập" của launcher 1011 TV) | `/1011/btvn/` |
 | `1011-tv/` | Launcher 1011 TV cho hộp FPT Play 650 (không phải trang web; xem `1011-tv/README.md`) | |
 
-
 ## Tự động (`.github/workflows/`)
 
 - `apk.yml`: mỗi lần `avocado-tv/android/` thay đổi, build `avocado-tv/tv.apk` và commit lại.
