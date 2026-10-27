@@ -110,7 +110,7 @@
             android:name=".BtvnActivity"
             android:exported="true"
             android:label="@string/btvn_label"
-            android:icon="@drawable/ic_btvn"
+            android:icon="@drawable/banner_btvn"
             android:banner="@drawable/banner_btvn"
             android:taskAffinity="com.gathin.tvhome.btvn"
             android:excludeFromRecents="true"
