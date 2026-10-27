@@ -676,8 +676,8 @@
   //   days    : chỉ HIỆN vào các thứ này (getDay 0=CN..6=T7); bỏ trống = mọi ngày
   //   noCal   : CHỈ hiện trên mặt đồng hồ, KHÔNG đánh dấu ở lịch (nhãn gần như ngày nào cũng có
   //             thì đánh dấu chỉ làm rối ô lịch mà không thêm thông tin)
-  // Vòng của nhãn suy từ giờ: trước 12h trưa ở VÒNG TRONG (nhãn gần), từ 12h trưa ở VÒNG NGOÀI (nhãn xa),
-  // nên hai nhãn cùng góc (vd 10h và 22h) không bao giờ đè nhau. Nhãn thêm bằng nút + luôn ở vòng ngoài.
+  // Vòng của nhãn không khai báo: mọi nhãn ở VÒNG TRONG (nhãn gần), nhãn đè lên nhãn xảy ra trước nó
+  // trong ngày thì ra VÒNG NGOÀI (nhãn xa); layout() tính lại mỗi ngày. Nhãn thêm bằng nút + luôn ở vòng ngoài.
   // Ô LỊCH tự suy ra từ đây (xem DAY_ACTIVITIES ngay dưới) — KHÔNG khai báo riêng, không lệch được.
   const FIXED_LABELS = [
     {emoji:'🎒', hour:7.5,   days:[1,2,3,4,5]},   // ba lô: T2-T6 7h30 sáng
@@ -726,14 +726,9 @@
     analog.appendChild(orbit);
     return {orbit, conn, badge, hour, dline, emoji};
   }
-  // Nhãn cố định: dựng từ bảng cấu hình; giữ thêm days/inner để lọc theo thứ & xếp tầng.
-  // inner (trước 12h trưa) -> thêm class 'inner' (CSS cho z-index cao hơn nhãn vòng ngoài cùng góc).
-  const fixedLabels = FIXED_LABELS.map(c => {
-    const inner = c.hour < 12;
-    const o = Object.assign(createLabel(c.emoji, c.hour), {days:c.days, inner});
-    if(inner) o.orbit.classList.add('inner');
-    return o;
-  });
+  // Nhãn cố định: dựng từ bảng cấu hình; giữ thêm days để lọc theo thứ. inner (vòng trong) do layout()
+  // đặt theo ngày, kèm class 'inner' (CSS cho z-index cao hơn nhãn vòng ngoài cùng góc).
+  const fixedLabels = FIXED_LABELS.map(c => Object.assign(createLabel(c.emoji, c.hour), {days:c.days, inner:true}));
 
   // Nhãn do NGƯỜI DÙNG tự thêm (dựng DOM động) — là LỜI NHẮC MỘT LẦN:
   // hiện từ lúc tạo và TỰ XÓA khi đã qua 6 TIẾNG sau giờ của nhãn (xem updateLabelStates).
@@ -874,7 +869,7 @@
   }
   function updateLabelStates(nowH, dow){
     // Nhãn lịch tuần cố định: lọc theo THỨ — hiện TẤT CẢ nhãn của hôm đó suốt cả ngày
-    // (nhãn trùng góc đã có cờ inner xếp tầng trong/ngoài nên không đè nhau).
+    // (nhãn trùng góc đã được layout() xếp tầng trong/ngoài nên không đè nhau).
     for(const L of fixedLabels){
       applyLabel(L, !L.days || L.days.includes(dow), nowH);
     }
@@ -1115,8 +1110,18 @@
 
     // Nhãn EMOJI (cố định + người dùng): GIỐNG nhãn giờ (nét nối từ vòng ngày AM/PM) nhưng đặt
     // tại 'hour' giờ thập phân. Trên mặt 12h: góc = hour*30 (vd 22h -> 660°≡300°).
-    //   inner=true (nhãn cố định trước 12h trưa) -> VÒNG TRONG (bán kính nhãn phút), nên không đè nhãn
-    //   cùng góc ở vòng ngoài (vd 10h sáng & 22h tối đều ở 300°): nhãn sáng nằm trong, tối nằm ngoài.
+    //   inner=true -> VÒNG TRONG (bán kính nhãn phút, nhãn gần); false -> VÒNG NGOÀI (nhãn xa).
+    // Nhãn cố định của HÔM NAY: mặc định ở vòng trong; xét theo thứ tự giờ, nhãn nào đè lên một nhãn vòng
+    // trong xảy ra TRƯỚC nó (khoảng cách hai tâm < đường kính + 4px) thì ra vòng ngoài. Nhãn thêm bằng nút
+    // luôn ở vòng ngoài. Sang ngày mới tick() gọi lại layout() nên xếp lại theo bộ nhãn của hôm đó.
+    const dow = new Date().getDay(), innerDegs = [];
+    for(const L of [...fixedLabels].sort((a, b) => a.hour - b.hour)){
+      if(L.days && !L.days.includes(dow)) continue;
+      const deg = L.hour * 30;
+      L.inner = !innerDegs.some(d => 2 * badgeM_r * Math.abs(Math.sin((deg - d) * Math.PI / 360)) < BADGE_H + 4);
+      L.orbit.classList.toggle('inner', L.inner);
+      if(L.inner) innerDegs.push(deg);
+    }
     const placeLabel = L => {
       const deg = L.hour * 30;
       const ringR = L.hour < 12 ? ARC_R_D1 : ARC_R_D2;   // SÁNG -> vòng TRONG (AM); CHIỀU/TỐI -> vòng NGOÀI (PM)
