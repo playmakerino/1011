@@ -95,6 +95,7 @@
             android:exported="true"
             android:label="@string/btvn_label"
             android:icon="@drawable/ic_btvn"
+            android:banner="@drawable/banner_btvn"
             android:taskAffinity="com.gathin.tvhome.btvn"
             android:excludeFromRecents="true"
             android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
