@@ -80,9 +80,10 @@
   .view .top{flex:none;height:52px;display:flex;align-items:center;gap:6px;font-size:13px;line-height:28px;letter-spacing:-.02em;color:var(--text2)}
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
   .view .body{flex:1;min-height:0;display:flex;justify-content:center;gap:12px}
-  /* Tin nhắn trong một khung rộng 2/3 màn hình, cao hết phần còn lại; dài quá thì cuộn trong khung. */
+  /* Tin nhắn trong một khung rộng 2/3 màn hình, cao hết phần còn lại; dài quá thì cuộn trong khung.
+     Chữ như tiêu đề thẻ gợi ý ở Shopify Analytics (_TitleText_): 16px/20px, 500, -0.13px. */
   .view .msg{flex:none;height:100%;width:66.667%;overflow:auto;background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px;
-    white-space:pre-wrap;word-wrap:break-word;font-size:13px;line-height:20px;letter-spacing:-.01em;scrollbar-width:none}
+    white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:20px;font-weight:500;letter-spacing:-.13px;scrollbar-width:none}
   .view .msg::-webkit-scrollbar{display:none}
   /* Ảnh rộng theo chính nó (không chiếm hết phần còn lại), để trang A4 và ảnh cùng nằm giữa màn hình. */
   .view .pic{flex:0 1 auto;min-width:0;height:100%;display:flex;align-items:flex-start}
