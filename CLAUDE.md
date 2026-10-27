@@ -10,5 +10,5 @@
 One folder per project (see README.md): `avocado-tv/` (page `index.html`, data `tiktok/` `drive/`,
 WebView app `android/` -> `tv.apk`, `scripts/`), `tre-em/` (kids' games), `fingerstyle/`, `btvn/` (homework page;
 `?tv` is the read-only view opened by the launcher's Bài tập tile), `1011-tv/`
-(launcher for the FPT Play box, its own CLAUDE.md). Root `tv.html`, `can-dia.html`, `dong-ho.html`,
-`hoc-dong-ho.html` are redirects to the new places; keep them.
+(launcher for the FPT Play box, its own CLAUDE.md). The old root redirects (`tv.html`, `can-dia.html`,
+`dong-ho.html`, `hoc-dong-ho.html`) were removed on 2026-10-27; link to the new places.
