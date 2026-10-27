@@ -46,8 +46,13 @@
   .spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(16,16,16,.2);border-top-color:#101010;animation:spin .7s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   main.edit{max-width:1000px;margin:0 auto;padding:0 16px 40px;display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
-  @media (min-width:768px){ main.edit{grid-template-columns:2fr 1fr} }
+  @media (min-width:768px){ main.edit{grid-template-columns:1fr 1fr} }
   .card{background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px}
+  /* Hai thẻ khổ A4 dọc như khung trên tivi; ô nhập và ô ảnh lấp hết phần còn lại của thẻ. */
+  main.edit .card{aspect-ratio:210/297;display:flex;flex-direction:column;min-width:0}
+  main.edit textarea{flex:1;min-height:0;resize:none;overflow:auto;field-sizing:fixed}
+  main.edit .zone{flex:1;min-height:0;justify-content:center}
+  main.edit .zone.filled img{width:100%;height:100%;max-height:none;object-fit:contain;object-position:top}
   .card h2{margin:0 0 12px;font-size:13px;line-height:20px;font-weight:500;letter-spacing:-.02em}
   .label{display:block;font-weight:500;margin-bottom:4px}
   textarea{display:block;width:100%;min-height:140px;resize:vertical;border:0;outline:0;border-radius:12px;padding:6px 12px;
