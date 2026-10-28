@@ -80,15 +80,15 @@
   /* Rê chuột: nền xám #f7f7f7, nút giữ nguyên màu (như Shopify). */
   .zone .empty-drop:hover,.zone:focus-visible .empty-drop{background:#f7f7f7}
   .zone:focus-visible .empty-drop{border-color:var(--focus)}
-  /* Hai nút bo tròn, khe 12px: "Paste" là nút chính (nền đen #303030 như nút chính Shopify), "Upload" là nút phụ
-     (nền xám #ebebeb như "Upload new" ở ô Media trang Thêm sản phẩm). Ở ô thứ hai (đã có 1 ảnh) hai nút xếp trên dưới. */
+  /* Hai nút như ô Media trang Thêm sản phẩm, khe 12px: nút chính "Paste" là nút xám bo tròn (như "Upload new"),
+     nút phụ "Upload" là nút chữ trơn (như "Select existing"). Ở ô thứ hai (đã có 1 ảnh) hai nút xếp trên dưới. */
   .btns{display:flex;align-items:center;gap:12px}
   .add .btns{flex-direction:column;gap:8px}
-  .pill,.paste{height:28px;border-radius:9999px;padding:4px 12px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;white-space:nowrap;color:var(--text)}
+  .pill,.plain{height:28px;border-radius:9999px;padding:4px 12px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;white-space:nowrap;color:var(--text)}
   .pill{background:#ebebeb}
   .pill:hover{background:#e3e3e3}
-  .paste{background:#303030;color:#fff}
-  .paste:hover{background:#1a1a1a}
+  .plain{background:none}
+  .plain:hover{text-decoration:underline}
   /* Có ảnh: như ô ảnh ở phần Media trang sản phẩm (đo 2026-10-28): viền liền 1px #c0c0c0, bo 12px, nền trắng; ảnh
      lấp kín ô (cover, khác Shopify). Còn chỗ thì ô thêm ảnh vuông: nét đứt #c0c0c0, nền #f7f7f7, chỉ có dấu + 20px. */
   .zone .shot,.zone .add{position:relative;grid-row:1;aspect-ratio:1;border-radius:12px;cursor:pointer;min-width:0}
@@ -286,7 +286,7 @@
 
   // Chưa có ảnh: vùng nét đứt có nút Upload và Paste. Có ảnh: ô ảnh, mỗi ô có nút bỏ; còn chỗ thì thêm ô nét đứt
   // có hai nút đó xếp trên dưới.
-  const BTNS = '<div class="btns"><button class="paste" type="button">Paste</button><span class="pill">Upload</span></div>';
+  const BTNS = '<div class="btns"><button class="pill paste" type="button">Paste</button><span class="plain">Upload</span></div>';
   function drawZone(){
     zone.classList.toggle('filled', imgs.length > 0);
     if (!imgs.length) { zone.innerHTML = '<div class="empty-drop" data-slot="0">' + BTNS + '</div>'; return; }
