@@ -79,10 +79,11 @@
   .zone:hover .pill,.zone:focus-visible .pill{background:#e3e3e3}
   .zone:focus-visible{border-color:var(--focus)}
   .pill{height:28px;border-radius:9999px;padding:4px 12px 4px 8px;background:#ebebeb;font-weight:500;display:inline-flex;align-items:center;gap:4px}
-  /* Có ảnh: hai cột bằng nhau, ảnh thứ nhất rồi ảnh thứ hai hoặc ô "Thêm ảnh" nét đứt. */
-  .zone.filled{padding:0;border:0;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:stretch}
-  .zone .shot{position:relative;min-width:0;min-height:0}
-  .zone .add{border:1px dashed #c0c0c0;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:20px 8px}
+  /* Có ảnh: mỗi ảnh một cột bằng nhau; chưa đủ 2 ảnh thì một nút "Thêm ảnh" ở hàng dưới, thẳng mép trái. */
+  .zone.filled{padding:0;border:0;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px;align-items:stretch;cursor:default}
+  .zone .shot{position:relative;min-width:0;min-height:0;cursor:pointer}
+  .zone .add{grid-row:2;grid-column:1/-1;justify-self:start;cursor:pointer}
+  .zone .add:hover .pill{background:#e3e3e3}
   .zone img{display:block;width:100%;height:auto;border-radius:6px}
   .zone .x{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:#fff;display:none;place-items:center;color:#4a4a4a;
     box-shadow:0 0 0 1px rgba(0,0,0,.07),0 2px 20px rgba(0,0,0,.03)}
@@ -96,7 +97,7 @@
     main.edit{grid-template-columns:1fr 1fr;padding-bottom:var(--gap-y)}
     .card{aspect-ratio:1}
     .zone{flex:1;min-height:0;justify-content:center}
-    .zone.filled{grid-template-rows:minmax(0,1fr)}
+    .zone.filled{grid-template-rows:minmax(0,1fr) auto}
     .zone .shot img{height:100%;object-fit:contain;object-position:top}
   }
 
@@ -272,7 +273,7 @@
     $('meta').textContent = saved.at ? 'Gửi vào ' + when(saved.at) : 'Chưa có bài';
   }
 
-  // Chưa có ảnh: vùng nét đứt "Thêm ảnh". Có ảnh: các ảnh cạnh nhau, mỗi ảnh có nút bỏ; còn chỗ thì thêm ô "Thêm ảnh".
+  // Chưa có ảnh: vùng nét đứt "Thêm ảnh". Có ảnh: các ảnh cạnh nhau, mỗi ảnh có nút bỏ; còn chỗ thì một nút "Thêm ảnh" bên dưới.
   const PILL = '<span class="pill"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#101010" stroke-width="1.6" stroke-linecap="round"/></svg>Thêm ảnh</span>';
   function drawZone(){
     zone.classList.toggle('filled', imgs.length > 0);
