@@ -114,17 +114,13 @@
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
   /* Box tin nhắn cao theo nội dung; cao quá màn hình thì dừng ở đó và cuộn.
      Chữ 16px như _TitleText_ ở Shopify Analytics, cao dòng 24px cho đoạn nhiều dòng. */
-  /* Viền 1px xám nhạt và bóng mềm phía dưới, như thẻ sản phẩm ở trang collection của Shopify; --card mờ quá trên tivi. */
-  .view .msg,.view .pic{flex:none;max-height:100%;background:#fff;border-radius:20px;
-    box-shadow:0 0 0 1px rgba(0,0,0,.1),0 4px 8px rgba(0,0,0,.1),0 12px 32px rgba(0,0,0,.14)}
+  .view .msg,.view .pic{flex:none;max-height:100%;background:#fff;border-radius:20px;box-shadow:var(--card)}
   .view .msg{padding:16px;overflow:auto;scrollbar-width:none}
   .view .msg::-webkit-scrollbar{display:none}
   .view .txt{white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:24px;letter-spacing:-.13px}
   /* Box ảnh không có lề trắng: ảnh lấp kín box, box có đúng tỉ lệ ảnh. */
-  /* Viền 1px vẽ đè lên mép ảnh, để mép box ảnh rõ như box tin nhắn (viền ngoài lẫn vào màu ảnh). */
-  .view .pic{position:relative;overflow:hidden}
+  .view .pic{overflow:hidden}
   .view .pic img{display:block;width:100%;height:100%;object-fit:cover}
-  .view .pic::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1);pointer-events:none}
   .view .empty{color:var(--text2)}
 </style>
 </head>
