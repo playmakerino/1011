@@ -71,8 +71,10 @@
   .card{background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px;display:flex;flex-direction:column;min-width:0}
   .card h2{margin:0 0 12px;font-size:13px;line-height:20px;font-weight:500;letter-spacing:-.02em}
   .help{font-size:12px;line-height:18px;color:var(--ph);margin-top:4px}
+  /* Chữ 14px, cao dòng 1.4 như ô Description ở trang Thêm sản phẩm Shopify (đo 2026-10-28). Ô chữ thường nên không có
+     khoảng cách đoạn riêng như Shopify (16px); trên tivi thì có. */
   textarea{display:block;width:100%;flex:1;min-height:0;resize:none;overflow:auto;border:0;outline:0;border-radius:12px;padding:6px 12px;
-    font:inherit;font-size:13px;line-height:20px;letter-spacing:inherit;color:var(--text);box-shadow:var(--ring)}
+    font:inherit;font-size:14px;line-height:1.4;letter-spacing:normal;color:var(--text);box-shadow:var(--ring)}
   textarea::placeholder{color:var(--ph)}
   textarea:focus{box-shadow:var(--ring-focus)}
   /* Ô ảnh: lưới hai ô vuông, khe 6px; có ảnh thì ::before giữ chiều cao một ô vuông. */
