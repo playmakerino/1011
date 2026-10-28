@@ -75,12 +75,14 @@
   textarea::placeholder{color:var(--ph)}
   textarea:focus{box-shadow:var(--ring-focus)}
   /* Ô ảnh: chưa có ảnh là vùng nét đứt với nút "Thêm ảnh"; có ảnh thì chỉ còn ảnh, bấm vào ảnh để thay. */
-  .zone{position:relative;border:1px dashed #c0c0c0;border-radius:8px;padding:20px 12px;display:flex;flex-direction:column;align-items:center;cursor:pointer;outline:0}
-  .zone:hover .pill,.zone:focus-visible .pill{background:#e3e3e3}
+  /* Vùng nét đứt như ô Media ở trang sản phẩm Shopify: nền #f7f7f7, rê chuột thì nét đứt đậm lên. */
+  .zone{position:relative;border:1px dashed #c0c0c0;border-radius:8px;background:#f7f7f7;padding:20px 12px;display:flex;flex-direction:column;align-items:center;cursor:pointer;outline:0}
+  .zone:not(.filled):hover{border-color:#8a8a8a}
+  .zone:focus-visible .pill{background:#e3e3e3}
   .zone:focus-visible{border-color:var(--focus)}
   .pill{height:28px;border-radius:9999px;padding:4px 12px 4px 8px;background:#ebebeb;font-weight:500;display:inline-flex;align-items:center;gap:4px}
   /* Có ảnh: mỗi ảnh một cột bằng nhau; chưa đủ 2 ảnh thì một nút "Thêm ảnh" ở hàng dưới, thẳng mép trái. */
-  .zone.filled{padding:0;border:0;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px;align-items:stretch;cursor:default}
+  .zone.filled{padding:0;border:0;background:none;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px;align-items:stretch;cursor:default}
   .zone .shot{position:relative;min-width:0;min-height:0;cursor:pointer}
   .zone .add{grid-row:2;grid-column:1/-1;justify-self:start;cursor:pointer}
   .zone .add:hover .pill{background:#e3e3e3}
@@ -328,8 +330,10 @@
   zone.addEventListener('click', pick);
   zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(e); } });
   file.addEventListener('change', () => { take(file.files, slot); file.value = ''; });
-  zone.addEventListener('dragover', e => e.preventDefault());
-  zone.addEventListener('drop', e => { e.preventDefault(); const t = e.target.closest('.shot'); take(e.dataTransfer.files, t ? +t.dataset.slot : null); });
+  // Thả ảnh được ở bất kỳ đâu trong thẻ "Ảnh bài mẫu"; thả lên một ảnh thì thay ảnh đó.
+  const card = zone.closest('.card');
+  card.addEventListener('dragover', e => e.preventDefault());
+  card.addEventListener('drop', e => { e.preventDefault(); const t = e.target.closest('.shot'); take(e.dataTransfer.files, t ? +t.dataset.slot : null); });
   addEventListener('paste', e => {
     const its = [...(e.clipboardData ? e.clipboardData.items : [])].filter(i => i.type.startsWith('image/'));
     if (!its.length) return;
