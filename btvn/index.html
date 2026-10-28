@@ -93,7 +93,8 @@
   .pill,.plain{height:28px;border-radius:9999px;padding:4px 12px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;white-space:nowrap;color:var(--text)}
   .pill{background:#ebebeb}
   .pill:hover{background:#e3e3e3}
-  .plain{background:none}
+  /* Nút chữ không có đệm: khe nhìn thấy giữa mép nút xám và chữ đúng 12px như Shopify. */
+  .plain{background:none;padding:0;border-radius:0}
   .plain:hover{text-decoration:underline}
   /* Có ảnh: như ô ảnh ở phần Media trang sản phẩm (đo 2026-10-28): viền liền 1px #c0c0c0, bo 12px, nền trắng; ảnh
      lấp kín ô (cover, khác Shopify). Còn chỗ thì ô thêm ảnh vuông: nét đứt #c0c0c0, nền #f7f7f7, chỉ có dấu + 20px. */
