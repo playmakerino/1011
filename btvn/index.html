@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<!-- maximum-scale=1: iPhone không tự phóng to khi chạm ô nhập 13px (vẫn chụm hai ngón để phóng to được). -->
+<!-- maximum-scale=1: iPhone không tự phóng to khi chạm ô nhập chữ nhỏ hơn 16px (vẫn chụm hai ngón để phóng to được). -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Bài tập về nhà</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -128,12 +128,11 @@
   .view .top{position:absolute;left:0;bottom:100%;height:40px;padding-bottom:12px;display:flex;align-items:center;gap:6px;font-size:13px;line-height:28px;letter-spacing:-.02em;color:var(--text2);white-space:nowrap}
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
   .view .msg,.view .pic{flex:none;max-height:100%;background:#fff;border-radius:20px}
-  /* Box tin nhắn cao theo nội dung; cao quá màn hình thì dừng ở đó và cuộn.
-     Chữ 16px như _TitleText_ ở Shopify Analytics. */
+  /* Box tin nhắn cao theo nội dung; cao quá màn hình thì dừng ở đó và cuộn. */
   .view .msg{padding:16px;overflow:auto;scrollbar-width:none;box-shadow:var(--card)}
   .view .msg::-webkit-scrollbar{display:none}
-  /* Khoảng cách dòng và đoạn như ô Description ở trang Thêm sản phẩm Shopify (đo 2026-10-28): cao dòng 1.4, đoạn cách
-     nhau 1rem (16px). Mỗi dòng cô xuống dòng là một đoạn. */
+  /* Chữ 16px như _TitleText_ ở Shopify Analytics. Khoảng cách dòng và đoạn như ô Description ở trang Thêm sản phẩm
+     Shopify (đo 2026-10-28): cao dòng 1.4, đoạn cách nhau 1rem (16px). Mỗi dòng cô xuống dòng là một đoạn. */
   .view .txt{white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:1.4;letter-spacing:-.13px}
   .view .txt p{margin:0}
   .view .txt p + p{margin-top:16px}
