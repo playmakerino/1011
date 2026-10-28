@@ -125,11 +125,12 @@
   .view .msg::-webkit-scrollbar{display:none}
   .view .txt{white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:24px;letter-spacing:-.13px}
   /* Box ảnh không có lề trắng: ảnh lấp kín box, box có đúng tỉ lệ ảnh. */
-  /* Như card ảnh theme ở mục "Discover themes" (Shopify admin, trang Themes; ước lượng theo ảnh chụp 2026-10-28):
-     bo 16px, khung 1px rgba(0,0,0,.08) vẽ đè lên mép ảnh, bóng mỏng ở cạnh dưới. */
-  .view .pic{position:relative;overflow:hidden;border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 2px 6px rgba(0,0,0,.06)}
+  /* Như card ảnh theme ở mục "Discover themes" (Shopify admin, trang Themes; đọc từ CSS của trang 2026-10-28):
+     bo --p-border-radius-container (20px), bóng --p-shadow-100 (vòng 1px đen 6% và năm lớp bóng mỏng dưới đáy). */
+  .view .pic{overflow:hidden;border-radius:20px;
+    box-shadow:0 5px 5px -2.5px rgba(0,0,0,.03),0 3px 3px -1.5px rgba(0,0,0,.02),0 2px 2px -1px rgba(0,0,0,.02),
+      0 1px 1px -.5px rgba(0,0,0,.03),0 .5px .5px 0 rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.06)}
   .view .pic img{display:block;width:100%;height:100%;object-fit:cover}
-  .view .pic::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);pointer-events:none}
   .view .empty{color:var(--text2)}
 </style>
 </head>
