@@ -77,11 +77,13 @@
     font:inherit;font-size:14px;line-height:1.4;letter-spacing:normal;color:var(--text);box-shadow:var(--ring)}
   textarea::placeholder{color:var(--ph)}
   textarea:focus{box-shadow:var(--ring-focus)}
-  /* Ô ảnh: lưới hai ô vuông, khe 6px; có ảnh thì ::before giữ chiều cao một ô vuông. */
+  /* Ô ảnh: lưới hai ô vuông, khe 6px; ::before luôn giữ chiều cao một ô vuông, nên có ảnh hay chưa thì hai thẻ vẫn
+     cao như nhau. */
   .zone{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;outline:0}
-  .zone.filled::before{content:"";grid-area:1/1;aspect-ratio:1}
+  .zone::before{content:"";grid-area:1/1;aspect-ratio:1}
   /* Chưa có ảnh: như ô Media ở trang Thêm sản phẩm của Shopify admin (đo 2026-10-28): nét đứt .5px #8c8c8c, nền trắng,
-     bo 12px, cao tối thiểu 120px, đệm 32px, hai nút ở giữa. Vùng này rộng hết thẻ; bấm chỗ trống là Upload. */
+     bo 12px, cao tối thiểu 120px, đệm 32px, hai nút ở giữa. Vùng này rộng hết thẻ, cao bằng một ô vuông; bấm chỗ trống
+     là Upload. */
   .zone .empty-drop{grid-area:1/1/2/3;border:.5px dashed #8c8c8c;border-radius:12px;background:#fff;min-height:120px;padding:32px;display:flex;align-items:center;justify-content:center;cursor:pointer}
   /* Rê chuột: nền xám #f7f7f7, nút giữ nguyên màu (như Shopify). */
   .zone .empty-drop:hover,.zone:focus-visible .empty-drop{background:#f7f7f7}
