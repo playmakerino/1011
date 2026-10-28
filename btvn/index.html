@@ -102,7 +102,8 @@
      để khung nằm đúng giữa màn hình theo cả hai chiều. */
   .view{height:100vh;padding:calc(var(--gap-y) + 40px) 5vw;display:flex;flex-direction:column;justify-content:center}
   /* Khối chỉ chứa khung; layout() đặt độ rộng. Tiêu đề đặt ngay trên khung, thẳng mép trái, không làm lệch khung. */
-  .view .stage{position:relative;max-height:100%;min-height:0;margin:0 auto;display:flex;flex-direction:column}
+  /* Nội dung dài thì khung được cao thêm vào lề trên và dưới (vẫn giữa màn hình), chừa mỗi mép 12px; độ rộng không đổi. */
+  .view .stage{position:relative;max-height:calc(100% + 2 * var(--gap-y) - 24px);min-height:0;flex-shrink:0;margin:0 auto;display:flex;flex-direction:column}
   /* Dòng tiêu đề như thanh trên của Shopify (Analytics · Last refreshed): tên đậm vừa, ghi chú xám cùng cỡ. */
   .view .top{position:absolute;left:0;bottom:100%;height:40px;padding-bottom:12px;display:flex;align-items:center;gap:6px;font-size:13px;line-height:28px;letter-spacing:-.02em;color:var(--text2);white-space:nowrap}
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
@@ -196,27 +197,15 @@
     $('msg').scrollTop = 0;
     layout();
   }
-  // Độ rộng khung: tối đa bằng khổ A4 dọc (210 × 297) của chiều cao tối đa; chiều cao thì theo nội dung.
-  // Có ảnh mà chữ + ảnh cao quá màn hình thì hẹp khung lại cho vừa trọn, không phải cuộn.
+  // Độ rộng khung: bằng khổ A4 dọc (210 × 297) của chiều cao tối đa; chiều cao thì theo nội dung.
   function layout(){
-    const v = $('view'), cs = getComputedStyle(v), st = $('stage'), m = $('msg'), im = $('picImg');
+    const v = $('view'), cs = getComputedStyle(v);
     const W = v.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     const H = v.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-    let w = Math.min(W, Math.round(H * 210 / 297));
-    st.style.width = w + 'px';
-    if (!im.hidden && im.naturalWidth) {
-      const r = im.naturalHeight / im.naturalWidth, pad = m.clientWidth - im.clientWidth;
-      // Hai lượt: hẹp lại thì chữ có thể xuống dòng thêm.
-      for (let i = 0; i < 2 && m.scrollHeight > H; i++) {
-        const rest = m.scrollHeight - im.offsetHeight;
-        w = Math.min(w, Math.floor((H - rest) / r + pad));
-        st.style.width = w + 'px';
-      }
-    }
+    $('stage').style.width = Math.min(W, Math.round(H * 210 / 297)) + 'px';
   }
   if (TV) {
     addEventListener('resize', layout);
-    $('picImg').addEventListener('load', layout);
     // Lên/xuống trên remote cuộn tin nhắn dài.
     addEventListener('keydown', e => {
       const m = $('msg'), step = m.clientHeight * .6;
