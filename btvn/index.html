@@ -160,6 +160,7 @@
   <header class="bar">
     <h1>Bài tập về nhà</h1>
     <span class="note" id="meta"></span>
+    <button class="pill" id="clear" type="button" hidden>Xoá hết</button>
   </header>
   <div class="savebar" id="savebar">
     <span>Chưa lưu thay đổi</span>
@@ -290,8 +291,10 @@
     clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), err ? 6000 : 4000);
   }
   function dirty(){ return text.value !== saved.text || !same(imgs, saved.imgs); }
-  function refresh(){ $('savebar').classList.toggle('on', dirty()); }
+  function refresh(){ $('savebar').classList.toggle('on', dirty()); $('clear').hidden = !text.value && !imgs.length; }
   $('discard').addEventListener('click', () => { text.value = saved.text; imgs = saved.imgs.slice(); drawZone(); refresh(); });
+  // Xoá hết: làm trống ô chữ và ô ảnh, chưa lưu; thanh Huỷ/Lưu hiện ra như mọi thay đổi khác.
+  $('clear').addEventListener('click', () => { text.value = ''; imgs = []; drawZone(); refresh(); });
   function meta(){
     $('meta').textContent = saved.at ? 'Gửi vào ' + when(saved.at) : 'Chưa có bài';
   }
