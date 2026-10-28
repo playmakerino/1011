@@ -79,12 +79,15 @@
   .zone:hover .pill,.zone:focus-visible .pill{background:#e3e3e3}
   .zone:focus-visible{border-color:var(--focus)}
   .pill{height:28px;border-radius:9999px;padding:4px 12px 4px 8px;background:#ebebeb;font-weight:500;display:inline-flex;align-items:center;gap:4px}
-  .zone.filled{padding:0;border:0}
+  /* Có ảnh: hai cột bằng nhau, ảnh thứ nhất rồi ảnh thứ hai hoặc ô "Thêm ảnh" nét đứt. */
+  .zone.filled{padding:0;border:0;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:stretch}
+  .zone .shot{position:relative;min-width:0;min-height:0}
+  .zone .add{border:1px dashed #c0c0c0;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:20px 8px}
   .zone img{display:block;width:100%;height:auto;border-radius:6px}
   .zone .x{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:#fff;display:none;place-items:center;color:#4a4a4a;
     box-shadow:0 0 0 1px rgba(0,0,0,.07),0 2px 20px rgba(0,0,0,.03)}
   .zone .x:hover{background:#f7f7f7}
-  .zone.filled:hover .x,.zone.filled:focus-within .x{display:grid}
+  .zone .shot:hover .x,.zone .shot:focus-within .x{display:grid}
   @media (hover:none){ .zone.filled .x{display:grid} }
   @media (min-width:768px){
     /* Nét chữ tiêu đề cách mép trên --gap-y (hàng 28px có 6px trống trên chữ 13px, nên lề trên bớt 6px), rồi 12px tới
@@ -93,7 +96,8 @@
     main.edit{grid-template-columns:1fr 1fr;padding-bottom:var(--gap-y)}
     .card{aspect-ratio:1}
     .zone{flex:1;min-height:0;justify-content:center}
-    .zone img{height:100%;object-fit:contain;object-position:top}
+    .zone.filled{grid-template-rows:minmax(0,1fr)}
+    .zone .shot img{height:100%;object-fit:contain;object-position:top}
   }
 
   /* ---------- Trang xem (tivi, ?tv) ---------- */
@@ -102,18 +106,20 @@
      để khung nằm đúng giữa màn hình theo cả hai chiều. */
   .view{height:100vh;padding:calc(var(--gap-y) + 40px) 5vw;display:flex;flex-direction:column;justify-content:center}
   /* Khối chỉ chứa khung; layout() đặt độ rộng. Tiêu đề đặt ngay trên khung, thẳng mép trái, không làm lệch khung. */
-  /* Có ảnh thì ảnh nằm box riêng bên phải tin nhắn, cách 12px, cao hết phần giữa hai lề. */
+  /* Có ảnh (tối đa 2) thì mỗi ảnh một box riêng bên phải tin nhắn, cùng hàng, cách nhau 12px, cao hết phần giữa hai lề. */
   .view .stage{position:relative;max-height:100%;min-height:0;margin:0 auto;display:flex;align-items:flex-start;gap:12px}
   /* Dòng tiêu đề như thanh trên của Shopify (Analytics · Last refreshed): tên đậm vừa, ghi chú xám cùng cỡ. */
   .view .top{position:absolute;left:0;bottom:100%;height:40px;padding-bottom:12px;display:flex;align-items:center;gap:6px;font-size:13px;line-height:28px;letter-spacing:-.02em;color:var(--text2);white-space:nowrap}
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
   /* Box tin nhắn cao theo nội dung; cao quá màn hình thì dừng ở đó và cuộn.
      Chữ 16px như _TitleText_ ở Shopify Analytics, cao dòng 24px cho đoạn nhiều dòng. */
-  .view .msg,.view .pic{flex:none;max-height:100%;background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px}
-  .view .msg{overflow:auto;scrollbar-width:none}
+  .view .msg,.view .pic{flex:none;max-height:100%;background:#fff;border-radius:20px;box-shadow:var(--card)}
+  .view .msg{padding:16px;overflow:auto;scrollbar-width:none}
   .view .msg::-webkit-scrollbar{display:none}
   .view .txt{white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:24px;letter-spacing:-.13px}
-  .view .pic img{display:block;width:100%;height:100%;object-fit:contain;border-radius:8px}
+  /* Box ảnh không có lề trắng: ảnh lấp kín box, box có đúng tỉ lệ ảnh. */
+  .view .pic{overflow:hidden}
+  .view .pic img{display:block;width:100%;height:100%;object-fit:cover}
   .view .empty{color:var(--text2)}
 </style>
 </head>
@@ -138,7 +144,7 @@
     <section class="card">
       <h2>Ảnh bài mẫu</h2>
       <div class="zone" id="zone" tabindex="0" role="button" aria-label="Chọn ảnh bài mẫu"></div>
-      <div class="help">Bấm để chọn hoặc dán ảnh. Ảnh mới thay ảnh cũ.</div>
+      <div class="help">Tối đa 2 ảnh. Bấm để chọn hoặc dán ảnh; bấm vào ảnh để thay ảnh đó.</div>
       <input type="file" id="file" accept="image/*" hidden>
     </section>
   </main>
@@ -151,7 +157,8 @@
     <div class="msg" id="msg" tabindex="0">
       <div class="txt" id="txt"></div>
     </div>
-    <div class="pic" id="pic" hidden><img id="picImg" alt="" hidden></div>
+    <div class="pic" hidden><img alt=""></div>
+    <div class="pic" hidden><img alt=""></div>
   </div>
 </div>
 
@@ -185,44 +192,56 @@
   else { $('edit').hidden = false; }
 
   /* ---------- Trang xem ---------- */
+  const pics = [...document.querySelectorAll('.view .pic')];
+  const imgsOf = d => d ? [d.img, d.img2].filter(Boolean) : [];
   function renderView(d){
-    const top = $('top'), txt = $('txt'), im = $('picImg');
-    const empty = !d || (!d.text && !d.img);
+    const top = $('top'), txt = $('txt'), list = imgsOf(d);
+    const empty = !d || (!d.text && !list.length);
     top.innerHTML = empty ? '' : '<b>Bài tập về nhà</b><span>Gửi vào ' + when(d.at) + '</span>';
     if (empty) txt.innerHTML = '<span class="empty">Chưa có bài tập</span>';
     else txt.textContent = d.text || '';
-    $('msg').hidden = txt.hidden = !empty && !d.text;
-    if (!empty && d.img) { im.hidden = false; if (im.getAttribute('src') !== d.img) im.src = d.img; }
-    else { im.hidden = true; im.removeAttribute('src'); }
-    $('pic').hidden = im.hidden;
+    $('msg').hidden = !empty && !d.text;
+    pics.forEach((p, i) => {
+      const im = p.firstElementChild;
+      p.hidden = !list[i];
+      if (list[i]) { if (im.getAttribute('src') !== list[i]) im.src = list[i]; }
+      else im.removeAttribute('src');
+    });
     $('msg').scrollTop = 0;
     layout();
   }
   // Box tin nhắn rộng bằng khổ A4 dọc (210 × 297) của chiều cao tối đa; chiều cao thì theo nội dung.
-  // Box ảnh cao hết chiều cao tối đa, rộng theo tỉ lệ ảnh; thiếu chỗ thì box tin nhắn hẹp lại.
+  // Box ảnh cao hết chiều cao tối đa, rộng theo tỉ lệ ảnh. Thiếu chỗ thì box tin nhắn hẹp lại, tới 280px;
+  // vẫn thiếu thì các box ảnh cùng thấp xuống.
   function layout(){
-    const v = $('view'), cs = getComputedStyle(v), m = $('msg'), p = $('pic'), im = $('picImg');
+    const v = $('view'), cs = getComputedStyle(v), m = $('msg');
     const W = v.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     const H = v.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-    let mw = Math.min(W, Math.round(H * 210 / 297)), pw = 0;
-    if (!p.hidden && im.naturalWidth) {
-      pw = Math.min(W, Math.round((H - 32) * im.naturalWidth / im.naturalHeight + 32));
-      p.style.width = pw + 'px'; p.style.height = Math.round((pw - 32) * im.naturalHeight / im.naturalWidth + 32) + 'px';
-      if (!m.hidden) mw = Math.max(0, Math.min(mw, W - pw - 12));
+    const shown = pics.filter(p => !p.hidden && p.firstElementChild.naturalWidth);
+    const ratios = shown.map(p => p.firstElementChild.naturalWidth / p.firstElementChild.naturalHeight);
+    const boxes = shown.length + (m.hidden ? 0 : 1), gaps = Math.max(0, boxes - 1) * 12;
+    let mw = m.hidden ? 0 : Math.min(W, Math.round(H * 210 / 297));
+    const sum = ratios.reduce((a, r) => a + r, 0);
+    let h = H;
+    if (sum) {
+      const minMw = m.hidden ? 0 : Math.min(mw, 280);
+      h = Math.min(H, (W - gaps - minMw) / sum);
+      mw = m.hidden ? 0 : Math.min(mw, W - gaps - Math.round(h * sum));
     }
+    shown.forEach((p, i) => { p.style.height = Math.round(h) + 'px'; p.style.width = Math.round(h * ratios[i]) + 'px'; });
     m.style.width = mw + 'px'; m.style.maxHeight = H + 'px';
-    $('stage').style.width = (m.hidden ? 0 : mw) + (pw && !m.hidden ? 12 : 0) + pw + 'px';
+    $('stage').style.width = mw + gaps + shown.reduce((a, p) => a + parseFloat(p.style.width), 0) + 'px';
   }
   if (TV) {
     addEventListener('resize', layout);
-    $('picImg').addEventListener('load', layout);
+    pics.forEach(p => p.firstElementChild.addEventListener('load', layout));
     // Lên/xuống trên remote cuộn tin nhắn dài.
     addEventListener('keydown', e => {
       const m = $('msg'), step = m.clientHeight * .6;
       if (e.key === 'ArrowDown') { m.scrollBy({top: step, behavior:'smooth'}); e.preventDefault(); }
       if (e.key === 'ArrowUp') { m.scrollBy({top: -step, behavior:'smooth'}); e.preventDefault(); }
     });
-    if (ref) ref.on('value', s => { renderView(s.val()); ready($('picImg').hidden ? null : $('picImg')); },
+    if (ref) ref.on('value', s => { renderView(s.val()); ready(pics[0].hidden ? null : pics[0].firstElementChild); },
       () => { renderView(null); ready(); });
     else { renderView(null); ready(); }
     return;
@@ -230,8 +249,10 @@
 
   /* ---------- Trang đăng ---------- */
   const text = $('text'), zone = $('zone'), file = $('file'), save = $('save');
-  let saved = {text:'', img:'', at:0};   // bản đang có trên Firebase
-  let img = '';                          // ảnh đang hiển thị trong ô (data URL)
+  let saved = {text:'', imgs:[], at:0};  // bản đang có trên Firebase (ảnh ở img và img2)
+  let imgs = [];                         // ảnh đang hiển thị trong ô (data URL), tối đa 2
+  let slot = 0;                          // ảnh vừa chọn từ máy sẽ vào vị trí này
+  const same = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
 
   addEventListener('scroll', () => document.body.classList.toggle('scrolled', scrollY > 0), {passive:true});
 
@@ -242,24 +263,34 @@
     t.append(msg); t.classList.toggle('err', !!err); t.classList.add('on');
     clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), err ? 6000 : 4000);
   }
-  function dirty(){ return text.value !== saved.text || img !== saved.img; }
+  function dirty(){ return text.value !== saved.text || !same(imgs, saved.imgs); }
   function refresh(){ $('savebar').classList.toggle('on', dirty()); }
-  $('discard').addEventListener('click', () => { text.value = saved.text; img = saved.img; drawZone(); refresh(); });
+  $('discard').addEventListener('click', () => { text.value = saved.text; imgs = saved.imgs.slice(); drawZone(); refresh(); });
   function meta(){
     $('meta').textContent = saved.at ? 'Gửi vào ' + when(saved.at) : 'Chưa có bài';
   }
 
+  // Chưa có ảnh: vùng nét đứt "Thêm ảnh". Có ảnh: các ảnh cạnh nhau, mỗi ảnh có nút bỏ; còn chỗ thì thêm ô "Thêm ảnh".
+  const PILL = '<span class="pill"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#101010" stroke-width="1.6" stroke-linecap="round"/></svg>Thêm ảnh</span>';
   function drawZone(){
-    zone.classList.toggle('filled', !!img);
-    if (img) {
-      zone.innerHTML = '<img alt="Ảnh bài mẫu"><button class="x" type="button" aria-label="Bỏ ảnh">'
+    zone.classList.toggle('filled', imgs.length > 0);
+    if (!imgs.length) { zone.innerHTML = PILL; zone.dataset.slot = 0; return; }
+    zone.innerHTML = '';
+    imgs.forEach((src, i) => {
+      const s = document.createElement('div');
+      s.className = 'shot'; s.dataset.slot = i;
+      s.innerHTML = '<img alt="Ảnh bài mẫu ' + (i + 1) + '"><button class="x" type="button" aria-label="Bỏ ảnh">'
         + '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>';
-      zone.querySelector('img').src = img;
-      const x = zone.querySelector('.x');
-      x.addEventListener('click', e => { e.stopPropagation(); img = ''; drawZone(); refresh(); });
+      s.querySelector('img').src = src;
+      const x = s.querySelector('.x');
+      x.addEventListener('click', e => { e.stopPropagation(); imgs.splice(i, 1); drawZone(); refresh(); });
       x.addEventListener('keydown', e => e.stopPropagation());
-    } else {
-      zone.innerHTML = '<span class="pill"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#101010" stroke-width="1.6" stroke-linecap="round"/></svg>Thêm ảnh</span>';
+      zone.append(s);
+    });
+    if (imgs.length < 2) {
+      const a = document.createElement('div');
+      a.className = 'add'; a.dataset.slot = imgs.length; a.innerHTML = PILL;
+      zone.append(a);
     }
   }
 
@@ -279,21 +310,29 @@
       im.src = u;
     });
   }
-  async function take(f){
-    if (!f || !/^image\//.test(f.type)) return;
-    try { img = await shrink(f); drawZone(); refresh(); }
-    catch(e){ toast('Không đọc được ảnh này', true); }
+  // Đưa ảnh vào vị trí i (0 hoặc 1); không chỉ rõ thì vào chỗ trống kế tiếp, đủ 2 ảnh rồi thì thay ảnh thứ hai.
+  async function take(files, i){
+    files = [...files].filter(f => f && /^image\//.test(f.type));
+    for (const f of files) {
+      const at = i != null ? i : Math.min(imgs.length, 1);
+      i = null;
+      try { imgs[at] = await shrink(f); }
+      catch(e){ toast('Không đọc được ảnh này', true); }
+    }
+    imgs = imgs.filter(Boolean).slice(0, 2); drawZone(); refresh();
   }
 
-  zone.addEventListener('click', () => file.click());
-  zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); file.click(); } });
-  file.addEventListener('change', () => { take(file.files[0]); file.value = ''; });
+  // Bấm vào ảnh nào thì thay ảnh đó; bấm "Thêm ảnh" thì thêm vào chỗ trống.
+  const pick = e => { const t = e.target.closest('[data-slot]'); slot = t ? +t.dataset.slot : Math.min(imgs.length, 1); file.multiple = slot === imgs.length; file.click(); };
+  zone.addEventListener('click', pick);
+  zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(e); } });
+  file.addEventListener('change', () => { take(file.files, slot); file.value = ''; });
   zone.addEventListener('dragover', e => e.preventDefault());
-  zone.addEventListener('drop', e => { e.preventDefault(); take(e.dataTransfer.files[0]); });
+  zone.addEventListener('drop', e => { e.preventDefault(); const t = e.target.closest('.shot'); take(e.dataTransfer.files, t ? +t.dataset.slot : null); });
   addEventListener('paste', e => {
-    const it = [...(e.clipboardData ? e.clipboardData.items : [])].find(i => i.type.startsWith('image/'));
-    if (!it) return;
-    take(it.getAsFile());
+    const its = [...(e.clipboardData ? e.clipboardData.items : [])].filter(i => i.type.startsWith('image/'));
+    if (!its.length) return;
+    take(its.map(i => i.getAsFile()));
     // Copy từ Zalo có cả chữ lẫn ảnh: chữ vẫn dán vào ô tin nhắn như bình thường, chỉ chặn khi không có chữ.
     const hasText = e.clipboardData.types.includes('text/plain') && e.clipboardData.getData('text/plain').trim();
     if (!(hasText && e.target === text)) e.preventDefault();
@@ -303,10 +342,11 @@
 
   save.addEventListener('click', () => {
     if (!ref) { toast('Không kết nối được Firebase', true); return; }
-    const next = {text: text.value, img, at: Date.now()};
+    const next = {text: text.value, imgs: imgs.slice(), at: Date.now()};
     $('savebar').classList.add('busy'); save.innerHTML = '<span class="spin"></span>';
     // Ảnh không đổi thì không gửi lại.
-    const p = img === saved.img ? ref.update({text: next.text, at: next.at}) : ref.set(next);
+    const p = same(imgs, saved.imgs) ? ref.update({text: next.text, at: next.at})
+      : ref.set({text: next.text, img: imgs[0] || '', img2: imgs[1] || '', at: next.at});
     // Lỗi của trang sau khi đã ghi xong không được báo thành "Lưu không được".
     p.then(() => { saved = next; toast('Đã lưu'); try { meta(); } catch (e) { console.error(e); } },
            e => toast(/permission/i.test(e && e.message) ? 'Firebase chưa cho ghi nhánh /btvn' : 'Lưu không được, thử lại', true))
@@ -317,9 +357,9 @@
   if (ref) ref.on('value', s => {
     const d = s.val() || {};
     const wasDirty = dirty();
-    saved = {text: d.text || '', img: d.img || '', at: d.at || 0};
+    saved = {text: d.text || '', imgs: imgsOf(d), at: d.at || 0};
     // Đang sửa dở thì không ghi đè ô nhập.
-    if (!wasDirty) { text.value = saved.text; img = saved.img; drawZone(); }
+    if (!wasDirty) { text.value = saved.text; imgs = saved.imgs.slice(); drawZone(); }
     meta(); refresh();
     ready(zone.querySelector('img'));
   }, () => { toast('Firebase chưa cho đọc nhánh /btvn', true); ready(); });
