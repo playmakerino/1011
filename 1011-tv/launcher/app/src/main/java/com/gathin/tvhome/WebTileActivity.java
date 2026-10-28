@@ -2,6 +2,7 @@ package com.gathin.tvhome;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -107,14 +108,21 @@ abstract class WebTileActivity extends Activity {
     @Override
     public void onBackPressed() {
         if (offline.getVisibility() == View.VISIBLE) {
-            finish();
+            close();
             return;
         }
         web.evaluateJavascript("(window.TVNav && TVNav.back) ? TVNav.back() : false", result -> {
             if ("true".equals(result)) return;
             if (web.canGoBack()) web.goBack();
-            else finish();
+            else close();
         });
+    }
+
+    /** Opens Home before finishing: a tile started from adb rather than from Home would otherwise fall back to
+     *  whatever task is underneath it (FPT Play, for one). */
+    private void close() {
+        startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        finish();
     }
 
     @Override
