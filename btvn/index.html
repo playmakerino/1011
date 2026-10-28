@@ -196,15 +196,27 @@
     $('msg').scrollTop = 0;
     layout();
   }
-  // Độ rộng khung: bằng khổ A4 dọc (210 × 297) của chiều cao tối đa; chiều cao thì theo nội dung.
+  // Độ rộng khung: tối đa bằng khổ A4 dọc (210 × 297) của chiều cao tối đa; chiều cao thì theo nội dung.
+  // Có ảnh mà chữ + ảnh cao quá màn hình thì hẹp khung lại cho vừa trọn, không phải cuộn.
   function layout(){
-    const v = $('view'), cs = getComputedStyle(v);
+    const v = $('view'), cs = getComputedStyle(v), st = $('stage'), m = $('msg'), im = $('picImg');
     const W = v.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     const H = v.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-    $('stage').style.width = Math.min(W, Math.round(H * 210 / 297)) + 'px';
+    let w = Math.min(W, Math.round(H * 210 / 297));
+    st.style.width = w + 'px';
+    if (!im.hidden && im.naturalWidth) {
+      const r = im.naturalHeight / im.naturalWidth, pad = m.clientWidth - im.clientWidth;
+      // Hai lượt: hẹp lại thì chữ có thể xuống dòng thêm.
+      for (let i = 0; i < 2 && m.scrollHeight > H; i++) {
+        const rest = m.scrollHeight - im.offsetHeight;
+        w = Math.min(w, Math.floor((H - rest) / r + pad));
+        st.style.width = w + 'px';
+      }
+    }
   }
   if (TV) {
     addEventListener('resize', layout);
+    $('picImg').addEventListener('load', layout);
     // Lên/xuống trên remote cuộn tin nhắn dài.
     addEventListener('keydown', e => {
       const m = $('msg'), step = m.clientHeight * .6;
