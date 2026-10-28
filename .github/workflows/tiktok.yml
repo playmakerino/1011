@@ -1,16 +1,16 @@
 name: Refresh TikTok list
-# Daily refresh of avocado-tv/tiktok/teubongday.json with the newest videos, plus their thumbnails.
+# Weekly (Friday) refresh of avocado-tv/tiktok/teubongday.json with the newest videos, plus their thumbnails.
 # Runs a REAL Chrome under xvfb (NOT --headless: TikTok answers --headless with 403 and the
 # unsigned API with an empty body; only the page's own signed item_list calls return data).
 # avocado-tv/index.html serves thumbnails from tiktok/thumbs/<id>.jpg, so new videos need their file downloaded
 # and committed too (scripts/tiktok_thumbs.py, via the oembed endpoint).
-# Schedule: every day 00:17 Vietnam time = 17:17 UTC (off the :00 mark, which GitHub delays/drops
-# under load). Only the newest 20 each day: a whole-channel crawl does NOT work (verified 2026-09-19,
+# Schedule: every Friday 00:17 Vietnam time = Thursday 17:17 UTC (off the :00 mark, which GitHub delays/drops
+# under load). Only the newest 20 each run: a whole-channel crawl does NOT work (verified 2026-09-19,
 # run 35431776917: TikTok answers item_list with an empty body after ~3 pages on a runner, ~22 pages
 # from a home IP), and the merge never drops videos, so the full list stays complete anyway.
 on:
   schedule:
-    - cron: "17 17 * * *"
+    - cron: "17 17 * * 4"
   workflow_dispatch:
     inputs:
       target:
