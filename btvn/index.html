@@ -80,14 +80,22 @@
   /* Rê chuột: nền xám #f7f7f7, nút giữ nguyên màu (như Shopify). */
   .zone .empty-drop:hover,.zone:focus-visible .empty-drop{background:#f7f7f7}
   .zone:focus-visible .empty-drop{border-color:var(--focus)}
-  .pill{height:28px;border-radius:9999px;padding:4px 12px 4px 8px;background:#ebebeb;font-weight:500;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+  /* Hai nút như ô Media trang Thêm sản phẩm: "Upload" nút xám bo tròn, "Paste" nút chữ trơn bên cạnh (khe 12px).
+     Ở ô thứ hai (đã có 1 ảnh) hai nút xếp trên dưới. */
+  .btns{display:flex;align-items:center;gap:12px}
+  .add .btns{flex-direction:column;gap:8px}
+  .pill,.paste{height:28px;border-radius:9999px;padding:4px 12px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;white-space:nowrap;color:var(--text)}
+  .pill{background:#ebebeb}
+  .pill:hover{background:#e3e3e3}
+  .paste{background:none}
+  .paste:hover{text-decoration:underline}
   /* Có ảnh: như ô ảnh ở phần Media trang sản phẩm (đo 2026-10-28): viền liền 1px #c0c0c0, bo 12px, nền trắng; ảnh
      lấp kín ô (cover, khác Shopify). Còn chỗ thì ô thêm ảnh vuông: nét đứt #c0c0c0, nền #f7f7f7, chỉ có dấu + 20px. */
   .zone .shot,.zone .add{position:relative;grid-row:1;aspect-ratio:1;border-radius:12px;cursor:pointer;min-width:0}
   .zone.filled > :nth-child(1){grid-column:1}
   .zone.filled > :nth-child(2){grid-column:2}
   .zone .shot{border:1px solid #c0c0c0;background:#fff}
-  .zone .add{border:1px dashed #c0c0c0;background:#f7f7f7;display:grid;place-items:center}
+  .zone .add{border:1px dashed #c0c0c0;background:#f7f7f7;display:flex;align-items:center;justify-content:center}
   .zone .add:hover{background:#f1f1f1}
   .zone .shot img{display:block;width:100%;height:100%;object-fit:cover;border-radius:11px}
   .zone .x{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:#fff;display:none;place-items:center;color:#4a4a4a;
@@ -276,11 +284,12 @@
     $('meta').textContent = saved.at ? 'Gửi vào ' + when(saved.at) : 'Chưa có bài';
   }
 
-  // Chưa có ảnh: vùng nét đứt "Thêm ảnh". Có ảnh: ô ảnh, mỗi ô có nút bỏ; còn chỗ thì thêm ô nét đứt có dấu +.
-  const PILL = '<span class="pill"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#101010" stroke-width="1.6" stroke-linecap="round"/></svg>Thêm ảnh</span>';
+  // Chưa có ảnh: vùng nét đứt có nút Upload và Paste. Có ảnh: ô ảnh, mỗi ô có nút bỏ; còn chỗ thì thêm ô nét đứt
+  // có hai nút đó xếp trên dưới.
+  const BTNS = '<div class="btns"><span class="pill">Upload</span><button class="paste" type="button">Paste</button></div>';
   function drawZone(){
     zone.classList.toggle('filled', imgs.length > 0);
-    if (!imgs.length) { zone.innerHTML = '<div class="empty-drop" data-slot="0">' + PILL + '</div>'; return; }
+    if (!imgs.length) { zone.innerHTML = '<div class="empty-drop" data-slot="0">' + BTNS + '</div>'; return; }
     zone.innerHTML = '';
     imgs.forEach((src, i) => {
       const s = document.createElement('div');
@@ -295,8 +304,7 @@
     });
     if (imgs.length < 2) {
       const a = document.createElement('div');
-      a.className = 'add'; a.dataset.slot = imgs.length; a.setAttribute('aria-label', 'Thêm ảnh');
-      a.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4.5v11M4.5 10h11" stroke="#101010" stroke-width="1.6" stroke-linecap="round"/></svg>';
+      a.className = 'add'; a.dataset.slot = imgs.length; a.innerHTML = BTNS;
       zone.append(a);
     }
   }
@@ -329,10 +337,24 @@
     imgs = imgs.filter(Boolean).slice(0, 2); drawZone(); refresh();
   }
 
-  // Bấm vào ảnh nào thì thay ảnh đó; bấm "Thêm ảnh" thì thêm vào chỗ trống.
-  const pick = e => { const t = e.target.closest('[data-slot]'); slot = t ? +t.dataset.slot : Math.min(imgs.length, 1); file.multiple = slot === imgs.length; file.click(); };
-  zone.addEventListener('click', pick);
-  zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(e); } });
+  // Paste: đọc ảnh từ bộ nhớ tạm vào vị trí i. Không có ảnh thì báo bằng toast đỏ (toast lỗi của Shopify admin).
+  async function pasteAt(i){
+    if (!navigator.clipboard || !navigator.clipboard.read) { toast('Trình duyệt này không cho đọc bộ nhớ tạm', true); return; }
+    let items;
+    try { items = await navigator.clipboard.read(); }
+    catch(e){ toast(e && e.name === 'NotAllowedError' ? 'Chưa được phép đọc bộ nhớ tạm' : 'Không đọc được bộ nhớ tạm', true); return; }
+    for (const it of items) {
+      const type = it.types.find(t => t.startsWith('image/'));
+      if (type) { take([await it.getType(type)], i); return; }
+    }
+    toast('Chưa copy ảnh nào', true);
+  }
+
+  // Bấm vào ảnh nào thì thay ảnh đó; bấm Upload (hoặc chỗ trống của ô nét đứt) thì chọn ảnh từ máy; bấm Paste thì dán.
+  const slotOf = e => { const t = e.target.closest('[data-slot]'); return t ? +t.dataset.slot : Math.min(imgs.length, 1); };
+  const pick = e => { slot = slotOf(e); file.multiple = slot === imgs.length; file.click(); };
+  zone.addEventListener('click', e => { if (e.target.closest('.paste')) pasteAt(slotOf(e)); else pick(e); });
+  zone.addEventListener('keydown', e => { if (e.target === zone && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pick(e); } });
   file.addEventListener('change', () => { take(file.files, slot); file.value = ''; });
   // Thả ảnh được ở bất kỳ đâu trong thẻ "Ảnh bài mẫu"; thả lên một ảnh thì thay ảnh đó.
   const card = zone.closest('.card');
