@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=block" rel="stylesheet">
 <!-- Một trang cho cả hai việc: mở bình thường (điện thoại của bố mẹ) là trang đăng; mở với ?tv (ô "Bài tập" trên
-     launcher 1011 TV) là trang xem, không sửa được. Chỉ giữ một bài: /btvn = {text, img, at}. Ảnh mới thay ảnh cũ,
-     tin nhắn sửa thẳng. Giao diện theo D:\Bamboo\claude\guide\SHOPIFY-UI-GUIDE.md (Polaris). -->
+     launcher 1011 TV) là trang xem, không sửa được. Chỉ giữ một bài: /btvn = {text, img, img2, at}, tối đa 2 ảnh;
+     lưu là thay bài cũ. Giao diện theo D:\Bamboo\claude\guide\SHOPIFY-UI-GUIDE.md (Polaris). -->
 <style>
   /* ---------- Chung ---------- */
   :root{
@@ -20,11 +20,9 @@
     --card:0 0 2px rgba(0,0,0,.24),0 2px 12px rgba(0,0,0,.02),0 4px 16px rgba(0,0,0,.02),0 4px 48px rgba(0,0,0,.02);
     /* Máy tính và tivi: khoảng cách tới mép trên và mép dưới màn hình. */
     --gap-y:40px;
-    /* Độ rộng nội dung trang đăng. Máy tính: hai thẻ vuông vừa chiều cao màn hình (lề trên 34px + hàng tiêu đề 28px + 12px,
-       lề dưới 40px; hai thẻ, khe 12px, lề hai bên 16px), tối đa 760px. */
-    --mw:1000px;
+    /* Độ rộng tối đa của nội dung trang đăng. */
+    --mw:760px;
   }
-  @media (min-width:768px){ :root{--mw:min(760px, calc((100vh - 114px) * 2 + 44px))} }
   *{box-sizing:border-box}
   html,body{margin:0;background:#fff;color:var(--text)}
   body{font-family:Inter,system-ui,sans-serif;font-size:13px;line-height:20px;letter-spacing:-.01em}
@@ -109,22 +107,22 @@
   /* Hai bên: lề an toàn của Android TV, 5% (tivi cắt bớt mép). Trên và dưới: --gap-y cộng hàng tiêu đề 40px, bằng nhau
      để khung nằm đúng giữa màn hình theo cả hai chiều. */
   .view{height:100vh;padding:calc(var(--gap-y) + 40px) 5vw;display:flex;flex-direction:column;justify-content:center}
-  /* Khối chỉ chứa khung; layout() đặt độ rộng. Tiêu đề đặt ngay trên khung, thẳng mép trái, không làm lệch khung. */
-  /* Có ảnh (tối đa 2) thì mỗi ảnh một box riêng bên phải tin nhắn, cùng hàng, cách nhau 12px; các box rộng bằng nhau, xem layout(). */
+  /* Một hàng box: tin nhắn rồi mỗi ảnh một box, khe 12px; layout() đặt kích thước. Tiêu đề đặt ngay trên hàng box,
+     thẳng mép trái, không làm lệch hàng box. */
   .view .stage{position:relative;max-height:100%;min-height:0;margin:0 auto;display:flex;align-items:flex-start;gap:12px}
   /* Dòng tiêu đề như thanh trên của Shopify (Analytics · Last refreshed): tên đậm vừa, ghi chú xám cùng cỡ. */
   .view .top{position:absolute;left:0;bottom:100%;height:40px;padding-bottom:12px;display:flex;align-items:center;gap:6px;font-size:13px;line-height:28px;letter-spacing:-.02em;color:var(--text2);white-space:nowrap}
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
+  .view .msg,.view .pic{flex:none;max-height:100%;background:#fff;border-radius:20px}
   /* Box tin nhắn cao theo nội dung; cao quá màn hình thì dừng ở đó và cuộn.
      Chữ 16px như _TitleText_ ở Shopify Analytics, cao dòng 24px cho đoạn nhiều dòng. */
-  .view .msg,.view .pic{flex:none;max-height:100%;background:#fff;border-radius:20px;box-shadow:var(--card)}
-  .view .msg{padding:16px;overflow:auto;scrollbar-width:none}
+  .view .msg{padding:16px;overflow:auto;scrollbar-width:none;box-shadow:var(--card)}
   .view .msg::-webkit-scrollbar{display:none}
   .view .txt{white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:24px;letter-spacing:-.13px}
-  /* Box ảnh không có lề trắng: ảnh lấp kín box, box có đúng tỉ lệ ảnh. */
-  /* Như card ảnh theme ở mục "Discover themes" (Shopify admin, trang Themes; đọc từ CSS của trang 2026-10-28):
-     bo --p-border-radius-container (20px), bóng --p-shadow-100 (vòng 1px đen 6% và năm lớp bóng mỏng dưới đáy). */
-  .view .pic{overflow:hidden;border-radius:20px;
+  /* Box ảnh có đúng tỉ lệ ảnh, ảnh lấp kín, không lề trắng. Như card ảnh theme ở mục "Discover themes" (Shopify admin,
+     trang Themes; đọc từ CSS của trang 2026-10-28): bo --p-border-radius-container (20px), bóng --p-shadow-100
+     (vòng 1px đen 6% và năm lớp bóng mỏng dưới đáy). */
+  .view .pic{overflow:hidden;
     box-shadow:0 5px 5px -2.5px rgba(0,0,0,.03),0 3px 3px -1.5px rgba(0,0,0,.02),0 2px 2px -1px rgba(0,0,0,.02),
       0 1px 1px -.5px rgba(0,0,0,.03),0 .5px .5px 0 rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.06)}
   .view .pic img{display:block;width:100%;height:100%;object-fit:cover}
@@ -152,7 +150,7 @@
     <button class="ok" id="save" type="button">Lưu</button>
   </div>
   <main class="edit">
-    <section class="card text-card">
+    <section class="card">
       <h2>Tin nhắn của cô</h2>
       <textarea id="text" aria-label="Tin nhắn của cô" placeholder="Dán tin nhắn của cô vào đây"></textarea>
       <div class="help">Sửa thẳng tin nhắn cũ, lưu xong tivi đổi theo.</div>
@@ -235,8 +233,7 @@
     const shown = pics.filter(p => !p.hidden && p.firstElementChild.naturalWidth);
     const ratios = shown.map(p => p.firstElementChild.naturalWidth / p.firstElementChild.naturalHeight);
     const boxes = shown.length + (m.hidden ? 0 : 1), gaps = Math.max(0, boxes - 1) * 12;
-    let w = Math.min((W - gaps) / Math.max(1, boxes), H * 210 / 297, ...ratios.map(r => H * r));
-    w = Math.floor(w);
+    const w = Math.floor(Math.min((W - gaps) / Math.max(1, boxes), H * 210 / 297, ...ratios.map(r => H * r)));
     shown.forEach((p, i) => { p.style.width = w + 'px'; p.style.height = Math.round(w / ratios[i]) + 'px'; });
     m.style.width = w + 'px'; m.style.maxHeight = H + 'px';
     $('stage').style.width = w * boxes + gaps + 'px';
