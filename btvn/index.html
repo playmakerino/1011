@@ -131,6 +131,9 @@
   .view .msg{padding:16px;overflow:auto;scrollbar-width:none;box-shadow:var(--card)}
   .view .msg::-webkit-scrollbar{display:none}
   .view .txt{white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:24px;letter-spacing:-.13px}
+  /* Mỗi dòng cô xuống dòng là một đoạn; đoạn cách nhau thêm 12px so với dòng tự xuống trong đoạn. */
+  .view .txt p{margin:0}
+  .view .txt p + p{margin-top:12px}
   /* Box ảnh có đúng tỉ lệ ảnh, ảnh lấp kín, không lề trắng. Như card ảnh theme ở mục "Discover themes" (Shopify admin,
      trang Themes; đọc từ CSS của trang 2026-10-28): bo --p-border-radius-container (20px), bóng --p-shadow-100
      (vòng 1px đen 6% và năm lớp bóng mỏng dưới đáy). */
@@ -225,7 +228,9 @@
     const empty = !d || (!d.text && !list.length);
     top.innerHTML = empty ? '' : '<b>Bài tập về nhà</b><span>Gửi vào ' + when(d.at) + '</span>';
     if (empty) txt.innerHTML = '<span class="empty">Chưa có bài tập</span>';
-    else txt.textContent = d.text || '';
+    else txt.replaceChildren(...(d.text || '').split('\n').filter(l => l.trim()).map(l => {
+      const p = document.createElement('p'); p.textContent = l; return p;
+    }));
     $('msg').hidden = !empty && !d.text;
     pics.forEach((p, i) => {
       const im = p.firstElementChild;
