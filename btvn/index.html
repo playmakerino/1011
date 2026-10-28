@@ -79,7 +79,8 @@
   /* Chưa có ảnh: như ô Media ở trang Thêm sản phẩm của Shopify admin (đo 2026-10-28): nét đứt .5px #8c8c8c, nền trắng,
      bo 12px, cao tối thiểu 120px, đệm 32px, nút xám bo tròn ở giữa. Vùng này rộng hết thẻ và là chỗ bấm. */
   .zone .empty-drop{grid-area:1/1/2/3;border:.5px dashed #8c8c8c;border-radius:12px;background:#fff;min-height:120px;padding:32px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-  .zone .empty-drop:hover .pill,.zone:focus-visible .pill{background:#e3e3e3}
+  /* Rê chuột: nền xám #f7f7f7, nút giữ nguyên màu (như Shopify). */
+  .zone .empty-drop:hover,.zone:focus-visible .empty-drop{background:#f7f7f7}
   .zone:focus-visible .empty-drop{border-color:var(--focus)}
   .pill{height:28px;border-radius:9999px;padding:4px 12px 4px 8px;background:#ebebeb;font-weight:500;display:inline-flex;align-items:center;gap:4px}
   /* Có ảnh: như ô ảnh ở phần Media trang sản phẩm (đo 2026-10-28): viền liền 1px #c0c0c0, bo 12px, nền trắng; ảnh
