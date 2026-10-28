@@ -127,13 +127,14 @@
   .view .top b{color:var(--text);font-weight:500;margin-right:.2em}
   .view .msg,.view .pic{flex:none;max-height:100%;background:#fff;border-radius:20px}
   /* Box tin nhắn cao theo nội dung; cao quá màn hình thì dừng ở đó và cuộn.
-     Chữ 16px như _TitleText_ ở Shopify Analytics, cao dòng 24px cho đoạn nhiều dòng. */
+     Chữ 16px như _TitleText_ ở Shopify Analytics. */
   .view .msg{padding:16px;overflow:auto;scrollbar-width:none;box-shadow:var(--card)}
   .view .msg::-webkit-scrollbar{display:none}
-  .view .txt{white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:24px;letter-spacing:-.13px}
-  /* Mỗi dòng cô xuống dòng là một đoạn; đoạn cách nhau thêm 12px so với dòng tự xuống trong đoạn. */
+  /* Khoảng cách dòng và đoạn như ô Description ở trang Thêm sản phẩm Shopify (đo 2026-10-28): cao dòng 1.4, đoạn cách
+     nhau 1rem (16px). Mỗi dòng cô xuống dòng là một đoạn. */
+  .view .txt{white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:1.4;letter-spacing:-.13px}
   .view .txt p{margin:0}
-  .view .txt p + p{margin-top:12px}
+  .view .txt p + p{margin-top:16px}
   /* Box ảnh có đúng tỉ lệ ảnh, ảnh lấp kín, không lề trắng. Như card ảnh theme ở mục "Discover themes" (Shopify admin,
      trang Themes; đọc từ CSS của trang 2026-10-28): bo --p-border-radius-container (20px), bóng --p-shadow-100
      (vòng 1px đen 6% và năm lớp bóng mỏng dưới đáy). */
