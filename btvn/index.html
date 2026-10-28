@@ -75,7 +75,6 @@
      khoảng cách đoạn riêng như Shopify (16px); trên tivi thì có. */
   textarea{display:block;width:100%;flex:1;min-height:0;resize:none;overflow:auto;border:0;outline:0;border-radius:12px;padding:6px 12px;
     font:inherit;font-size:14px;line-height:1.4;letter-spacing:normal;color:var(--text);box-shadow:var(--ring)}
-  textarea::placeholder{color:var(--ph)}
   textarea:focus{box-shadow:var(--ring-focus)}
   /* Ô ảnh: lưới hai ô vuông, khe 6px; ::before luôn giữ chiều cao một ô vuông, nên có ảnh hay chưa thì hai thẻ vẫn
      cao như nhau. */
@@ -172,7 +171,7 @@
   <main class="edit">
     <section class="card">
       <h2>Tin nhắn của cô</h2>
-      <textarea id="text" aria-label="Tin nhắn của cô" placeholder="Dán tin nhắn của cô vào đây"></textarea>
+      <textarea id="text" aria-label="Tin nhắn của cô"></textarea>
       <div class="help">Sửa thẳng tin nhắn cũ, lưu xong tivi đổi theo.</div>
     </section>
     <section class="card">
