@@ -2,3 +2,5 @@
 *
 !*.html
 !.gitignore
+# local-only pages (hand photos from the video)
+xd_anh.html
