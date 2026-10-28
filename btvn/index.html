@@ -14,7 +14,7 @@
 <style>
   /* ---------- Chung ---------- */
   :root{
-    --text:#101010; --text2:#616161; --ph:#4a4a4a; --focus:#5083f0;
+    --text:#101010; --text2:#616161; --hint:#4a4a4a; --focus:#5083f0;
     --ring:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.13);
     --ring-focus:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 0 0 1px #5083f0,0 0 0 3px rgba(53,115,246,.06),0 4px 20px 2px rgba(53,115,246,.06);
     --card:0 0 2px rgba(0,0,0,.24),0 2px 12px rgba(0,0,0,.02),0 4px 16px rgba(0,0,0,.02),0 4px 48px rgba(0,0,0,.02);
@@ -70,7 +70,7 @@
   main.edit{max-width:var(--mw);margin:0 auto;padding:0 16px 24px;display:grid;grid-template-columns:1fr;grid-auto-rows:1fr;gap:12px}
   .card{background:#fff;border-radius:20px;box-shadow:var(--card);padding:16px;display:flex;flex-direction:column;min-width:0}
   .card h2{margin:0 0 12px;font-size:13px;line-height:20px;font-weight:500;letter-spacing:-.02em}
-  .help{font-size:12px;line-height:18px;color:var(--ph);margin-top:4px}
+  .help{font-size:12px;line-height:18px;color:var(--hint);margin-top:4px}
   /* Chữ 14px, cao dòng 1.4 như ô Description ở trang Thêm sản phẩm Shopify (đo 2026-10-28). Ô chữ thường nên không có
      khoảng cách đoạn riêng như Shopify (16px); trên tivi thì có. */
   textarea{display:block;width:100%;flex:1;min-height:0;resize:none;overflow:auto;border:0;outline:0;border-radius:12px;padding:6px 12px;
@@ -81,9 +81,8 @@
   .zone{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;outline:0}
   .zone::before{content:"";grid-area:1/1;aspect-ratio:1}
   /* Chưa có ảnh: như ô Media ở trang Thêm sản phẩm của Shopify admin (đo 2026-10-28): nét đứt .5px #8c8c8c, nền trắng,
-     bo 12px, cao tối thiểu 120px, đệm 32px, hai nút ở giữa. Vùng này rộng hết thẻ, cao bằng một ô vuông; bấm chỗ trống
-     là Upload. */
-  .zone .empty-drop{grid-area:1/1/2/3;border:.5px dashed #8c8c8c;border-radius:12px;background:#fff;min-height:120px;padding:32px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+     bo 12px, đệm 32px, hai nút ở giữa. Vùng này rộng hết thẻ, cao bằng một ô vuông; bấm chỗ trống là Upload. */
+  .zone .empty-drop{grid-area:1/1/2/3;border:.5px dashed #8c8c8c;border-radius:12px;background:#fff;padding:32px;display:flex;align-items:center;justify-content:center;cursor:pointer}
   /* Rê chuột: nền xám #f7f7f7, nút giữ nguyên màu (như Shopify). */
   .zone .empty-drop:hover,.zone:focus-visible .empty-drop{background:#f7f7f7}
   .zone:focus-visible .empty-drop{border-color:var(--focus)}
