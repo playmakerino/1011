@@ -1036,7 +1036,11 @@ function closePlayer(fromHistory){
   lastFocused=null;
   if(histPushed){ histPushed=false; if(fromHistory!==true) history.back(); }
 }
-window.addEventListener("popstate",()=>{ closePlayer(true); ttCloseFeed(true); });
+window.addEventListener("popstate",()=>{
+  // Back (the app's goBack) with the controls up: hide them and put the player's entry back, so the next Back closes
+  if(isOpen() && backPress()){ try{ history.pushState({player:1},""); }catch(_){ histPushed=false; } return; }
+  closePlayer(true); ttCloseFeed(true);
+});
 
 // ---- remote / keyboard control of the player ----
 // Seeking works like the YouTube TV app: Left/Right only move the scrubber on the bar (the video plays
@@ -1096,24 +1100,40 @@ function togglePlay(){
 }
 // OK like the YouTube TV app: while playing with the controls hidden, the first press only brings the
 // bar up; a press while it shows pauses. The media keys still toggle at once.
+// Up/Down bring the bar up the same way; Back with it up (while playing) only hides it.
+function isPlaying(){ return dvList?!dvEl.paused:ytReady&&yt.getPlayerState()===1; }
+function controlsUp(){ return ybar.classList.contains("on") || (!dvList && Date.now()-wakeAt<BAR_MS); } // wakeAt: the embed's own controls were poked up under 3 s ago
+function showControls(){ showBar(); if(seekTarget==null) drawBar(pTime()); if(!dvList) pokeYt(); }
 function okPress(){
   if(!dvList&&!ytReady){ toast("Loading…"); return; }
-  const playing=dvList?!dvEl.paused:yt.getPlayerState()===1;
-  if(playing && seekTarget==null && !ybar.classList.contains("on") && Date.now()-wakeAt>=BAR_MS){ // wakeAt: the embed's own controls were poked up under 3 s ago
-    showBar(); drawBar(pTime()); if(!dvList) pokeYt(); return;
-  }
+  if(isPlaying() && seekTarget==null && !controlsUp()){ showControls(); return; }
   togglePlay();
 }
+function upDown(){ if(isPlaying() && !controlsUp()) showControls(); }
+// Back: while playing with the controls up, hide them and drop a pending jump; otherwise close. The embed's
+// own controls can't be hidden from here, they fade by themselves within 3 s.
+function backPress(){
+  if(!isPlaying() || !controlsUp()) return false;
+  seekTarget=null; hideBar(); wakeAt=0; return true;
+}
+// Holding Left/Right: one step per 150 ms of key repeat, 10 s each for the first second, 30 s after.
+let holdDir=0, holdStart=0, holdLast=0;
+function seekKey(dir,repeat){
+  const now=Date.now();
+  if(!repeat || dir!==holdDir){ holdDir=dir; holdStart=holdLast=now; seekBy(10*dir); return; }
+  if(now-holdLast<150) return;
+  holdLast=now; seekBy((now-holdStart>1000?30:10)*dir);
+}
 const KEYS={
-  ArrowLeft:()=>seekBy(-10), ArrowRight:()=>seekBy(10), ArrowUp:()=>{}, ArrowDown:()=>{}, // up/down: swallowed so focus never leaves the player
+  ArrowLeft:r=>seekKey(-1,r), ArrowRight:r=>seekKey(1,r), ArrowUp:upDown, ArrowDown:upDown, // up/down also keep focus from leaving the player
   Enter:okPress, " ":okPress, MediaPlayPause:togglePlay, MediaPlay:togglePlay, MediaPause:togglePlay,
-  MediaRewind:()=>seekBy(-10), MediaFastForward:()=>seekBy(10), MediaStop:()=>closePlayer(), Escape:()=>closePlayer(),
+  MediaRewind:()=>seekBy(-10), MediaFastForward:()=>seekBy(10), MediaStop:()=>closePlayer(), Escape:()=>{ if(!backPress()) closePlayer(); },
 };
-function handleKey(k){ const f=KEYS[k]; if(!f||!isOpen()) return false; f(); return true; }
+function handleKey(k,repeat){ const f=KEYS[k]; if(!f||!isOpen()) return false; f(repeat); return true; }
 // called from the Android app for media buttons the WebView doesn't forward
 window.tvKey=k=>{ if(isOpen()) return handleKey(k); if(ttFeedOpen) return ttKey(k); return false; };
 document.addEventListener("keydown",e=>{
-  if(isOpen()){ if(handleKey(e.key)){ e.preventDefault(); e.stopPropagation(); } return; } // block spatial nav into the iframe
+  if(isOpen()){ if(handleKey(e.key,e.repeat)){ e.preventDefault(); e.stopPropagation(); } return; } // block spatial nav into the iframe
   if(ttFeedOpen){ if(ttKey(e.key)){ e.preventDefault(); e.stopPropagation(); } return; }
   if(gridNav(e.key)){ e.preventDefault(); e.stopPropagation(); }
 },true);
