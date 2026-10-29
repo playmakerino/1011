@@ -1094,9 +1094,19 @@ function togglePlay(){
   // fakes a mouse hover there. They stay while paused, hide 3 s after play — as with a mouse.
   wakeYt();
 }
+// OK like the YouTube TV app: while playing with the controls hidden, the first press only brings the
+// bar up; a press while it shows pauses. The media keys still toggle at once.
+function okPress(){
+  if(!dvList&&!ytReady){ toast("Loading…"); return; }
+  const playing=dvList?!dvEl.paused:yt.getPlayerState()===1;
+  if(playing && seekTarget==null && !ybar.classList.contains("on") && Date.now()-wakeAt>=BAR_MS){ // wakeAt: the embed's own controls were poked up under 3 s ago
+    showBar(); drawBar(pTime()); if(!dvList) pokeYt(); return;
+  }
+  togglePlay();
+}
 const KEYS={
   ArrowLeft:()=>seekBy(-10), ArrowRight:()=>seekBy(10), ArrowUp:()=>{}, ArrowDown:()=>{}, // up/down: swallowed so focus never leaves the player
-  Enter:togglePlay, " ":togglePlay, MediaPlayPause:togglePlay, MediaPlay:togglePlay, MediaPause:togglePlay,
+  Enter:okPress, " ":okPress, MediaPlayPause:togglePlay, MediaPlay:togglePlay, MediaPause:togglePlay,
   MediaRewind:()=>seekBy(-10), MediaFastForward:()=>seekBy(10), MediaStop:()=>closePlayer(), Escape:()=>closePlayer(),
 };
 function handleKey(k){ const f=KEYS[k]; if(!f||!isOpen()) return false; f(); return true; }
