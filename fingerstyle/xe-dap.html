@@ -51,17 +51,23 @@ function barAt(t){for(const m of order){const b=BEATS[m];if(t>=b[0]&&t<b[4])retu
 function glide(to,ms){const from=scrollY,t0=performance.now();
   (function step(now){const p=Math.min(1,(now-t0)/ms),e=p<.5?2*p*p:1-2*(1-p)*(1-p);
     scrollTo(0,from+(to-from)*e);if(p<1)requestAnimationFrame(step)})(t0)}
+function rowOf(m){const y=bars[m].el.getBoundingClientRect().bottom;   // bars of one grid row share their bottom
+  return order.filter(x=>Math.abs(bars[x].el.getBoundingClientRect().bottom-y)<2)}
 function show(t){const m=barAt(t);
   if(m!==cur){if(cur!==null)bars[cur].el.classList.remove('on');cur=m;
-    if(m!==null){const el=bars[m].el;el.classList.add('on');
-      if(playing&&!phone.matches){const r=el.getBoundingClientRect();if(r.top<0||r.bottom>innerHeight*.65)el.scrollIntoView({behavior:'smooth',block:'start'})}}}
+    if(m!==null)bars[m].el.classList.add('on')}
   if(m===null)return;
   const b=BEATS[m];let k=0;while(k<3&&t>=b[k+1])k++;
+  // the page moves halfway through beat 1 of a new bar (phone) / row (desktop), slowly so the eyes can follow.
   // phone (one bar per row): the bar being played, then the next one right above the video (part of the bar before may
-  // show above); a new bar moves up halfway through its beat 1, slowly so the eyes can follow
-  if(phone.matches&&playing&&t>=(b[0]+b[1])/2&&lifted!==m){lifted=m;
-    const nx=bars[order[order.indexOf(m)+1]]||bars[m],edge=document.getElementById('vid').getBoundingClientRect().top;
-    glide(scrollY+nx.el.getBoundingClientRect().bottom-edge+4,700)}
+  // show above). desktop: the row being played is the second row on screen, the row before it on top
+  if(playing&&t>=(b[0]+b[1])/2){
+    if(phone.matches){if(lifted!==m){lifted=m;
+      const nx=bars[order[order.indexOf(m)+1]]||bars[m],edge=document.getElementById('vid').getBoundingClientRect().top;
+      glide(scrollY+nx.el.getBoundingClientRect().bottom-edge+4,700)}}
+    else{const row=rowOf(m);if(lifted!==row[0]){lifted=row[0];
+      const pv=order[order.indexOf(row[0])-1],top=Math.min(...(pv?rowOf(pv):row).map(x=>bars[x].el.getBoundingClientRect().top));
+      glide(scrollY+top-12,700)}}}
   const x=(X0+BW*(k+Math.min(1,(t-b[k])/(b[k+1]-b[k])))).toFixed(1);
   bars[m].line.setAttribute('x1',x);bars[m].line.setAttribute('x2',x)}
 function tick(){if(player&&player.getCurrentTime){const r=player.getCurrentTime(),now=performance.now();
