@@ -63,8 +63,11 @@ function show(t){const m=barAt(t);
       if(playing&&!phone.matches){const r=el.getBoundingClientRect();if(r.top<0||r.bottom>innerHeight*.65)el.scrollIntoView({behavior:'smooth',block:'start'})}}}
   if(m===null)return;
   const b=BEATS[m];let k=0;while(k<3&&t>=b[k+1])k++;
-  // phone (one bar per row): the bar being played on row 1, the next one on row 2; a new bar goes up to row 1 on its beat 2
-  if(phone.matches&&playing&&k>=1&&lifted!==m){lifted=m;bars[m].el.scrollIntoView({behavior:'smooth',block:'start'})}
+  // phone (one bar per row): the bar being played, then the next one right above the video (part of the bar before may
+  // show above); a new bar moves up on its beat 2
+  if(phone.matches&&playing&&k>=1&&lifted!==m){lifted=m;
+    const nx=bars[order[order.indexOf(m)+1]]||bars[m],edge=document.getElementById('vid').getBoundingClientRect().top;
+    scrollTo({top:scrollY+nx.el.getBoundingClientRect().bottom-edge+4,behavior:'smooth'})}
   const x=(X0+BW*(k+Math.min(1,(t-b[k])/(b[k+1]-b[k])))).toFixed(1);
   bars[m].line.setAttribute('x1',x);bars[m].line.setAttribute('x2',x)}
 function tick(){if(player&&player.getCurrentTime){const r=player.getCurrentTime(),now=performance.now();
