@@ -48,6 +48,9 @@ document.querySelectorAll('.bar[data-m]').forEach(el=>{const m=+el.dataset.m;if(
 document.getElementById('vbtn').onclick=e=>{const v=document.getElementById('vid');v.classList.toggle('min');
   e.target.textContent=v.classList.contains('min')?'Hiện video':'Ẩn video'};
 function barAt(t){for(const m of order){const b=BEATS[m];if(t>=b[0]&&t<b[4])return m}return null}
+function glide(to,ms){const from=scrollY,t0=performance.now();
+  (function step(now){const p=Math.min(1,(now-t0)/ms),e=p<.5?2*p*p:1-2*(1-p)*(1-p);
+    scrollTo(0,from+(to-from)*e);if(p<1)requestAnimationFrame(step)})(t0)}
 function show(t){const m=barAt(t);
   if(m!==cur){if(cur!==null)bars[cur].el.classList.remove('on');cur=m;
     if(m!==null){const el=bars[m].el;el.classList.add('on');
@@ -55,10 +58,10 @@ function show(t){const m=barAt(t);
   if(m===null)return;
   const b=BEATS[m];let k=0;while(k<3&&t>=b[k+1])k++;
   // phone (one bar per row): the bar being played, then the next one right above the video (part of the bar before may
-  // show above); a new bar moves up on its beat 2
-  if(phone.matches&&playing&&k>=1&&lifted!==m){lifted=m;
+  // show above); a new bar moves up halfway through its beat 1, slowly so the eyes can follow
+  if(phone.matches&&playing&&t>=(b[0]+b[1])/2&&lifted!==m){lifted=m;
     const nx=bars[order[order.indexOf(m)+1]]||bars[m],edge=document.getElementById('vid').getBoundingClientRect().top;
-    scrollTo({top:scrollY+nx.el.getBoundingClientRect().bottom-edge+4,behavior:'smooth'})}
+    glide(scrollY+nx.el.getBoundingClientRect().bottom-edge+4,700)}
   const x=(X0+BW*(k+Math.min(1,(t-b[k])/(b[k+1]-b[k])))).toFixed(1);
   bars[m].line.setAttribute('x1',x);bars[m].line.setAttribute('x2',x)}
 function tick(){if(player&&player.getCurrentTime){const r=player.getCurrentTime(),now=performance.now();
