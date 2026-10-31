@@ -734,18 +734,32 @@ v.addEventListener('error',function(){ev('error')});
 function play(){v.play().catch(function(){});}
 /* Seeking as in the YouTube player: Left/Right move the scrubber only, OK applies the jump (or it is applied
    when the bar hides, 3 s after the last press). The bar stays up while paused, so the time can be read. */
-var target=null,barT=0,tick=0;
+var target=null,barT=0,tick=0,on=false;
 function draw(x){var d=v.duration||0,fr=d?Math.max(0,Math.min(1,x/d)):0,l=0;try{var r=v.buffered;if(d&&r.length)l=r.end(r.length-1)/d;}catch(e){}
 PL.style.width=fr*100+'%';KN.style.left=fr*100+'%';LD.style.width=Math.max(fr,l)*100+'%';TM.textContent=f(x)+' / '+f(d);}
-function showBar(){fit();bar.style.opacity='1';clearTimeout(barT);if(!v.paused)barT=setTimeout(hideBar,3000);
+function showBar(){fit();on=true;bar.style.opacity='1';clearTimeout(barT);if(!v.paused)barT=setTimeout(hideBar,3000);
 if(!tick)tick=setInterval(function(){if(target==null)draw(v.currentTime);},250);}
-function hideBar(){clearTimeout(barT);clearInterval(tick);tick=0;bar.style.opacity='0';flush();}
+function hideBar(){clearTimeout(barT);clearInterval(tick);tick=0;on=false;bar.style.opacity='0';flush();}
 function flush(){if(target==null)return;var x=target;target=null;v.currentTime=x;}
-window.__tt={start:play,play:play,unmute:function(){v.muted=false;},pause:function(){v.pause();},
-toggle:function(){if(target!=null){flush();showBar();return;} /* OK with a jump pending confirms it — never play/pause */
-if(v.paused){play();toast(ICO_PAUSE);}else{v.pause();toast(ICO_PLAY);draw(v.currentTime);}showBar();}, /* icon = state now: paused shows ▶ */
-seek:function(d){var dur=v.duration||0,x=(target==null?v.currentTime:target)+d;if(x<0)x=0;if(dur&&x>dur-1)x=dur-1;target=x;draw(x);showBar();},
-stop:function(){clearTimeout(barT);clearInterval(tick);tick=0;target=null;try{v.pause();v.removeAttribute('src');v.load();}catch(e){}}};
+function toggle(){if(target!=null){flush();showBar();return;} /* OK with a jump pending confirms it — never play/pause */
+if(v.paused){play();toast(ICO_PAUSE);}else{v.pause();toast(ICO_PLAY);draw(v.currentTime);}showBar();} /* icon = state now: paused shows ▶ */
+function seek(d){var dur=v.duration||0,x=(target==null?v.currentTime:target)+d;if(x<0)x=0;if(dur&&x>dur-1)x=dur-1;target=x;draw(x);showBar();}
+/* The rest of the remote as in the YouTube player: OK while playing with the bar hidden only brings it up,
+   Up/Down do the same, Back with the bar up while playing only hides it, holding Left/Right steps 10 s per
+   150 ms for the first second and 30 s after. */
+function playing(){return !v.paused&&!v.ended;}
+function controls(){showBar();if(target==null)draw(v.currentTime);}
+var hd=0,hs=0,hl=0;
+function seekKey(dir,rep){var n=Date.now();if(!rep||dir!==hd){hd=dir;hs=hl=n;seek(10*dir);return;}if(n-hl<150)return;hl=n;seek((n-hs>1000?30:10)*dir);}
+window.__tt={start:play,play:play,unmute:function(){v.muted=false;},pause:function(){v.pause();},toggle:toggle,seek:seek,
+key:function(k,rep){switch(k){ /* from the app's remote; false = not handled (Back then closes the player) */
+case 'ok':if(playing()&&target==null&&!on)controls();else toggle();return true;
+case 'play':toggle();return true;
+case 'left':seekKey(-1,rep);return true;case 'right':seekKey(1,rep);return true;
+case 'rew':seek(-10);return true;case 'ff':seek(10);return true;
+case 'updown':if(playing()&&!on)controls();return true;
+case 'back':if(!playing()||!on)return false;target=null;hideBar();return true;}return false;},
+stop:function(){clearTimeout(barT);clearInterval(tick);tick=0;on=false;target=null;try{v.pause();v.removeAttribute('src');v.load();}catch(e){}}};
 v.src=u;if(ap)play(); /* the app shows the player on the first frame */
 }catch(e){try{TVNative.event('error');}catch(x){}}})`.replace("__GRAD__",GRAD_PNG);
 function ttItem(v,i){

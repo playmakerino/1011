@@ -582,22 +582,28 @@ public class MainActivity extends Activity {
         if (web != null) web.evaluateJavascript("window.tvTikTok&&tvTikTok(" + JSONObject.quote(ev) + ")", null);
     }
 
-    // Remote while the TikTok player is showing. Returns true when the key was consumed.
+    // Remote while the TikTok player is showing: each key goes to the player's __tt.key (index.html), which
+    // behaves like the YouTube player. Returns true when the key was consumed.
     private boolean ttKey(KeyEvent ev) {
-        String js = null;
+        String k;
         switch (ev.getKeyCode()) {
-            case KeyEvent.KEYCODE_DPAD_CENTER: case KeyEvent.KEYCODE_ENTER: case KeyEvent.KEYCODE_NUMPAD_ENTER:
-            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE: case KeyEvent.KEYCODE_MEDIA_PLAY: case KeyEvent.KEYCODE_MEDIA_PAUSE:
-                js = "window.__tt&&__tt.toggle()"; break;
-            case KeyEvent.KEYCODE_DPAD_LEFT: case KeyEvent.KEYCODE_MEDIA_REWIND: js = "window.__tt&&__tt.seek(-10)"; break;
-            case KeyEvent.KEYCODE_DPAD_RIGHT: case KeyEvent.KEYCODE_MEDIA_FAST_FORWARD: js = "window.__tt&&__tt.seek(10)"; break;
-            case KeyEvent.KEYCODE_DPAD_UP: case KeyEvent.KEYCODE_DPAD_DOWN: break; // swallowed: Back to the grid to pick another video
-            case KeyEvent.KEYCODE_BACK: case KeyEvent.KEYCODE_MEDIA_STOP: case KeyEvent.KEYCODE_ESCAPE:
+            case KeyEvent.KEYCODE_DPAD_CENTER: case KeyEvent.KEYCODE_ENTER: case KeyEvent.KEYCODE_NUMPAD_ENTER: k = "ok"; break;
+            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE: case KeyEvent.KEYCODE_MEDIA_PLAY: case KeyEvent.KEYCODE_MEDIA_PAUSE: k = "play"; break;
+            case KeyEvent.KEYCODE_DPAD_LEFT: k = "left"; break;
+            case KeyEvent.KEYCODE_DPAD_RIGHT: k = "right"; break;
+            case KeyEvent.KEYCODE_MEDIA_REWIND: k = "rew"; break;
+            case KeyEvent.KEYCODE_MEDIA_FAST_FORWARD: k = "ff"; break;
+            case KeyEvent.KEYCODE_DPAD_UP: case KeyEvent.KEYCODE_DPAD_DOWN: k = "updown"; break;
+            case KeyEvent.KEYCODE_BACK: case KeyEvent.KEYCODE_ESCAPE: k = "back"; break;
+            case KeyEvent.KEYCODE_MEDIA_STOP:
                 if (ev.getAction() == KeyEvent.ACTION_DOWN) ttClose();
                 return true;
             default: return false; // volume etc. pass through
         }
-        if (js != null && ev.getAction() == KeyEvent.ACTION_DOWN && tt != null) tt.evaluateJavascript(js, null);
+        if (ev.getAction() != KeyEvent.ACTION_DOWN || tt == null) return true;
+        String js = "!!(window.__tt&&__tt.key&&__tt.key('" + k + "'," + (ev.getRepeatCount() > 0) + "))";
+        if ("back".equals(k)) tt.evaluateJavascript(js, r -> { if (!"true".equals(r) && ttVisible) ttClose(); }); // not handled: close
+        else tt.evaluateJavascript(js, null);
         return true;
     }
 }
