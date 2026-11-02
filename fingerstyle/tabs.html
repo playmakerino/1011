@@ -282,12 +282,30 @@ table.map tbody tr:nth-child(even),table.deg tbody tr:nth-child(even){background
 .tg.key{background:var(--accent);color:#1877f2}
 .list li{border:0}.list a{border-radius:6px;padding:12px 8px}.list a:hover{background:var(--bg)}
 </style>
-<style>.songs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:12px}.song{display:flex;flex-direction:column;gap:2px;background:var(--card);border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.2);padding:14px 16px;color:var(--fg);text-decoration:none}.song b{font-size:18px}.song:hover b{text-decoration:underline}.song .tgs{padding:8px 0 0}.list{list-style:none;padding:0;margin:0}.list li{border-bottom:1px solid var(--line)}.list li:last-child{border:0}.list a{display:flex;justify-content:space-between;gap:12px;padding:12px 4px;color:var(--fg);text-decoration:none}.list a:hover b{text-decoration:underline}</style>
+<style>.songs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:12px}.song{display:flex;flex-direction:column;gap:2px;background:var(--card);border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.2);padding:14px 16px;color:var(--fg);text-decoration:none}.song b{font-size:18px}.song:hover b{text-decoration:underline}.song .tgs{padding:8px 0 0}
+/* Polaris look */
+body{background:#f1f1f1;color:#303030;font:13px/20px Inter,-apple-system,BlinkMacSystemFont,"San Francisco","Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+main{max-width:998px;padding:24px 16px 80px}
+.hero{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:0 0 16px}
+.hero .kicker{display:none}.hero h1{font-size:26px;line-height:32px;font-weight:500;margin:0;letter-spacing:-.52px}
+.toc{margin:24px 0 0;justify-content:center}.toc a{background:none;box-shadow:none;padding:6px 12px;border-radius:999px;color:#303030;font-size:13px;font-weight:450;text-decoration:none}.toc a:hover{background:rgba(0,0,0,.07);color:#303030}
+.songs{gap:16px}
+.song{background:#fff;border-radius:12px;padding:16px;gap:4px;box-shadow:0 1px 0 0 rgba(26,26,26,.07),0 1px 0 0 rgba(204,204,204,.5) inset,0 -1px 0 0 rgba(0,0,0,.17) inset,-1px 0 0 0 rgba(0,0,0,.13) inset,1px 0 0 0 rgba(0,0,0,.13) inset;color:#303030}
+.song:hover{background:#fafafa}.song:hover b{text-decoration:none}
+.song b{font-size:15px;line-height:22px;font-weight:500}
+.song .small{font-size:13px;line-height:20px;letter-spacing:-.13px;color:#616161}
+.song .tgs{gap:4px;padding:8px 0 0}
+.song .prog{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin-top:6px}
+.song .prog b{font-size:14px;line-height:20px;font-weight:550;color:#303030;letter-spacing:-.13px}
+.song .prog sub{font-size:11px;color:#8a8a8a;margin-left:2px;vertical-align:baseline;position:relative;top:2px}
+.song .prog em{font-style:normal;color:#b5b5b5}
+.song .tg{background:rgba(0,0,0,.06);color:#303030;border-radius:8px;font-size:12px;font-weight:550;line-height:16px;padding:2px 8px}
+.list{list-style:none;padding:0;margin:0}.list li{border-bottom:1px solid var(--line)}.list li:last-child{border:0}.list a{display:flex;justify-content:space-between;gap:12px;padding:12px 4px;color:var(--fg);text-decoration:none}.list a:hover b{text-decoration:underline}</style>
 </head><body><main>
-<header class="hero"><p class="kicker">Fingerstyle</p><h1>Danh sách tab</h1>
-<nav class="toc"><a href="guide.html">Hướng dẫn tự dựng fingerstyle</a></nav></header>
+<header class="hero"><p class="kicker">Fingerstyle</p><h1>Danh sách tab</h1></header>
 <div class="songs">
-<a class="song" href="beo-dat-may-troi.html"><b>Bèo dạt mây trôi</b><span class="small">Giọng Đô trưởng (C)</span><div class="tgs"><span class="tg">C</span><span class="tg">G/B</span><span class="tg">Am</span><span class="tg">Gm6</span><span class="tg">C7</span><span class="tg">F</span><span class="tg">G</span><span class="tg">C</span></div></a>
-<a class="song" href="xe-dap.html"><b>Xe đạp</b><span class="small">Giọng Mi trưởng (E)</span><div class="tgs"><span class="tg">Amaj7</span><span class="tg">E/G#</span><span class="tg">Em/G</span><span class="tg">F#m7</span><span class="tg">A/B</span><span class="tg">Emaj7</span></div></a>
+<a class="song" href="beo-dat-may-troi.html"><b>Bèo dạt mây trôi</b><span class="prog"><span><b>C</b><sub>I</sub></span><em>→</em><span><b>G/B</b><sub>V</sub></span><em>→</em><span><b>Am</b><sub>VI</sub></span><em>→</em><span><b>F</b><sub>IV</sub></span><em>→</em><span><b>G</b><sub>V</sub></span><em>→</em><span><b>C</b><sub>I</sub></span></span></a>
+<a class="song" href="xe-dap.html"><b>Xe đạp</b><span class="prog"><span><b>Amaj7</b><sub>IV</sub></span><em>→</em><span><b>E/G#</b><sub>I</sub></span><em>→</em><span><b>F#m7</b><sub>II</sub></span><em>→</em><span><b>A/B</b><sub>V</sub></span><em>→</em><span><b>Emaj7</b><sub>I</sub></span></span></a>
 </div>
+<nav class="toc"><a href="guide.html">Hướng dẫn tự dựng fingerstyle</a></nav>
 </main></body></html>
