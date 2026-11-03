@@ -78,14 +78,4 @@ function onYouTubeIframeAPIReady(){player=new YT.Player('yt',{videoId:'pCqIrs_t_
   events:{onStateChange:e=>{playing=e.data===1;raw=-1}}});requestAnimationFrame(tick)}
 </script>
 <script src="https://www.youtube.com/iframe_api"></script>
-</div>
-<script>
-// remote (TV) / keyboard up and down: the page moves exactly one row of bars, the row's top at the top of the screen
-addEventListener('keydown',e=>{const d=e.key==='ArrowDown'?1:e.key==='ArrowUp'?-1:0;if(!d)return;e.preventDefault();
-  const rows=[];document.querySelectorAll('.sys>.bar').forEach(el=>{const r=el.getBoundingClientRect(),t=r.top+scrollY,b=r.bottom+scrollY,
-    row=rows.find(x=>Math.abs(x.b-b)<2);row?row.t=Math.min(row.t,t):rows.push({t,b})});   // bars of one grid row share their bottom
-  const ys=rows.map(x=>Math.round(x.t-12)).sort((a,b)=>a-b);
-  const to=d>0?ys.find(y=>y>scrollY+2):(ys.filter(y=>y<scrollY-2).pop()||0);
-  if(to!==undefined)scrollTo(0,to)});
-</script>
-</body></html>
+</div></body></html>
