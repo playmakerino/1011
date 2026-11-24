@@ -3,10 +3,10 @@
 TikTok's CDN URLs are signed and expire after ~2 days, so index.html cannot link them; it links
 tiktok/thumbs/<id>.jpg instead. This script fills the folder: for every video without a file it takes
 the cover URL from a fresh crawl dump (--dump, made by tiktok_seed.py), downloads it, shrinks it to
-360px wide and saves a JPEG. Videos not in the dump fall back to the public oEmbed endpoint, which
-stopped returning thumbnail_url around 2026-10-25, so in practice the dump is what works. Already-present files are skipped, so re-runs only fetch what is new.
+360px wide and saves a JPEG. A video with no cover in the dump
+counts as failed: crawl again with a larger --target so the dump reaches it. Already-present files are skipped, so re-runs only fetch what is new.
 
-    python scripts/tiktok_thumbs.py [--dump scratch/tt_dump.json] [--limit N] [--handle teubongday]
+    python scripts/tiktok_thumbs.py --dump scratch/tt_dump.json [--limit N] [--handle teubongday]
 """
 import argparse, io, json, sys, time, urllib.request
 from pathlib import Path
@@ -26,15 +26,13 @@ def main():
     ap.add_argument("--handle", default="teubongday")
     ap.add_argument("--limit", type=int, default=0, help="stop after N downloads (0 = all)")
     ap.add_argument("--sleep", type=float, default=0.3, help="pause between videos, seconds")
-    ap.add_argument("--dump", default="", help="tiktok_seed.py output to take the cover URLs from")
+    ap.add_argument("--dump", required=True, help="tiktok_seed.py output to take the cover URLs from")
     a = ap.parse_args()
 
     data = json.loads((ROOT / "tiktok" / f"{a.handle}.json").read_text(encoding="utf-8"))
-    covers = {}
-    if a.dump:
-        d = json.loads(Path(a.dump).read_text(encoding="utf-8"))
-        covers = {m["id"]: m.get("thumb") for m in d.get("missing") or []}
-        covers.update({v["id"]: v.get("cover") for v in d["data"]})
+    d = json.loads(Path(a.dump).read_text(encoding="utf-8"))
+    covers = {m["id"]: m.get("thumb") for m in d.get("missing") or []}
+    covers.update({v["id"]: v.get("cover") for v in d["data"]})
     out = ROOT / "tiktok" / "thumbs"
     out.mkdir(parents=True, exist_ok=True)
     todo = [v for v in data["videos"] if not (out / f"{v['id']}.jpg").exists()]
@@ -48,8 +46,7 @@ def main():
         try:
             url = covers.get(vid)
             if not (url or "").startswith("http"):  # a DOM card's img can be a data: placeholder
-                oe = f"https://www.tiktok.com/oembed?url=https://www.tiktok.com/@{a.handle}/video/{vid}"
-                url = json.loads(fetch(oe))["thumbnail_url"]
+                raise ValueError("no cover URL in the dump")
             im = Image.open(io.BytesIO(fetch(url))).convert("RGB")
             im.thumbnail((WIDTH, WIDTH * 4))
             buf = io.BytesIO()
