@@ -13,5 +13,5 @@ Trang GitHub Pages: https://playmakerino.github.io/1011/ (mục lục ở `index
 ## Tự động (`.github/workflows/`)
 
 - `apk.yml`: mỗi lần `avocado-tv/android/` thay đổi, build `avocado-tv/tv.apk` và commit lại.
-- `tiktok.yml`: mỗi ngày cập nhật `avocado-tv/tiktok/` (video mới và ảnh thu nhỏ).
+- `tiktok.yml`: mỗi tuần (thứ Bảy 00:17 giờ Việt Nam) cập nhật `avocado-tv/tiktok/` (video mới và ảnh thu nhỏ).
 - `drive-assets.yml`: khi `avocado-tv/drive/*.json` đổi, chép ảnh và phụ đề vào `avocado-tv/drive/assets/`.
