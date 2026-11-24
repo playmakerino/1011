@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Merge a browser dump (scripts/tiktok-seed.browser.js) into the JSON that index.html reads.
+# Merge a crawl dump (scripts/tiktok_seed.py) into the JSON that index.html reads.
 #   python scripts/tiktok_seed_merge.py scratch/tt_dump.json tiktok/teubongday.json
 # Captured items replace the existing entries; `missing` cards (rendered before the hook) keep their
 # existing entry when there is one, else go in with what the DOM showed: title, views parsed from

@@ -3,8 +3,8 @@
 TikTok's CDN URLs are signed and expire after ~2 days, so index.html cannot link them; it links
 tiktok/thumbs/<id>.webp instead. This script fills the folder: for every video without a file it takes
 the cover URL from a fresh crawl dump (--dump, made by tiktok_seed.py), downloads it, shrinks it to
-360px wide and saves a WebP. A video with no cover in the dump
-counts as failed: crawl again with a larger --target so the dump reaches it. Already-present files are skipped, so re-runs only fetch what is new.
+360px wide and saves a WebP. A video with no cover in the dump counts as failed: crawl again with a
+larger --target so the dump reaches it. Already-present files are skipped, so re-runs only fetch what is new.
 
     python scripts/tiktok_thumbs.py --dump scratch/tt_dump.json [--limit N] [--handle teubongday]
 """
@@ -30,9 +30,9 @@ def main():
     a = ap.parse_args()
 
     data = json.loads((ROOT / "tiktok" / f"{a.handle}.json").read_text(encoding="utf-8"))
-    d = json.loads(Path(a.dump).read_text(encoding="utf-8"))
-    covers = {m["id"]: m.get("thumb") for m in d.get("missing") or []}
-    covers.update({v["id"]: v.get("cover") for v in d["data"]})
+    dump = json.loads(Path(a.dump).read_text(encoding="utf-8"))
+    covers = {m["id"]: m.get("thumb") for m in dump.get("missing") or []}
+    covers.update({v["id"]: v.get("cover") for v in dump["data"]})
     out = ROOT / "tiktok" / "thumbs"
     out.mkdir(parents=True, exist_ok=True)
     todo = [v for v in data["videos"] if not (out / f"{v['id']}.webp").exists()]

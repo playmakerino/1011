@@ -679,8 +679,8 @@ async function fetchTikTok(file){
 let ttList=[];                 // videos of the source now on screen; the feed pages through this
 let ttUser="";                 // handle (without @) of that source; the app needs it for the video page URL
 // The two scripts the app runs inside its TikTok WebView (MainActivity fetches them from here before
-// each load and falls back to its built-in copies). Kept in this file so a TikTok page change is fixed
-// by editing index.html — no APK rebuild/reinstall. Plain ES5; no backticks or ${} inside.
+// each load and keeps no copy of its own). Kept in this file so a TikTok page change is fixed
+// by editing index.html, no APK rebuild/reinstall. Plain ES5; no backticks or ${} inside.
 // 1) Runs on the TikTok video page: 'WAIT' until the embedded video-detail data exists (a bot-challenge
 //    page reloads itself first), 'ERR …' when the post is unavailable, else JSON {url} of the best H.264 stream.
 window.TT_EXTRACT_JS=`(function(){try{var v=null,id='',e=document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');
