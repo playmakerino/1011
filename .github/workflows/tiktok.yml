@@ -3,7 +3,7 @@ name: Refresh TikTok list
 # Runs a REAL Chrome under xvfb (NOT --headless: TikTok answers --headless with 403 and the
 # unsigned API with an empty body; only the page's own signed item_list calls return data).
 # avocado-tv/index.html serves thumbnails from tiktok/thumbs/<id>.jpg, so new videos need their file downloaded
-# and committed too (scripts/tiktok_thumbs.py, via the oembed endpoint).
+# and committed too (scripts/tiktok_thumbs.py, from the cover URLs in the crawl dump).
 # Schedule: every Saturday 00:17 Vietnam time = Friday 17:17 UTC (off the :00 mark, which GitHub delays/drops
 # under load). Only the newest 20 each run: a whole-channel crawl does NOT work (verified 2026-09-19,
 # run 35431776917: TikTok answers item_list with an empty body after ~3 pages on a runner, ~22 pages
@@ -52,7 +52,7 @@ jobs:
           [ "$ok" = 1 ] || { echo "::error title=tiktok refresh::seed captured nothing in 2 attempts"; exit 1; }
           python scripts/tiktok_seed_merge.py scratch/tt_dump.json tiktok/teubongday.json 2>&1 | tee -a seed.log
       - name: Download thumbnails for any new videos
-        run: python scripts/tiktok_thumbs.py --handle teubongday 2>&1 | tee -a seed.log || true
+        run: python scripts/tiktok_thumbs.py --handle teubongday --dump scratch/tt_dump.json 2>&1 | tee -a seed.log || true
       - name: Commit if anything changed
         run: |
           git config user.name "github-actions[bot]"
@@ -73,6 +73,11 @@ jobs:
             echo "::error title=tiktok refresh::profile counts $G more videos than the list — crawl incomplete?"
             exit 1
           fi
+      - name: Fail if a thumbnail could not be downloaded
+        if: success() || failure()
+        run: |
+          F=$(grep -o 'done: ok=[0-9]* fail=[0-9]*' seed.log | tail -n 1 | grep -o '[0-9]*$')
+          [ "${F:-x}" = 0 ] || { echo "::error title=tiktok refresh::thumbnails failed: ${F:-script did not finish}"; exit 1; }
       - name: Surface the run summary as an annotation (visible without login)
         if: always()
         run: |

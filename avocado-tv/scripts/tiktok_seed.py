@@ -31,6 +31,8 @@ def map_item(it):
         "dur": int(v.get("duration") or 0),
         "views": int(s.get("playCount") or 0),
         "pub": iso(it.get("createTime")),
+        # Signed, dies after ~2 days: only for tiktok_thumbs.py --dump; the merge does not store it.
+        "cover": v.get("cover") or v.get("originCover") or "",
     }
 
 
