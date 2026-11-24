@@ -1,9 +1,9 @@
-"""Download the TikTok thumbnails listed in tiktok/<handle>.json into tiktok/thumbs/<id>.jpg.
+"""Download the TikTok thumbnails listed in tiktok/<handle>.json into tiktok/thumbs/<id>.webp.
 
 TikTok's CDN URLs are signed and expire after ~2 days, so index.html cannot link them; it links
-tiktok/thumbs/<id>.jpg instead. This script fills the folder: for every video without a file it takes
+tiktok/thumbs/<id>.webp instead. This script fills the folder: for every video without a file it takes
 the cover URL from a fresh crawl dump (--dump, made by tiktok_seed.py), downloads it, shrinks it to
-360px wide and saves a JPEG. A video with no cover in the dump
+360px wide and saves a WebP. A video with no cover in the dump
 counts as failed: crawl again with a larger --target so the dump reaches it. Already-present files are skipped, so re-runs only fetch what is new.
 
     python scripts/tiktok_thumbs.py --dump scratch/tt_dump.json [--limit N] [--handle teubongday]
@@ -35,7 +35,7 @@ def main():
     covers.update({v["id"]: v.get("cover") for v in d["data"]})
     out = ROOT / "tiktok" / "thumbs"
     out.mkdir(parents=True, exist_ok=True)
-    todo = [v for v in data["videos"] if not (out / f"{v['id']}.jpg").exists()]
+    todo = [v for v in data["videos"] if not (out / f"{v['id']}.webp").exists()]
     print(f"{len(todo)} missing, {len(data['videos']) - len(todo)} already present", flush=True)
     if a.limit:
         todo = todo[: a.limit]
@@ -50,8 +50,8 @@ def main():
             im = Image.open(io.BytesIO(fetch(url))).convert("RGB")
             im.thumbnail((WIDTH, WIDTH * 4))
             buf = io.BytesIO()
-            im.save(buf, "JPEG", quality=78, optimize=True)
-            (out / f"{vid}.jpg").write_bytes(buf.getvalue())
+            im.save(buf, "WEBP", quality=55, method=6)
+            (out / f"{vid}.webp").write_bytes(buf.getvalue())
             ok += 1
         except Exception as e:  # keep going; a re-run picks the missing ones up
             fail += 1

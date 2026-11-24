@@ -670,11 +670,11 @@ async function showDrive(id,seq){
 
 // ---------------- TIKTOK ----------------
 // tiktok/<handle>.json is maintained outside the app; we just read it. Thumbnails are our own copies in
-// tiktok/thumbs/<id>.jpg (scripts/tiktok_thumbs.py): TikTok's CDN URLs are signed and die after ~2 days.
+// tiktok/thumbs/<id>.webp (scripts/tiktok_thumbs.py): TikTok's CDN URLs are signed and die after ~2 days.
 async function fetchTikTok(file){
   const j=await fetchJson(file+"?t="+Date.now(),{cache:"no-store"});
   return { title:decode(j.title||""), avatar:j.avatar||"", videos:(j.videos||[]).map(v=>({
-    id:String(v.id), title:decode(v.title||""), thumb:"tiktok/thumbs/"+String(v.id)+".jpg", dur:+v.dur||0, views:+v.views||0, pub:v.pub||"" })) };
+    id:String(v.id), title:decode(v.title||""), thumb:"tiktok/thumbs/"+String(v.id)+".webp", dur:+v.dur||0, views:+v.views||0, pub:v.pub||"" })) };
 }
 let ttList=[];                 // videos of the source now on screen; the feed pages through this
 let ttUser="";                 // handle (without @) of that source; the app needs it for the video page URL

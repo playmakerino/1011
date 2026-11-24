@@ -4,7 +4,7 @@
 # Captured items replace the existing entries; `missing` cards (rendered before the hook) keep their
 # existing entry when there is one, else go in with what the DOM showed: title, views parsed from
 # "510.2K", dur 0, and the date taken from the id (see iso_from_id) so new videos still sort first.
-# No `thumb` field: index.html serves tiktok/thumbs/<id>.jpg, TikTok's CDN URLs expire in ~2 days.
+# No `thumb` field: index.html serves tiktok/thumbs/<id>.webp, TikTok's CDN URLs expire in ~2 days.
 import sys, re, json, datetime
 
 def iso_from_id(vid):
